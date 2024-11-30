@@ -13,7 +13,8 @@ pub fn build(b: *std.Build) void {
     const zgl = b.addModule("zgl", .{
         .root_source_file = b.path("src/zgl.zig"),
         .target = target,
-        .optimize = optimize
+        .optimize = optimize,
+        .link_libc = true
     });
 
     const opt = switch (optimize) {
@@ -41,12 +42,17 @@ pub fn build(b: *std.Build) void {
     const wgpu_native = b.dependency(wgpu_pkg_name, .{});
 
     zgl.addLibraryPath(wgpu_native.path("lib/"));
-    zgl.linkSystemLibrary("wgpu_native", .{ .preferred_link_mode = .static });
+    zgl.linkSystemLibrary("wgpu_native", .{ 
+        .preferred_link_mode = .static, 
+        .use_pkg_config = .yes,
+        .needed = true,
+    });
 
     const mod_unit_tests = b.addTest(.{
         .root_source_file = b.path("src/zgl.zig"),
         .target = target,
         .optimize = optimize,
+        .link_libc = true
     });
     mod_unit_tests.addLibraryPath(wgpu_native.path("lib/"));
     mod_unit_tests.linkSystemLibrary("wgpu_native");
