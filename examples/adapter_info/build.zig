@@ -3,12 +3,12 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
-
     const exe = b.addExecutable(.{
         .name = "adapter_info",
         .root_source_file = b.path("src/main.zig"),
         .target = target,
         .optimize = optimize,
+        .link_libc = true
     });
 
     const zgl = b.dependency("zgl", .{

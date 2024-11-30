@@ -62,8 +62,7 @@
         },
         .wgpu_macos_x86_64_debug = .{ 
             .url = "https://github.com/gfx-rs/wgpu-native/releases/download/v22.1.0.5/wgpu-macos-x86_64-debug.zip", 
-            .hash = "122021723e9887d700e1852830ad12b79debc964a9f789b6e79701105c36f5d5ce44" 
-        },
+            .hash = "122021723e9887d700e1852830ad12b79debc964a9f789b6e79701105c36f5d5ce44" },
         .wgpu_macos_x86_64_release = .{
             .url = "https://github.com/gfx-rs/wgpu-native/releases/download/v22.1.0.5/wgpu-macos-x86_64-release.zip",
             .hash = "1220fe8168bcc47892ef649c2a525635ec9fd932ac2998d5503d38cc552c4cd89698",
@@ -72,6 +71,10 @@
         .wgpu_linux_x86_64_debug = .{
             .url = "https://github.com/gfx-rs/wgpu-native/releases/download/v22.1.0.5/wgpu-linux-x86_64-debug.zip",
             .hash = "1220ef2a0bf24558c66bb89c31065459423c2be50273785affd671245629d2f4a448",
+        },
+        .wgpu_linux_x86_64_release = .{
+            .url = "https://github.com/gfx-rs/wgpu-native/releases/download/v22.1.0.5/wgpu-linux-x86_64-release.zip",
+            .hash = "12202d55660b2b66a8cf0ae68cb5ac294e93b9b048099f77f5f09987c61091a579a8",
         },
     },
 

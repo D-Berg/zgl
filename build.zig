@@ -14,8 +14,10 @@ pub fn build(b: *std.Build) void {
         .root_source_file = b.path("src/zgl.zig"),
         .target = target,
         .optimize = optimize,
-        .link_libc = true
+        .link_libc = true,
     });
+
+    if (target.result.os.tag == .linux) zgl.link_libcpp = true;
 
     const opt = switch (optimize) {
         .Debug => "debug",
@@ -41,11 +43,16 @@ pub fn build(b: *std.Build) void {
 
     const wgpu_native = b.dependency(wgpu_pkg_name, .{});
 
+    if (target.result.os.tag == .macos) {
+        zgl.linkFramework("Cocoa", .{});
+        zgl.linkFramework("Metal", .{});
+        zgl.linkFramework("QuartzCore", .{});
+    }
+
     zgl.addLibraryPath(wgpu_native.path("lib/"));
     zgl.linkSystemLibrary("wgpu_native", .{ 
         .preferred_link_mode = .static, 
-        .use_pkg_config = .yes,
-        .needed = true,
+        .needed = true
     });
 
     const mod_unit_tests = b.addTest(.{
