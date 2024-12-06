@@ -109,10 +109,14 @@ fn onAdapterRequestEnded(
 
 pub const EnumerateAdapterOptions = extern struct {
     nextInChain: ?*const ChainedStruct = null,
-    backends: wgpu.BackendType
+    backends: wgpu.BackendType // TODO: check if its the same as in wgpu.h
 };
 /// Defined wgpu.h
-extern "c" fn wgpuInstanceEnumerateAdapters(instance: InstanceImpl, options: ?[*]const EnumerateAdapterOptions, adapters: ?[*]AdapterImpl) usize;
+extern "c" fn wgpuInstanceEnumerateAdapters(
+    instance: InstanceImpl, 
+    options: ?*const EnumerateAdapterOptions, 
+    adapters: ?[*]AdapterImpl
+) usize;
 
 /// Result must be freed by caller.
 pub fn EnumerateAdapters(instance: Instance, allocator: Allocator) ![]const Adapter {
