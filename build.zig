@@ -5,6 +5,8 @@ const std = @import("std");
 // runner.
 //
 
+// TODO: comptime check min version of zig and assert 0.14.0
+
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
