@@ -137,19 +137,19 @@ pub fn build(b: *std.Build) void {
                     glfw_src_dir ++ "posix_module.c",
                     glfw_src_dir ++ "egl_context.c",
 
-                    //X11 specific - need X11 headers
+                    //wayland specific
                     glfw_src_dir ++ "xkb_unicode.c",
                     glfw_src_dir ++ "linux_joystick.c",
                     glfw_src_dir ++ "posix_poll.c",
-                    glfw_src_dir ++ "x11_init.c",
-                    glfw_src_dir ++ "x11_monitor.c",
-                    glfw_src_dir ++ "x11_window.c",
-                    glfw_src_dir ++ "glx_context.c",
+                    glfw_src_dir ++ "wl_init.c",
+                    glfw_src_dir ++ "wl_monitor.c",
+                    glfw_src_dir ++ "wl_window.c",
                 },
-                .flags = &.{"-D_GLFW_X11"},
+                .flags = &.{"-D_GLFW_WAYLAND"},
             });
-
-            glfw.addIncludePath(b.path("x11-headers"));
+            glfw.addIncludePath(b.path("wayland-headers/wayland"));
+            glfw.addIncludePath(b.path("wayland-headers/wayland-protocols"));
+            glfw.addIncludePath(b.path("x11-headers/"));
 
         },
         else => @panic("Unsupported OS")
