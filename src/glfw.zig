@@ -120,12 +120,37 @@ pub fn GetWGPUSurface(window: Window, instance: Instance) wgpu.WGPUError!Surface
         .linux => {
             @panic("not yet implemented");
         },
+        .windows => {
+            return try GetWGPUWindowsSurface(window, instance);
+        },
         else => {
             @panic("Unsupported OS");
         }
     }
 
 }
+
+
+const ModuleName = ?[*]u8;
+extern "c" fn glfwGetWin32Window(window: *GLFWwindow) *anyopaque;
+extern "c" fn GetModuleHandleA(arg: ModuleName) ?*anyopaque;
+
+fn GetWGPUWindowsSurface(window: Window, instance: Instance) wgpu.WGPUError!Surface {
+    const hwnd = glfwGetWin32Window(window._impl);
+    const hinstance = GetModuleHandleA(null) orelse @panic("hinstance was null");
+
+    log.debug("hinstance = {any}", .{hinstance});
+
+
+    const fromWindowsHWND = Surface.DescriptorFromWindowsHWND{
+        .hwnd = hwnd,
+        .hinstance = hinstance,
+        .chain = .{ .sType = .SurfaceDescriptorFromWindowsHWND }
+    };
+
+    return try instance.CreateSurface(&.{ .nextInChain = &fromWindowsHWND.chain });
+}
+
 
 extern "c" fn glfwGetX11Display() *anyopaque;
 extern "c" fn glfwGetX11Window() *GLFWwindow;

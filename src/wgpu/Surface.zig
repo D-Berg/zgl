@@ -20,12 +20,19 @@ _inner: SurfaceImpl,
 
 pub const Descriptor = extern struct {
     nextInChain: ?*const ChainedStruct = null,
-    label: [*]const u8 = "",
+    label: ?[*]const u8 = null,
 };
 
 pub const DescriptorFromMetalLayer = extern struct {
     chain: ChainedStruct,
     layer: *anyopaque
+};
+
+pub const DescriptorFromWindowsHWND = extern struct {
+    chain: ChainedStruct,
+    hinstance: *anyopaque,
+    hwnd: *anyopaque,
+
 };
 
 pub const DescriptorFromXlibWindow = extern struct {
