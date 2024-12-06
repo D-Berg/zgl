@@ -1,11 +1,13 @@
 const std = @import("std");
 const log = std.log.scoped(.@"wgpu/instance");
 const wgpu = @import("wgpu.zig");
+const Allocator = std.mem.Allocator;
 const WGPUError = wgpu.WGPUError;
 const Adapter = wgpu.Adapter;
 const AdapterImpl = Adapter.AdapterImpl;
 const Surface = wgpu.Surface;
 const SurfaceImpl = Surface.SurfaceImpl;
+const ChainedStruct = wgpu.ChainedStruct;
 
 const Instance = @This();
 const InstanceImpl = *opaque {};
@@ -103,6 +105,32 @@ fn onAdapterRequestEnded(
 
     user_data.requestEnded = true;
 
+}
+
+pub const EnumerateAdapterOptions = extern struct {
+    nextInChain: ?*const ChainedStruct = null,
+    backends: wgpu.BackendType
+};
+/// Defined wgpu.h
+extern "c" fn wgpuInstanceEnumerateAdapters(instance: InstanceImpl, options: ?[*]const EnumerateAdapterOptions, adapters: ?[*]AdapterImpl) usize;
+
+/// Result must be freed by caller.
+pub fn EnumerateAdapters(instance: Instance, allocator: Allocator) ![]const Adapter {
+
+    const adapter_count = wgpuInstanceEnumerateAdapters(instance._inner, null, null);
+
+    const adapters_impl = try allocator.alloc(AdapterImpl, adapter_count);
+    defer allocator.free(adapters_impl);
+
+    _ = wgpuInstanceEnumerateAdapters(instance._inner, null, adapters_impl.ptr);
+
+    const adapters = try allocator.alloc(Adapter, adapter_count);
+
+    for (adapters_impl, 0..) |impl, i| {
+        adapters[i] = Adapter { ._inner = impl };
+    }
+
+    return adapters;
 }
 
 extern "c" fn wgpuInstanceCreateSurface(instance: InstanceImpl, descriptor: *const Surface.Descriptor) ?SurfaceImpl;
