@@ -1,3 +1,9 @@
 [submodule "glfw"]
 	path = glfw
 	url = https://github.com/glfw/glfw.git
+[submodule "libx11"]
+	path = libx11
+	url = https://gitlab.freedesktop.org/xorg/lib/libx11
+[submodule "xorgproto"]
+	path = xorgproto
+	url = https://gitlab.freedesktop.org/xorg/proto/xorgproto.git
