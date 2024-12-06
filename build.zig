@@ -9,6 +9,25 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
+    const opt_str = switch (optimize) {
+        .Debug => "debug",
+        else => "release"
+    };
+
+    const os_str = switch (target.result.os.tag) {
+        .macos,
+        .windows,
+        .linux,
+        => |res| @tagName(res),
+        else => @panic("Unsupported OS")
+    };
+
+    const arch_str = switch (target.result.cpu.arch) {
+        .aarch64,
+        .x86_64,
+        => |res| @tagName(res),
+        else => @panic("Unsupported arch")
+    };
 
     const zgl = b.addModule("zgl", .{
         .root_source_file = b.path("src/zgl.zig"),
@@ -17,36 +36,86 @@ pub fn build(b: *std.Build) void {
         .link_libc = true,
     });
 
-    if (target.result.os.tag == .linux) zgl.link_libcpp = true;
 
-    const opt = switch (optimize) {
-        .Debug => "debug",
-        else => "release"
-    };
+    const glfw = b.addStaticLibrary(.{
+        .name = "glfw",
+        .target = target,
+        .optimize = optimize,
+        .link_libc = true,
+    });
 
-    const os = switch (target.result.os.tag) {
-        .macos,
-        .windows,
-        .linux,
-        => |res| @tagName(res),
-        else => @panic("Unsupported OS")
-    };
-
-    const arch = switch (target.result.cpu.arch) {
-        .aarch64,
-        .x86_64,
-        => |res| @tagName(res),
-        else => @panic("Unsupported arch")
-    };
-
-    const wgpu_pkg_name = b.fmt("wgpu_{s}_{s}_{s}", .{os, arch, opt});
+    const wgpu_pkg_name = b.fmt("wgpu_{s}_{s}_{s}", .{os_str, arch_str, opt_str});
 
     const wgpu_native = b.dependency(wgpu_pkg_name, .{});
 
-    if (target.result.os.tag == .macos) {
-        zgl.linkFramework("Cocoa", .{});
-        zgl.linkFramework("Metal", .{});
-        zgl.linkFramework("QuartzCore", .{});
+    const glfw_src_dir = "glfw/src/";
+    switch (target.result.os.tag) {
+        .macos => {
+            zgl.linkFramework("Cocoa", .{});
+            zgl.linkFramework("Metal", .{});
+            zgl.linkFramework("QuartzCore", .{});
+
+            glfw.linkSystemLibrary("objc");
+            glfw.linkFramework("IOKit");
+            glfw.linkFramework("CoreFoundation");
+            glfw.linkFramework("Metal");
+            glfw.linkFramework("AppKit");
+            glfw.linkFramework("CoreServices");
+            glfw.linkFramework("CoreGraphics");
+            glfw.linkFramework("Foundation");
+
+            glfw.addCSourceFiles(.{
+                .files = &.{
+                    glfw_src_dir ++ "platform.c",
+                    glfw_src_dir ++ "monitor.c",
+                    glfw_src_dir ++ "init.c",
+                    glfw_src_dir ++ "vulkan.c",
+                    glfw_src_dir ++ "input.c",
+                    glfw_src_dir ++ "context.c",
+                    glfw_src_dir ++ "window.c",
+                    glfw_src_dir ++ "osmesa_context.c",
+                    glfw_src_dir ++ "egl_context.c",
+                    glfw_src_dir ++ "null_init.c",
+                    glfw_src_dir ++ "null_monitor.c",
+                    glfw_src_dir ++ "null_window.c",
+                    glfw_src_dir ++ "null_joystick.c",
+                    glfw_src_dir ++ "posix_thread.c",
+                    glfw_src_dir ++ "posix_module.c",
+                    glfw_src_dir ++ "posix_poll.c",
+                    glfw_src_dir ++ "nsgl_context.m",
+                    glfw_src_dir ++ "cocoa_time.c",
+                    glfw_src_dir ++ "cocoa_joystick.m",
+                    glfw_src_dir ++ "cocoa_init.m",
+                    glfw_src_dir ++ "cocoa_window.m",
+                    glfw_src_dir ++ "cocoa_monitor.m",
+                },
+                .flags = &.{"-D_GLFW_COCOA"},
+            });
+
+
+            const metal_layer = b.addStaticLibrary(.{
+                .name = "metal_layer",
+                .target = target,
+                .optimize = optimize,
+                .link_libc = true,
+            });
+
+            metal_layer.addCSourceFiles(.{
+                .files = &.{
+                    "src/setup_metal_layer.m"
+                }
+            });
+            metal_layer.linkFramework("Foundation");
+            metal_layer.linkFramework("Cocoa");
+            metal_layer.linkFramework("QuartzCore");
+            zgl.linkLibrary(metal_layer);
+
+        },
+        .windows => @panic("unimplemented"),
+        .linux => {
+            zgl.link_libcpp = true; // wgpu need cpp std lib
+        },
+        else => @panic("Unsupported OS")
     }
 
     zgl.addLibraryPath(wgpu_native.path("lib/"));
@@ -54,6 +123,8 @@ pub fn build(b: *std.Build) void {
         .preferred_link_mode = .static, 
         .needed = true
     });
+
+    zgl.linkLibrary(glfw);
 
     const mod_unit_tests = b.addTest(.{
         .root_source_file = b.path("src/zgl.zig"),
