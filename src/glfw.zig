@@ -7,7 +7,7 @@ const Surface = wgpu.Surface;
 const os_tag = @import("builtin").os.tag;
 
 pub const GlfwError = error {
-    FailedInit,
+    GLFWFailedInit,
     FailedToCreateWindow
 };
 
@@ -18,7 +18,12 @@ pub fn init() GlfwError!void {
 
     if (status == 0) {
         log.err("Failed to init glfw", .{});
-        return error.FailedInit;
+
+        var description: [*:0]u8 = undefined;
+        _ = glfwGetError(&description);
+        log.err("error description = {s}", .{description});
+
+        return error.GLFWFailedInit;
     }
 }
 
@@ -26,6 +31,8 @@ extern "c" fn glfwTerminate() void;
 pub fn terminate() void {
     glfwTerminate();
 }
+
+extern "c" fn glfwGetError(description: *[*]u8) u32;
 
 extern "c" fn glfwPollEvents() void;
 pub fn pollEvents() void {
