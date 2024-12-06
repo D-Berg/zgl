@@ -80,6 +80,11 @@
         .wgpu_windows_x86_64_debug = .{
             .url = "https://github.com/gfx-rs/wgpu-native/releases/download/v22.1.0.5/wgpu-windows-x86_64-gnu-debug.zip",
             .hash = "1220903e2fc9fdad1431d44f985507b1cf933bfd87bc1bf9fc30900d9cb0fdad08a2",
+        },
+
+        .wgpu_windows_x86_64_release = .{
+            .url = "https://github.com/gfx-rs/wgpu-native/releases/download/v22.1.0.5/wgpu-windows-x86_64-gnu-release.zip",
+            .hash = "1220245eaf64beab185bdd1b52cb7cedd8d0b7f1d545e41f67325dd32e562fee0380"
         }
     },
 

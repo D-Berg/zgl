@@ -119,6 +119,15 @@ pub fn build(b: *std.Build) void {
             glfw.linkSystemLibrary("user32");
             glfw.linkSystemLibrary("shell32");
 
+            // Required by wgpu_native
+            zgl.linkSystemLibrary("ole32", .{});
+            zgl.linkSystemLibrary("kernel32", .{});
+            zgl.linkSystemLibrary("userenv", .{});
+            zgl.linkSystemLibrary("ws2_32", .{});
+            zgl.linkSystemLibrary("oleaut32", .{});
+            zgl.linkSystemLibrary("opengl32", .{});
+            zgl.linkSystemLibrary("d3dcompiler_47", .{});
+            zgl.link_libcpp = true;
 
             glfw.addCSourceFiles(.{
                 .files = &.{
@@ -192,8 +201,9 @@ pub fn build(b: *std.Build) void {
 
     zgl.addLibraryPath(wgpu_native.path("lib/"));
     zgl.linkSystemLibrary("wgpu_native", .{ 
-        // .preferred_link_mode = .dynamic, 
-        .needed = true
+        .preferred_link_mode = .static, 
+        .needed = true,
+        // .weak = true
     });
 
     zgl.linkLibrary(glfw);
