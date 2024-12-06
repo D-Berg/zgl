@@ -17,5 +17,10 @@ pub fn main() !void {
         const info = adapter.GetInfo();
 
         info.logInfo();
+
+        if (adapter.GetLimits()) |limits| {
+            limits.logLimits();
+        }
+
     }
 }
