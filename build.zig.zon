@@ -76,6 +76,11 @@
             .url = "https://github.com/gfx-rs/wgpu-native/releases/download/v22.1.0.5/wgpu-linux-x86_64-release.zip",
             .hash = "12202d55660b2b66a8cf0ae68cb5ac294e93b9b048099f77f5f09987c61091a579a8",
         },
+
+        .wgpu_windows_x86_64_debug = .{
+            .url = "https://github.com/gfx-rs/wgpu-native/releases/download/v22.1.0.5/wgpu-windows-x86_64-gnu-debug.zip",
+            .hash = "1220903e2fc9fdad1431d44f985507b1cf933bfd87bc1bf9fc30900d9cb0fdad08a2",
+        }
     },
 
     // Specifies the set of files and directories that are included in this package.

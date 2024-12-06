@@ -113,7 +113,42 @@ pub fn build(b: *std.Build) void {
             zgl.linkLibrary(metal_layer);
 
         },
-        .windows => @panic("unimplemented"),
+        .windows => {
+
+            glfw.linkSystemLibrary("gdi32");
+            glfw.linkSystemLibrary("user32");
+            glfw.linkSystemLibrary("shell32");
+
+
+            glfw.addCSourceFiles(.{
+                .files = &.{
+                    glfw_src_dir ++ "platform.c",
+                    glfw_src_dir ++ "monitor.c",
+                    glfw_src_dir ++ "init.c",
+                    glfw_src_dir ++ "vulkan.c",
+                    glfw_src_dir ++ "input.c",
+                    glfw_src_dir ++ "context.c",
+                    glfw_src_dir ++ "window.c",
+                    glfw_src_dir ++ "osmesa_context.c",
+                    glfw_src_dir ++ "egl_context.c",
+                    glfw_src_dir ++ "null_init.c",
+                    glfw_src_dir ++ "null_monitor.c",
+                    glfw_src_dir ++ "null_window.c",
+                    glfw_src_dir ++ "null_joystick.c",
+                    glfw_src_dir ++ "wgl_context.c",
+                    glfw_src_dir ++ "win32_thread.c",
+                    glfw_src_dir ++ "win32_init.c",
+                    glfw_src_dir ++ "win32_monitor.c",
+                    glfw_src_dir ++ "win32_time.c",
+                    glfw_src_dir ++ "win32_joystick.c",
+                    glfw_src_dir ++ "win32_window.c",
+                    glfw_src_dir ++ "win32_module.c",
+                },
+                .flags = &.{"-D_GLFW_WIN32"},
+            });
+
+        },
+
         .linux => {
             zgl.link_libcpp = true; // wgpu need cpp std lib
             
@@ -157,7 +192,7 @@ pub fn build(b: *std.Build) void {
 
     zgl.addLibraryPath(wgpu_native.path("lib/"));
     zgl.linkSystemLibrary("wgpu_native", .{ 
-        .preferred_link_mode = .static, 
+        // .preferred_link_mode = .dynamic, 
         .needed = true
     });
 
