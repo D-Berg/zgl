@@ -34,6 +34,7 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
         .link_libc = true,
+        .strip = true
     });
 
 
@@ -42,6 +43,7 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
         .link_libc = true,
+        .strip = true
     });
 
     const wgpu_pkg_name = b.fmt("wgpu_{s}_{s}_{s}", .{os_str, arch_str, opt_str});
@@ -114,6 +116,41 @@ pub fn build(b: *std.Build) void {
         .windows => @panic("unimplemented"),
         .linux => {
             zgl.link_libcpp = true; // wgpu need cpp std lib
+            
+            glfw.addCSourceFiles(.{
+                .files = &.{
+                    glfw_src_dir ++ "platform.c",
+                    glfw_src_dir ++ "monitor.c",
+                    glfw_src_dir ++ "init.c",
+                    glfw_src_dir ++ "vulkan.c",
+                    glfw_src_dir ++ "input.c",
+                    glfw_src_dir ++ "context.c",
+                    glfw_src_dir ++ "window.c",
+                    glfw_src_dir ++ "osmesa_context.c",
+                    glfw_src_dir ++ "egl_context.c",
+                    glfw_src_dir ++ "null_init.c",
+                    glfw_src_dir ++ "null_monitor.c",
+                    glfw_src_dir ++ "null_window.c",
+                    glfw_src_dir ++ "null_joystick.c",
+                    glfw_src_dir ++ "posix_time.c",
+                    glfw_src_dir ++ "posix_thread.c",
+                    glfw_src_dir ++ "posix_module.c",
+                    glfw_src_dir ++ "egl_context.c",
+
+                    //X11 specific - need X11 headers
+                    glfw_src_dir ++ "xkb_unicode.c",
+                    glfw_src_dir ++ "linux_joystick.c",
+                    glfw_src_dir ++ "posix_poll.c",
+                    glfw_src_dir ++ "x11_init.c",
+                    glfw_src_dir ++ "x11_monitor.c",
+                    glfw_src_dir ++ "x11_window.c",
+                    glfw_src_dir ++ "glx_context.c",
+                },
+                .flags = &.{"-D_GLFW_X11"},
+            });
+
+            glfw.addIncludePath(b.path("x11-headers"));
+
         },
         else => @panic("Unsupported OS")
     }

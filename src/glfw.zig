@@ -111,10 +111,10 @@ pub fn GetWGPUSurface(window: Window, instance: Instance) wgpu.WGPUError!Surface
             return try GetWGPUMetalSurface(window, instance);
         },
         .linux => {
-            @compileError("not yet implemented");
+            @panic("not yet implemented");
         },
         else => {
-            @compileError("Unsupported OS");
+            @panic("Unsupported OS");
         }
     }
 
