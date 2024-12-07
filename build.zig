@@ -123,7 +123,6 @@ pub fn build(b: *std.Build) void {
 
             // Required by wgpu_native
             zgl.linkSystemLibrary("ole32", .{});
-            zgl.linkSystemLibrary("ntdll", .{});
             zgl.linkSystemLibrary("user32", .{});
             zgl.linkSystemLibrary("kernel32", .{});
             zgl.linkSystemLibrary("userenv", .{});
@@ -132,7 +131,6 @@ pub fn build(b: *std.Build) void {
             zgl.linkSystemLibrary("opengl32", .{});
             zgl.linkSystemLibrary("d3dcompiler_47", .{});
             zgl.link_libcpp = true;
-
 
             glfw.addCSourceFiles(.{
                 .files = &.{

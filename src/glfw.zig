@@ -131,16 +131,19 @@ pub fn GetWGPUSurface(window: Window, instance: Instance) wgpu.WGPUError!Surface
 }
 
 
-const ModuleName = ?[*]u8;
-extern "c" fn glfwGetWin32Window(window: *GLFWwindow) *anyopaque;
-extern "c" fn GetModuleHandleA(arg: ModuleName) ?*anyopaque;
+const LPCSTR = ?[*:0]const u8;
+const HMODULE = *opaque {};
+extern "c" fn glfwGetWin32Window(window: *GLFWwindow) ?*anyopaque;
+extern "c" fn GetModuleHandleA(lpModuleName: LPCSTR) ?HMODULE;
+extern "c" fn GetModuleHandleW(lpModuleName: LPCSTR) ?HMODULE;
 
 fn GetWGPUWindowsSurface(window: Window, instance: Instance) wgpu.WGPUError!Surface {
-    const hwnd = glfwGetWin32Window(window._impl);
+    // TODO: Return errors if null instead
+    const hwnd = glfwGetWin32Window(window._impl) orelse @panic("hwnd was null");
     const hinstance = GetModuleHandleA(null) orelse @panic("hinstance was null");
 
     log.debug("hinstance = {any}", .{hinstance});
-
+    log.debug("hwnd = {any}", .{hwnd});
 
     const fromWindowsHWND = Surface.DescriptorFromWindowsHWND{
         .hwnd = hwnd,
@@ -148,7 +151,11 @@ fn GetWGPUWindowsSurface(window: Window, instance: Instance) wgpu.WGPUError!Surf
         .chain = .{ .sType = .SurfaceDescriptorFromWindowsHWND }
     };
 
-    return try instance.CreateSurface(&.{ .nextInChain = &fromWindowsHWND.chain });
+    const surface_desc = Surface.Descriptor{
+        .nextInChain = &fromWindowsHWND.chain,
+    };
+
+    return try instance.CreateSurface(&surface_desc);
 }
 
 

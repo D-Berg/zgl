@@ -38,7 +38,7 @@ pub fn main() !void {
     defer glfw.terminate();
 
 
-    glfw.Window.hint(.{.resizable = false, .client_api = .NO_API});
+    glfw.Window.hint(.{ .client_api = .NO_API});
     const window = try glfw.Window.Create(WINDOW_WIDTH, WINDOW_HEIGHT, "My window");
     defer window.destroy();
 
@@ -48,10 +48,7 @@ pub fn main() !void {
     const surface = try glfw.GetWGPUSurface(window, instance);
     defer surface.Release();
 
-    const adapter = try instance.RequestAdapter(&.{ 
-        .compatibleSurface = surface._inner,
-        .powerPreference = .HighPerformance,
-    });
+    const adapter = try instance.RequestAdapter(&.{ });
     defer adapter.Release();
 
     const surface_capabilities = surface.GetCapabilities(adapter);
