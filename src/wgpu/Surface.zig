@@ -119,13 +119,13 @@ pub const Configuration = extern struct {
 extern "c" fn wgpuSurfaceConfigure(surface: SurfaceImpl, config: *const Configuration) void;
 pub fn Configure(surface: Surface, config: *const Configuration) void {
     wgpuSurfaceConfigure(surface._inner, config);
-    log.info("Configured", .{});
+    log.debug("Configured", .{});
 }
 
 extern "c" fn wgpuSurfaceUnconfigure(surface: SurfaceImpl) void;
 pub fn Unconfigure(surface: Surface) void {
     wgpuSurfaceUnconfigure(surface._inner);
-    log.info("Unconfigured", .{});
+    log.debug("Unconfigured", .{});
 }
 
 
