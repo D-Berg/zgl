@@ -150,7 +150,11 @@ fn GetWGPUWindowsSurface(window: Window, instance: Instance) wgpu.WGPUError!Surf
         .chain = .{ .sType = .SurfaceDescriptorFromWindowsHWND }
     };
 
-    return try instance.CreateSurface(&.{ .nextInChain = &fromWindowsHWND.chain });
+    const surface_desc = Surface.Descriptor{
+        .nextInChain = &fromWindowsHWND.chain,
+    };
+
+    return try instance.CreateSurface(&surface_desc);
 }
 
 
