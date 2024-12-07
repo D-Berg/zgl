@@ -135,11 +135,12 @@ const LPCSTR = ?[*:0]const u8;
 const HMODULE = *opaque {};
 extern "c" fn glfwGetWin32Window(window: *GLFWwindow) ?*anyopaque;
 extern "c" fn GetModuleHandleA(lpModuleName: LPCSTR) ?HMODULE;
+extern "c" fn GetModuleHandleW(lpModuleName: LPCSTR) ?HMODULE;
 
 fn GetWGPUWindowsSurface(window: Window, instance: Instance) wgpu.WGPUError!Surface {
     // TODO: Return errors if null instead
     const hwnd = glfwGetWin32Window(window._impl) orelse @panic("hwnd was null");
-    const hinstance = GetModuleHandleA(null) orelse @panic("hinstance was null");
+    const hinstance = GetModuleHandleW(null) orelse @panic("hinstance was null");
 
     log.debug("hinstance = {any}", .{hinstance});
     log.debug("hwnd = {any}", .{hwnd});
