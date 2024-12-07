@@ -29,3 +29,7 @@ pub const Descriptor = extern struct {
     mappedAtCreation: bool,
 };
 
+extern "c" fn wgpuBufferRelease(buffer: BufferImpl) void;
+pub fn Release(buffer: Buffer) void {
+    wgpuBufferRelease(buffer._impl);
+}
