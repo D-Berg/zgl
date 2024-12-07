@@ -53,7 +53,6 @@ pub fn build(b: *std.Build) void {
 
     const wgpu_native = b.dependency(wgpu_pkg_name, .{});
 
-    const glfw_src_dir = "glfw/src/";
     switch (target.result.os.tag) {
         .macos => {
             zgl.linkFramework("Cocoa", .{});
@@ -138,27 +137,27 @@ pub fn build(b: *std.Build) void {
             glfw.addCSourceFiles(.{
                 .root = glfw_dep.path("src"),
                 .files = &.{
-                    glfw_src_dir ++ "platform.c",
-                    glfw_src_dir ++ "monitor.c",
-                    glfw_src_dir ++ "init.c",
-                    glfw_src_dir ++ "vulkan.c",
-                    glfw_src_dir ++ "input.c",
-                    glfw_src_dir ++ "context.c",
-                    glfw_src_dir ++ "window.c",
-                    glfw_src_dir ++ "osmesa_context.c",
-                    glfw_src_dir ++ "egl_context.c",
-                    glfw_src_dir ++ "null_init.c",
-                    glfw_src_dir ++ "null_monitor.c",
-                    glfw_src_dir ++ "null_window.c",
-                    glfw_src_dir ++ "null_joystick.c",
-                    glfw_src_dir ++ "wgl_context.c",
-                    glfw_src_dir ++ "win32_thread.c",
-                    glfw_src_dir ++ "win32_init.c",
-                    glfw_src_dir ++ "win32_monitor.c",
-                    glfw_src_dir ++ "win32_time.c",
-                    glfw_src_dir ++ "win32_joystick.c",
-                    glfw_src_dir ++ "win32_window.c",
-                    glfw_src_dir ++ "win32_module.c",
+                    "platform.c",
+                    "monitor.c",
+                    "init.c",
+                    "vulkan.c",
+                    "input.c",
+                    "context.c",
+                    "window.c",
+                    "osmesa_context.c",
+                    "egl_context.c",
+                    "null_init.c",
+                    "null_monitor.c",
+                    "null_window.c",
+                    "null_joystick.c",
+                    "wgl_context.c",
+                    "win32_thread.c",
+                    "win32_init.c",
+                    "win32_monitor.c",
+                    "win32_time.c",
+                    "win32_joystick.c",
+                    "win32_window.c",
+                    "win32_module.c",
                 },
                 .flags = &.{"-D_GLFW_WIN32"},
             });
@@ -171,37 +170,46 @@ pub fn build(b: *std.Build) void {
             glfw.addCSourceFiles(.{
                 .root = glfw_dep.path("src"),
                 .files = &.{
-                    glfw_src_dir ++ "platform.c",
-                    glfw_src_dir ++ "monitor.c",
-                    glfw_src_dir ++ "init.c",
-                    glfw_src_dir ++ "vulkan.c",
-                    glfw_src_dir ++ "input.c",
-                    glfw_src_dir ++ "context.c",
-                    glfw_src_dir ++ "window.c",
-                    glfw_src_dir ++ "osmesa_context.c",
-                    glfw_src_dir ++ "egl_context.c",
-                    glfw_src_dir ++ "null_init.c",
-                    glfw_src_dir ++ "null_monitor.c",
-                    glfw_src_dir ++ "null_window.c",
-                    glfw_src_dir ++ "null_joystick.c",
-                    glfw_src_dir ++ "posix_time.c",
-                    glfw_src_dir ++ "posix_thread.c",
-                    glfw_src_dir ++ "posix_module.c",
-                    glfw_src_dir ++ "egl_context.c",
+                    "platform.c",
+                    "monitor.c",
+                    "init.c",
+                    "vulkan.c",
+                    "input.c",
+                    "context.c",
+                    "window.c",
+                    "osmesa_context.c",
+                    "egl_context.c",
+                    "null_init.c",
+                    "null_monitor.c",
+                    "null_window.c",
+                    "null_joystick.c",
+                    "posix_time.c",
+                    "posix_thread.c",
+                    "posix_module.c",
+                    "egl_context.c",
 
-                    //wayland specific
-                    glfw_src_dir ++ "xkb_unicode.c",
-                    glfw_src_dir ++ "linux_joystick.c",
-                    glfw_src_dir ++ "posix_poll.c",
-                    glfw_src_dir ++ "wl_init.c",
-                    glfw_src_dir ++ "wl_monitor.c",
-                    glfw_src_dir ++ "wl_window.c",
+                    // shared
+                    "xkb_unicode.c",
+                    "linux_joystick.c",
+                    "posix_poll.c",
+
+                    //X11 specific
+                    "x11_init.c",
+                    "x11_monitor.c",
+                    "x11_window.c",
+                    "glx_context.c",
+
+                    //wayland
+                    // "wl_init.c",
+                    // "wl_monitor.c",
+                    // "wl_window.c",
                 },
-                .flags = &.{"-D_GLFW_WAYLAND"},
+                .flags = &.{"-D_GLFW_X11"},
             });
-            glfw.addIncludePath(b.path("wayland-headers/wayland"));
-            glfw.addIncludePath(b.path("wayland-headers/wayland-protocols"));
+            // glfw.addIncludePath(b.path("wayland-headers/wayland"));
+            // glfw.addIncludePath(b.path("wayland-headers/wayland-protocols"));
             glfw.addIncludePath(b.path("x11-headers/"));
+            glfw.linkSystemLibrary("X11");
 
         },
         else => @panic("Unsupported OS")
