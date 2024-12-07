@@ -18,6 +18,8 @@ const ShaderModule = wgpu.ShaderModule;
 const ShaderModuleImpl = ShaderModule.ShaderModuleImpl;
 const RenderPipeline = wgpu.RenderPipeline;
 const RenderPipelineImpl = RenderPipeline.RenderPipelineImpl;
+const Buffer = wgpu.Buffer;
+const BufferImpl = Buffer.BufferImpl;
 
 const Device = @This();
 ///Used for calling c API
@@ -170,4 +172,24 @@ pub const SupportedFeatures = struct {
     }
     
 };
+
+extern "c" fn wgpuDeviceCreateBuffer(
+    device: DeviceImpl, 
+    descriptor: *const Buffer.Descriptor
+) ?BufferImpl;
+
+pub fn CreateBuffer(
+    device: Device, 
+    descriptor: *const Buffer.Descriptor
+) WGPUError!Buffer {
+
+    const maybe_impl = wgpuDeviceCreateBuffer(device._inner, descriptor);
+
+    if (maybe_impl) |impl| {
+        return Buffer { ._impl = impl };
+    } else {
+        return WGPUError.FailedToCreateBuffer;
+    }
+
+}
 

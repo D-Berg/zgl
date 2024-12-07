@@ -18,6 +18,7 @@ pub const ShaderModule = @import("ShaderModule.zig");
 pub const ShaderModuleImpl = ShaderModule.ShaderModuleImpl;
 pub const PipelineLayout = @import("PipelineLayout.zig");
 pub const RenderPipeline = @import("RenderPipeline.zig");
+pub const Buffer = @import("Buffer.zig");
 
 
 pub const WGPUError = error {
@@ -31,7 +32,8 @@ pub const WGPUError = error {
     FailedToBeginRenderPass,
     FailedToCreateShaderModule,
     FailedToCreateRenderPipeline,
-    FailedToCreateSurface
+    FailedToCreateSurface,
+    FailedToCreateBuffer,
     
 };
 
