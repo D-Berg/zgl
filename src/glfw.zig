@@ -106,6 +106,28 @@ pub const Window = struct {
         if (hints.client_api) |val| glfwWindowHint(GLFW_CLIENT_API, @intFromEnum(val));
     }
 
+    const Size = struct {
+        width: u32,
+        height: u32
+    };
+
+    extern "c" fn glfwGetWindowSize(
+        handle: *GLFWwindow, 
+        width: *u32, 
+        height: *u32
+    ) void;
+    pub fn GetSize(window: Window) !Size {
+
+        var width: u32 = 0;
+        var height: u32 = 0;
+
+        glfwGetWindowSize(window._impl, &width, &height);
+
+        if (width == 0 or height == 0) return error.InvalidSize;
+
+        return Size { .width = width, .height = height };
+    }
+
 
 };
 

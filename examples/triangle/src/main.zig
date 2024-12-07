@@ -4,6 +4,7 @@ const testing = std.testing;
 const log = std.log.scoped(.@"main");
 const zgl = @import("zgl");
 const wgpu = zgl.wgpu;
+const Surface = wgpu.Surface;
 const glfw = zgl.glfw;
 
 const WINDOW_WIDTH = 800;
@@ -38,7 +39,7 @@ pub fn main() !void {
     defer glfw.terminate();
 
 
-    glfw.Window.hint(.{ .client_api = .NO_API});
+    glfw.Window.hint(.{ .client_api = .NO_API, .resizable = true });
     const window = try glfw.Window.Create(WINDOW_WIDTH, WINDOW_HEIGHT, "My window");
     defer window.destroy();
 
@@ -94,7 +95,7 @@ pub fn main() !void {
     // queue.Submit(1, &command_buffer);
     // command_buffer.Release();
 
-    surface.Configure(&.{
+    var surface_config = Surface.Configuration{
         .device = device._inner,
         .width = WINDOW_WIDTH,
         .height = WINDOW_HEIGHT,
@@ -102,7 +103,8 @@ pub fn main() !void {
         .format = surface_capabilities.formats.?[0],
         .presentMode = .FifoRelaxed,
         .alphaMode = .Auto
-    });
+    };
+    surface.Configure(&surface_config);
     defer surface.Unconfigure();
 
     const code_desc = wgpu.ShaderModule.WGSLDescriptor{
@@ -166,7 +168,24 @@ pub fn main() !void {
 
         glfw.pollEvents();
 
-        const texture = try surface.GetCurrentTexture();
+        const texture = surface.GetCurrentTexture() catch |err| switch (err){
+            error.RecoverableTexture => {
+
+                const size = try window.GetSize();
+
+                surface_config.width = size.width;
+                surface_config.height = size.height;
+
+                surface.Configure(&surface_config);
+
+                continue;
+
+            },
+            else => {
+                return err;
+            }
+
+        };
         defer texture.Release();
 
         const view = try texture.CreateView(&.{

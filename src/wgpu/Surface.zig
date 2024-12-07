@@ -129,8 +129,13 @@ pub fn Unconfigure(surface: Surface) void {
 }
 
 
+const GetSurfaceTextureError = error {
+    NullTexture,
+    RecoverableTexture,
+    UnrecoverableTexture
+};
 extern "c" fn wgpuSurfaceGetCurrentTexture(surface: SurfaceImpl, surfaceTexture: *Texture) void;
-pub fn GetCurrentTexture(surface: Surface) WGPUError!wgpu.Texture {
+pub fn GetCurrentTexture(surface: Surface) GetSurfaceTextureError!wgpu.Texture {
 
     var surface_texture = Texture{};
 
@@ -143,13 +148,16 @@ pub fn GetCurrentTexture(surface: Surface) WGPUError!wgpu.Texture {
                 return wgpu.Texture { ._impl = texture };
             } else {
                 log.err("surface_texture.texture was null", .{});
-                return error.FailedToGetSurfaceTexture;
+                return GetSurfaceTextureError.NullTexture;
             }
 
         }, 
+        .Timeout, .Outdated, .Lost => {
+            return GetSurfaceTextureError.RecoverableTexture;
+        },
         inline else => |status| {
             log.err("Failed to get current texture with status: {s}", .{@tagName(status)});
-            return error.FailedToGetSurfaceTexture;
+            return GetSurfaceTextureError.UnrecoverableTexture;
         } 
     }
 

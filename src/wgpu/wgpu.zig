@@ -27,7 +27,6 @@ pub const WGPUError = error {
     FailedToGetDeviceLimits,
     FailedToGetQueue,
     UnsuccessfulSurfaceGetCurrentTextureStatus,
-    FailedToGetSurfaceTexture,
     FailedToGetTextureView,
     FailedToBeginRenderPass,
     FailedToCreateShaderModule,
