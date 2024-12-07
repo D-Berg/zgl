@@ -132,7 +132,7 @@ pub fn build(b: *std.Build) void {
             zgl.linkSystemLibrary("d3dcompiler_47", .{});
             zgl.link_libcpp = true;
 
-            // zgl.linkSystemLibrary("ntdll", .{});
+            zgl.linkSystemLibrary("ntdll", .{});
 
             glfw.addCSourceFiles(.{
                 .files = &.{
