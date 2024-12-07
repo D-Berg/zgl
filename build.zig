@@ -40,6 +40,7 @@ pub fn build(b: *std.Build) void {
     });
 
 
+    const glfw_dep = b.dependency("glfw", .{});
     const glfw = b.addStaticLibrary(.{
         .name = "glfw",
         .target = target,
@@ -69,29 +70,30 @@ pub fn build(b: *std.Build) void {
             glfw.linkFramework("Foundation");
 
             glfw.addCSourceFiles(.{
+                .root = glfw_dep.path("src"),
                 .files = &.{
-                    glfw_src_dir ++ "platform.c",
-                    glfw_src_dir ++ "monitor.c",
-                    glfw_src_dir ++ "init.c",
-                    glfw_src_dir ++ "vulkan.c",
-                    glfw_src_dir ++ "input.c",
-                    glfw_src_dir ++ "context.c",
-                    glfw_src_dir ++ "window.c",
-                    glfw_src_dir ++ "osmesa_context.c",
-                    glfw_src_dir ++ "egl_context.c",
-                    glfw_src_dir ++ "null_init.c",
-                    glfw_src_dir ++ "null_monitor.c",
-                    glfw_src_dir ++ "null_window.c",
-                    glfw_src_dir ++ "null_joystick.c",
-                    glfw_src_dir ++ "posix_thread.c",
-                    glfw_src_dir ++ "posix_module.c",
-                    glfw_src_dir ++ "posix_poll.c",
-                    glfw_src_dir ++ "nsgl_context.m",
-                    glfw_src_dir ++ "cocoa_time.c",
-                    glfw_src_dir ++ "cocoa_joystick.m",
-                    glfw_src_dir ++ "cocoa_init.m",
-                    glfw_src_dir ++ "cocoa_window.m",
-                    glfw_src_dir ++ "cocoa_monitor.m",
+                    "platform.c",
+                    "monitor.c",
+                    "init.c",
+                    "vulkan.c",
+                    "input.c",
+                    "context.c",
+                    "window.c",
+                    "osmesa_context.c",
+                    "egl_context.c",
+                    "null_init.c",
+                    "null_monitor.c",
+                    "null_window.c",
+                    "null_joystick.c",
+                    "posix_thread.c",
+                    "posix_module.c",
+                    "posix_poll.c",
+                    "nsgl_context.m",
+                    "cocoa_time.c",
+                    "cocoa_joystick.m",
+                    "cocoa_init.m",
+                    "cocoa_window.m",
+                    "cocoa_monitor.m",
                 },
                 .flags = &.{"-D_GLFW_COCOA"},
             });
@@ -112,6 +114,7 @@ pub fn build(b: *std.Build) void {
             metal_layer.linkFramework("Foundation");
             metal_layer.linkFramework("Cocoa");
             metal_layer.linkFramework("QuartzCore");
+            metal_layer.addIncludePath(glfw_dep.path("include/GLFW"));
             zgl.linkLibrary(metal_layer);
 
         },
@@ -133,6 +136,7 @@ pub fn build(b: *std.Build) void {
             zgl.link_libcpp = true;
 
             glfw.addCSourceFiles(.{
+                .root = glfw_dep.path("src"),
                 .files = &.{
                     glfw_src_dir ++ "platform.c",
                     glfw_src_dir ++ "monitor.c",
@@ -165,6 +169,7 @@ pub fn build(b: *std.Build) void {
             zgl.link_libcpp = true; // wgpu need cpp std lib
             
             glfw.addCSourceFiles(.{
+                .root = glfw_dep.path("src"),
                 .files = &.{
                     glfw_src_dir ++ "platform.c",
                     glfw_src_dir ++ "monitor.c",

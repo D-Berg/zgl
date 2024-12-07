@@ -1,6 +1,3 @@
-[submodule "glfw"]
-	path = glfw
-	url = https://github.com/glfw/glfw.git
 [submodule "x11-headers"]
 	path = x11-headers
 	url = https://github.com/hexops/x11-headers.git

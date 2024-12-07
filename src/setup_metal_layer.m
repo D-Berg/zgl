@@ -1,8 +1,8 @@
 #import <Cocoa/Cocoa.h>
 #import <QuartzCore/QuartzCore.h>
 #import <Foundation/Foundation.h>
-#import "../glfw/include/GLFW/glfw3.h"
-#import "../glfw/include/GLFW/glfw3native.h"
+#import "glfw3.h"
+#import "glfw3native.h"
 
 
 CAMetalLayer* setupMetalLayer(void* window) {
