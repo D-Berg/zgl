@@ -131,9 +131,10 @@ pub fn GetWGPUSurface(window: Window, instance: Instance) wgpu.WGPUError!Surface
 }
 
 
-const ModuleName = ?[*:0]u8;
+const LPCSTR = ?[*:0]const u8;
+const HMODULE = *opaque {};
 extern "c" fn glfwGetWin32Window(window: *GLFWwindow) ?*anyopaque;
-extern "c" fn GetModuleHandleA(lpModuleName: ModuleName) ?*anyopaque;
+extern "c" fn GetModuleHandleA(lpModuleName: LPCSTR) ?HMODULE;
 
 fn GetWGPUWindowsSurface(window: Window, instance: Instance) wgpu.WGPUError!Surface {
     // TODO: Return errors if null instead
