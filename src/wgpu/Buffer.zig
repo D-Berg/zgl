@@ -7,18 +7,18 @@ pub const BufferImpl = *opaque {};
 _impl: BufferImpl,
 
 pub const Usage = enum(u32) {
-    WGPUBufferUsage_None = 0x00000000,
-    WGPUBufferUsage_MapRead = 0x00000001,
-    WGPUBufferUsage_MapWrite = 0x00000002,
-    WGPUBufferUsage_CopySrc = 0x00000004,
-    WGPUBufferUsage_CopyDst = 0x00000008,
-    WGPUBufferUsage_Index = 0x00000010,
-    WGPUBufferUsage_Vertex = 0x00000020,
-    WGPUBufferUsage_Uniform = 0x00000040,
-    WGPUBufferUsage_Storage = 0x00000080,
-    WGPUBufferUsage_Indirect = 0x00000100,
-    WGPUBufferUsage_QueryResolve = 0x00000200,
-    WGPUBufferUsage_Force32 = 0x7FFFFFFF
+    None = 0x00000000,
+    MapRead = 0x00000001,
+    MapWrite = 0x00000002,
+    CopySrc = 0x00000004,
+    CopyDst = 0x00000008,
+    Index = 0x00000010,
+    Vertex = 0x00000020,
+    Uniform = 0x00000040,
+    Storage = 0x00000080,
+    Indirect = 0x00000100,
+    QueryResolve = 0x00000200,
+    Force32 = 0x7FFFFFFF
 };
 
 pub const Descriptor = extern struct {
