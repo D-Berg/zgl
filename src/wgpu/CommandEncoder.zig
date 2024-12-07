@@ -6,6 +6,8 @@ const ChainedStruct = wgpu.ChainedStruct;
 const CommandBuffer = wgpu.CommandBuffer;
 const CommandBufferImpl = CommandBuffer.CommandBufferImpl;
 const RenderPass = wgpu.RenderPass;
+const Buffer = wgpu.Buffer;
+const BufferImpl = Buffer.BufferImpl;
 
 const CommandEncoder = @This();
 pub const CommandEncoderImpl = *opaque {};
@@ -47,4 +49,32 @@ pub fn BeginRenderPass(commandEncoder: CommandEncoder, descriptor: *const Render
     const maybe_impl = wgpuCommandEncoderBeginRenderPass(commandEncoder._inner, descriptor);
 
     if (maybe_impl) |impl| return RenderPass.Encoder{ ._impl = impl } else return error.FailedToBeginRenderPass;
+}
+
+
+extern "c" fn wgpuCommandEncoderCopyBufferToBuffer(
+    encoder: CommandEncoderImpl,
+    source: BufferImpl,
+    sourceOffset: u64,
+    destination: BufferImpl,
+    destinationOffset: u64,
+    size: usize
+) void;
+
+pub fn CopyBufferToBuffer(
+    encoder: CommandEncoder, 
+    source: Buffer, 
+    source_offset: u64, 
+    destination: Buffer,
+    destination_offset: u64,
+    size: usize
+) void {
+    wgpuCommandEncoderCopyBufferToBuffer(
+        encoder._inner,
+        source._impl, 
+        source_offset,
+        destination._impl,
+        destination_offset,
+        size
+    );  
 }

@@ -6,6 +6,8 @@ const ChainedStruct = wgpu.ChainedStruct;
 const RequestAdapterStatus = wgpu.RequestAdapterStatus;
 const CommandBuffer = wgpu.CommandBuffer;
 const CommandBufferImpl = CommandBuffer.CommandBufferImpl;
+const Buffer = wgpu.Buffer;
+const BufferImpl = Buffer.BufferImpl;
 
 const Queue = @This();
 pub const QueueImpl = *opaque {};
@@ -57,4 +59,28 @@ pub fn Submit(queue: Queue, commands: []const CommandBufferImpl) void {
     const commandCount = commands.len;
     wgpuQueueSubmit(queue._inner, commandCount, commands.ptr);
     // log.info("Commands Submitted", .{});
+}
+
+// WGPU_EXPORT void wgpuQueueWriteBuffer(WGPUQueue queue, WGPUBuffer buffer, uint64_t bufferOffset, void const * data, size_t size) WGPU_FUNCTION_ATTRIBUTE;
+extern "c" fn wgpuQueueWriteBuffer(
+    queue: QueueImpl, 
+    buffer: BufferImpl, 
+    bufferOffet: u64, 
+    data: *const anyopaque, 
+    size: usize
+) void;
+pub fn WriteBuffer(
+    queue: Queue, 
+    buffer: Buffer, 
+    buffer_offset: u64, 
+    comptime T: type, 
+    data: []const T
+) void{
+    wgpuQueueWriteBuffer(
+        queue._inner, 
+        buffer._impl, 
+        buffer_offset, 
+        data.ptr, 
+        data.len
+    );
 }

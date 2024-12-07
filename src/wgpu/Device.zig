@@ -122,6 +122,8 @@ pub fn GetQueue(device: Device) WGPUError!Queue {
 
 
 extern "c" fn wgpuDeviceCreateCommandEncoder(device: DeviceImpl, descriptor: ?*const CommandEncoder.Descriptor) CommandEncoderImpl;
+
+// TODO: handle if wgpuDeviceCreateCommandEncoder returns null
 pub fn CreateCommandEncoder(device: Device, descriptor: ?*const CommandEncoder.Descriptor) CommandEncoder {
 
     const ce_inner = wgpuDeviceCreateCommandEncoder(device._inner, descriptor);
