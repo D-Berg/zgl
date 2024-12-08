@@ -15,7 +15,7 @@ pub fn build(b: *std.Build) void {
     const zgl = b.dependency("zgl", .{
         .target = target,
         .optimize = optimize,
-        .DisplayServer = .Wayland
+        // .DisplayServer = .Wayland
     });
     exe.root_module.addImport("zgl", zgl.module("zgl"));
     
