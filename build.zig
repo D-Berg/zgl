@@ -4,12 +4,26 @@ const std = @import("std");
 // declaratively construct a build graph that will be executed by an external
 // runner.
 //
+//
+const DisplayServer = enum {
+    X11,
+    Wayland
+};
 
 // TODO: comptime check min version of zig and assert 0.14.0
 
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
+
+    const display_server = b.option(
+        DisplayServer, 
+        "DisplayServer", 
+        "Choose linux display server, (X11 or Wayland)"
+    ) orelse .X11;
+
+    const options = b.addOptions();
+    options.addOption(DisplayServer, "DisplayServer", display_server);
 
     const opt_str = switch (optimize) {
         .Debug => "debug",
@@ -36,7 +50,7 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
         .link_libc = true,
-        .strip = true
+        // .strip = true
     });
 
 
@@ -46,7 +60,7 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
         .link_libc = true,
-        .strip = true
+        // .strip = true
     });
 
     const wgpu_pkg_name = b.fmt("wgpu_{s}_{s}_{s}", .{os_str, arch_str, opt_str});
@@ -166,6 +180,7 @@ pub fn build(b: *std.Build) void {
 
         .linux => {
             zgl.link_libcpp = true; // wgpu need cpp std lib
+
             
             glfw.addCSourceFiles(.{
                 .root = glfw_dep.path("src"),
@@ -208,8 +223,18 @@ pub fn build(b: *std.Build) void {
             });
             // glfw.addIncludePath(b.path("wayland-headers/wayland"));
             // glfw.addIncludePath(b.path("wayland-headers/wayland-protocols"));
+
             glfw.addIncludePath(b.path("x11-headers/"));
-            glfw.linkSystemLibrary("X11");
+            const system_sdk = b.dependency("system_sdk", .{});
+            // TODO: switch on display_server 
+            if (target.result.cpu.arch.isX86()) {
+                zgl.addObjectFile(system_sdk.path("linux/lib/x86_64-linux-gnu/libX11.so"));
+            }
+
+            if (target.result.cpu.arch.isArm()) {
+                @panic("arch not yet implemented");
+                // zgl.addObjectFile(system_sdk.path("linux/lib/aarch64-linux-gnu/libX11.so"));
+            }
 
         },
         else => @panic("Unsupported OS")
