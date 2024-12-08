@@ -223,18 +223,7 @@ pub fn build(b: *std.Build) void {
             });
             // glfw.addIncludePath(b.path("wayland-headers/wayland"));
             // glfw.addIncludePath(b.path("wayland-headers/wayland-protocols"));
-
             glfw.addIncludePath(b.path("x11-headers/"));
-            const system_sdk = b.dependency("system_sdk", .{});
-            // TODO: switch on display_server 
-            if (target.result.cpu.arch.isX86()) {
-                zgl.addObjectFile(system_sdk.path("linux/lib/x86_64-linux-gnu/libX11.so"));
-            }
-
-            if (target.result.cpu.arch.isArm()) {
-                @panic("arch not yet implemented");
-                // zgl.addObjectFile(system_sdk.path("linux/lib/aarch64-linux-gnu/libX11.so"));
-            }
 
         },
         else => @panic("Unsupported OS")
