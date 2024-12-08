@@ -223,12 +223,15 @@ pub fn build(b: *std.Build) void {
             });
             // glfw.addIncludePath(b.path("wayland-headers/wayland"));
             // glfw.addIncludePath(b.path("wayland-headers/wayland-protocols"));
-            glfw.addIncludePath(b.path("x11-headers/"));
+            
+            const x11_headers = b.dependency("x11_headers", .{});
+            glfw.addIncludePath(x11_headers.path(""));
 
         },
         else => @panic("Unsupported OS")
     }
 
+    // TODO: look into using addObjectFile instead
     zgl.addLibraryPath(wgpu_native.path("lib/"));
     zgl.linkSystemLibrary("wgpu_native", .{ 
         .preferred_link_mode = .static, 

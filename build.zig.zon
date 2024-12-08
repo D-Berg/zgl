@@ -56,6 +56,11 @@
             .url = "https://github.com/glfw/glfw/releases/download/3.4/glfw-3.4.zip",
             .hash = "1220625fa7ce79733c6889844cb02ea1f6e4b81b46a3fabacec181714879947f4abd"
         },
+
+        .x11_headers = .{
+            .url = "https://github.com/hexops/x11-headers/archive/29aefb525d5c08b05b0351e34b1623854a138c21.zip",
+            .hash = "1220e79da2d5efd5e9dd8b6453f83a9ec79534e2e203b3331766b81e49171f3db474"
+        },
         .wgpu_macos_aarch64_debug = .{
             .url = "https://github.com/gfx-rs/wgpu-native/releases/download/v22.1.0.5/wgpu-macos-aarch64-debug.zip",
             .hash = "12209db4f886436958ef2b74186189e69c2020e3dad4a9397eea58c4ff75f2f1e460",
