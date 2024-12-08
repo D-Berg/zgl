@@ -180,6 +180,7 @@ fn GetWGPUWindowsSurface(window: Window, instance: Instance) wgpu.WGPUError!Surf
         .nextInChain = &fromWindowsHWND.chain,
     };
 
+    log.info("Getting Windows Surface...", .{});
     return try instance.CreateSurface(&surface_desc);
 }
 
@@ -200,6 +201,7 @@ fn GetWGPUX11Surface(window: Window, instance: Instance) wgpu.WGPUError!Surface 
         .nextInChain = &fromX11.chain,
     };
 
+    log.info("Getting X11 Surface", .{});
     return try instance.CreateSurface(&surface_desc);
 }
 
@@ -224,6 +226,8 @@ fn GetWGPUWaylandSurface(window: Window, instance: Instance) wgpu.WGPUError!Surf
         .nextInChain = &fromWaland.chain
     };
 
+
+    log.info("Getting Wayland Surface", .{});
     return try instance.CreateSurface(&surface_desc);
 }
     
@@ -253,6 +257,7 @@ fn GetWGPUMetalSurface(window: Window, instance: Instance) wgpu.WGPUError!Surfac
         .nextInChain = &fromMetalLayer.chain
     };
 
+    log.info("Getting Cocoa Surface", .{});
     return try Instance.CreateSurface(instance, &surfaceDesc);
 }
 
