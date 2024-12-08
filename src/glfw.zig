@@ -140,10 +140,9 @@ pub fn GetWGPUSurface(window: Window, instance: Instance) wgpu.WGPUError!Surface
             return try GetWGPUMetalSurface(window, instance);
         },
         .linux => {
-
             switch (display_server) {
                 .X11 => return try GetWGPUX11Surface(window, instance),
-                .Wayland => @compileError("not yet implemented")
+                .Wayland => return try GetWGPUWaylandSurface(window, instance)
             }
         },
         .windows => {
@@ -203,9 +202,33 @@ fn GetWGPUX11Surface(window: Window, instance: Instance) wgpu.WGPUError!Surface 
 
     return try instance.CreateSurface(&surface_desc);
 }
-    
-pub extern "c" fn glfwGetCocoaWindow(window: *GLFWwindow) *anyopaque;
 
+
+extern "c" fn glfwGetWaylandDisplay() ?*anyopaque;
+extern "c" fn glfwGetWaylandWindow(handle: *GLFWwindow) ?*anyopaque;
+fn GetWGPUWaylandSurface(window: Window, instance: Instance) wgpu.WGPUError!Surface {
+
+    const wl_display = glfwGetWaylandDisplay() orelse 
+        return wgpu.WGPUError.FailedToCreateSurface;
+
+    const wl_surface = glfwGetWaylandWindow(window._impl) orelse 
+        return wgpu.WGPUError.FailedToCreateSurface;
+
+    const fromWaland = Surface.DescriptorFromWaylandSurface{
+        .chain = .{ .sType = .SurfaceDescriptorFromWaylandSurface },
+        .display = wl_display,
+        .surface = wl_surface
+    };
+
+    const surface_desc = Surface.Descriptor{
+        .nextInChain = &fromWaland.chain
+    };
+
+    return try instance.CreateSurface(&surface_desc);
+}
+    
+// TODO: Shouldnt be pub
+pub extern "c" fn glfwGetCocoaWindow(window: *GLFWwindow) *anyopaque;
 /// setup_metal_leayer.m
 pub extern "c" fn setupMetalLayer(window: *anyopaque) *anyopaque;
 /// Works only for metal as of now

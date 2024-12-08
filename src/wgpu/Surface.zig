@@ -41,6 +41,12 @@ pub const DescriptorFromXlibWindow = extern struct {
     window: u64,
 };
 
+pub const DescriptorFromWaylandSurface = extern struct {
+    chain: ChainedStruct,
+    display: *anyopaque,
+    surface: *anyopaque
+};
+
 extern "c" fn wgpuSurfaceRelease(surface: SurfaceImpl) void;
 pub fn Release(surface: Surface) void {
     
