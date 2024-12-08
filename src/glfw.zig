@@ -3,7 +3,7 @@ const log = std.log.scoped(.@"glfw");
 const wgpu = @import("zgl.zig").wgpu;
 const Instance = wgpu.Instance;
 const Surface = wgpu.Surface;
-
+const display_server = @import("zgl_options").DisplayServer;
 const os_tag = @import("builtin").os.tag;
 
 pub const GlfwError = error {
@@ -140,7 +140,11 @@ pub fn GetWGPUSurface(window: Window, instance: Instance) wgpu.WGPUError!Surface
             return try GetWGPUMetalSurface(window, instance);
         },
         .linux => {
-            return try GetWGPUX11Surface(window, instance);
+
+            switch (display_server) {
+                .X11 => return try GetWGPUX11Surface(window, instance),
+                .Wayland => @compileError("not yet implemented")
+            }
         },
         .windows => {
             return try GetWGPUWindowsSurface(window, instance);
