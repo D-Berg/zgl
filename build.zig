@@ -208,16 +208,10 @@ pub fn build(b: *std.Build) void {
             });
             // glfw.addIncludePath(b.path("wayland-headers/wayland"));
             // glfw.addIncludePath(b.path("wayland-headers/wayland-protocols"));
+
             glfw.addIncludePath(b.path("x11-headers/"));
-            
-            // b.addSearchPrefix("lib/x86_64-linux-gnu");
             const system_sdk = b.dependency("system_sdk", .{});
-            // glfw.addLibraryPath(b.path("lib/x86_64-linux-gnu"));
-            // glfw.addLibraryPath(system_sdk.path("linux/lib/x86_64-linux-gnu"));
-            // glfw.linkSystemLibrary("X11");
-            // zgl.linkSystemLibrary("X11", .{});
             zgl.addObjectFile(system_sdk.path("linux/lib/x86_64-linux-gnu/libX11.so"));
-            // glfw.addObjectFile(b.path("lib/x86_64-linux-gnu/libX11.a"));
 
         },
         else => @panic("Unsupported OS")
