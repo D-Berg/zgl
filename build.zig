@@ -5,10 +5,6 @@ const std = @import("std");
 // runner.
 //
 //
-const DisplayServer = enum {
-    X11,
-    Wayland
-};
 
 // TODO: comptime check min version of zig and assert 0.14.0
 
@@ -16,6 +12,10 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
+    const DisplayServer = enum {
+        X11,
+        Wayland
+    };
     const display_server = b.option(
         DisplayServer, 
         "DisplayServer", 
@@ -24,6 +24,7 @@ pub fn build(b: *std.Build) void {
 
     const options = b.addOptions();
     options.addOption(DisplayServer, "DisplayServer", display_server);
+
 
     const opt_str = switch (optimize) {
         .Debug => "debug",
@@ -53,7 +54,6 @@ pub fn build(b: *std.Build) void {
         // .strip = true
     });
 
-
     const glfw_dep = b.dependency("glfw", .{});
     const glfw = b.addStaticLibrary(.{
         .name = "glfw",
@@ -62,6 +62,8 @@ pub fn build(b: *std.Build) void {
         .link_libc = true,
         // .strip = true
     });
+
+    zgl.addOptions("zgl_options", options);
 
     const wgpu_pkg_name = b.fmt("wgpu_{s}_{s}_{s}", .{os_str, arch_str, opt_str});
 
@@ -181,6 +183,10 @@ pub fn build(b: *std.Build) void {
         .linux => {
             zgl.link_libcpp = true; // wgpu need cpp std lib
 
+            const flag = switch(display_server) {
+                .X11 => "-D_GLFW_X11",
+                .Wayland => "-D_GLFW_WAYLAND"
+            };
             
             glfw.addCSourceFiles(.{
                 .root = glfw_dep.path("src"),
@@ -208,24 +214,42 @@ pub fn build(b: *std.Build) void {
                     "linux_joystick.c",
                     "posix_poll.c",
 
-                    //X11 specific
-                    "x11_init.c",
-                    "x11_monitor.c",
-                    "x11_window.c",
-                    "glx_context.c",
-
-                    //wayland
-                    // "wl_init.c",
-                    // "wl_monitor.c",
-                    // "wl_window.c",
                 },
-                .flags = &.{"-D_GLFW_X11"},
+                .flags = &.{ flag },
             });
-            // glfw.addIncludePath(b.path("wayland-headers/wayland"));
-            // glfw.addIncludePath(b.path("wayland-headers/wayland-protocols"));
-            
+
             const x11_headers = b.dependency("x11_headers", .{});
             glfw.addIncludePath(x11_headers.path(""));
+
+            switch (display_server) {
+                .X11 => {
+                    glfw.addCSourceFiles(.{
+                        .root = glfw_dep.path("src"),
+                        .files = &.{
+                            "x11_init.c",
+                            "x11_monitor.c",
+                            "x11_window.c",
+                            "glx_context.c",
+                        },
+                        .flags = &.{ flag }
+                    });
+                },
+
+                .Wayland => {
+                    glfw.addCSourceFiles(.{
+                        .root = glfw_dep.path("src"),
+                        .files = &.{
+                            "wl_init.c",
+                            "wl_monitor.c",
+                            "wl_window.c",
+                        },
+                        .flags = &.{ flag }
+                    });
+                    glfw.addIncludePath(b.path("wayland-headers/wayland"));
+                    glfw.addIncludePath(b.path("wayland-headers/wayland-protocols"));
+                }
+            }
+            
 
         },
         else => @panic("Unsupported OS")

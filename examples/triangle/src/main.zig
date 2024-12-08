@@ -101,7 +101,7 @@ pub fn main() !void {
         .height = WINDOW_HEIGHT,
         .usage = .RenderAttachment,
         .format = surface_capabilities.formats.?[0],
-        .presentMode = .FifoRelaxed,
+        .presentMode = .Undefined,
         .alphaMode = .Auto
     };
     surface.Configure(&surface_config);
