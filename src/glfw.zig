@@ -140,7 +140,7 @@ pub fn GetWGPUSurface(window: Window, instance: Instance) wgpu.WGPUError!Surface
             return try GetWGPUMetalSurface(window, instance);
         },
         .linux => {
-            @panic("not yet implemented");
+            return try GetWGPUX11Surface(window, instance);
         },
         .windows => {
             return try GetWGPUWindowsSurface(window, instance);
@@ -181,11 +181,12 @@ fn GetWGPUWindowsSurface(window: Window, instance: Instance) wgpu.WGPUError!Surf
 }
 
 
+//TODO: make optionals and check null
 extern "c" fn glfwGetX11Display() *anyopaque;
-extern "c" fn glfwGetX11Window() *GLFWwindow;
-fn GetWGPUX11Surface() wgpu.WGPUError!Surface {
+extern "c" fn glfwGetX11Window(handle: *GLFWwindow) *GLFWwindow;
+fn GetWGPUX11Surface(window: Window, instance: Instance) wgpu.WGPUError!Surface {
     const x11_display = glfwGetX11Display();
-    const x11_window = glfwGetX11Window();
+    const x11_window = glfwGetX11Window(window._impl);
 
     const fromX11 = Surface.DescriptorFromXlibWindow{
         .window = @intFromPtr(x11_window),
@@ -196,7 +197,7 @@ fn GetWGPUX11Surface() wgpu.WGPUError!Surface {
         .nextInChain = &fromX11.chain,
     };
 
-    return try Instance.CreateSurface(&surface_desc);
+    return try instance.CreateSurface(&surface_desc);
 }
     
 pub extern "c" fn glfwGetCocoaWindow(window: *GLFWwindow) *anyopaque;
