@@ -19,6 +19,7 @@ pub const ShaderModuleImpl = ShaderModule.ShaderModuleImpl;
 pub const PipelineLayout = @import("PipelineLayout.zig");
 pub const RenderPipeline = @import("RenderPipeline.zig");
 pub const Buffer = @import("Buffer.zig");
+pub const ComputePipeline = @import("ComputePipeline.zig").ComputePipeline;
 
 
 pub const WGPUError = error {
@@ -34,6 +35,7 @@ pub const WGPUError = error {
     FailedToCreateRenderPipeline,
     FailedToCreateSurface,
     FailedToCreateBuffer,
+    FailedToCreateComputePipeline
     
 };
 
@@ -109,6 +111,13 @@ pub const VertexState = extern struct {
     buffers: ?[*]const VertexBufferLayout = null,
 };
 
+pub const ProgrammableStageDescriptor = extern struct {
+    nextInChain: ?*const ChainedStruct = null,
+    module: ShaderModuleImpl,
+    entryPoint: ?[*]const u8 = null,
+    constantCount: usize = 0,
+    constants: ?[*]const ConstantEntry = null,
+};
 
 pub const PrimitiveTopology = enum(u32) {
     PointList = 0x00000000,
@@ -145,9 +154,9 @@ pub const CullMode = enum(u32) {
 pub const PrimitiveState = extern struct {
     nextInChain: ?*const ChainedStruct = null,
     topology: PrimitiveTopology,
-    stripIndexFormat: IndexFormat,
-    frontFace: FrontFace,
-    cullMode: CullMode,
+    stripIndexFormat: IndexFormat = .Undefined,
+    frontFace: FrontFace = .CCW,
+    cullMode: CullMode = .None,
 };
 
 

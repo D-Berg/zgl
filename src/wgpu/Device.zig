@@ -19,6 +19,7 @@ const RenderPipeline = wgpu.RenderPipeline;
 const RenderPipelineImpl = RenderPipeline.RenderPipelineImpl;
 const Buffer = wgpu.Buffer;
 const BufferImpl = Buffer.BufferImpl;
+const ComputePipeline = wgpu.ComputePipeline;
 
 const Device = @This();
 ///Used for calling c API
@@ -154,6 +155,26 @@ pub fn CreateRenderPipeline(device: Device, descriptor: *const RenderPipeline.De
 
     if (maybe_impl) |impl| return RenderPipeline{ ._impl = impl } else return error.FailedToCreateRenderPipeline;
 
+}
+
+extern "c" fn wgpuDeviceCreateComputePipeline(
+    device: DeviceImpl,
+    descriptor: *const ComputePipeline.Descriptor
+) ?*ComputePipeline;
+
+pub fn CreateComputePipeline(
+    device: Device,
+    descriptor: *const ComputePipeline.Descriptor
+) WGPUError!*ComputePipeline {
+    const maybe_compute_pipeline = wgpuDeviceCreateComputePipeline(
+        device._inner, descriptor
+    );
+
+    if (maybe_compute_pipeline) |compute_pipeline| {
+        return compute_pipeline;
+    } else {
+        return WGPUError.FailedToCreateComputePipeline;
+    }
 }
 
 pub const SupportedFeatures = struct {
