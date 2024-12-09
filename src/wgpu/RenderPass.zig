@@ -14,9 +14,9 @@ pub const EncoderImpl = *opaque {};
 
 pub const ColorAttachment = extern struct {
     nextInChain: ?*const ChainedStruct = null,
-    view: ?ViewImpl,
-    depthSlice: DepthSlice,
-    resolveTarget: ?ViewImpl,
+    view: ?ViewImpl = null,
+    depthSlice: DepthSlice = .Undefined,
+    resolveTarget: ?ViewImpl = null,
     loadOp: LoadOp,
     storeOp: StoreOp,
     clearValue: Color
