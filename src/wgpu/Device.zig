@@ -9,7 +9,6 @@ const ChainedStructOut = wgpu.ChainedStructOut;
 const FeatureName = wgpu.FeatureName;
 const RequiredLimits = wgpu.RequiredLimits;
 const Queue = wgpu.Queue;
-const QueueImpl = Queue.QueueImpl;
 const UncapturedErrorCallbackInfo = wgpu.UncapturedErrorCallbackInfo;
 const Limits = wgpu.Limits;
 const CommandEncoder = wgpu.CommandEncoder;
@@ -107,13 +106,13 @@ pub fn GetLimits(device: Device) !SupportedLimits {
     
 }
 
-extern "c" fn wgpuDeviceGetQueue(device: DeviceImpl) ?QueueImpl;
-pub fn GetQueue(device: Device) WGPUError!Queue {
-    const maybe_impl = wgpuDeviceGetQueue(device._inner);
+extern "c" fn wgpuDeviceGetQueue(device: DeviceImpl) ?*Queue;
+pub fn GetQueue(device: Device) WGPUError!*Queue {
+    const maybe_queue = wgpuDeviceGetQueue(device._inner);
 
-    if (maybe_impl) |impl| {
-        log.info("Got Queue: {}", .{impl});
-        return Queue{ ._inner = impl };
+    if (maybe_queue) |queue| {
+        log.info("Got Queue: {}", .{queue});
+        return queue;
     } else {
         return error.FailedToGetQueue;
     }

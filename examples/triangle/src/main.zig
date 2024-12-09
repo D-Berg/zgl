@@ -232,7 +232,7 @@ pub fn main() !void {
         const command_buffer = command_encoder.Finish(&.{});
         command_encoder.Release();
 
-        queue.Submit(&.{command_buffer._inner});
+        queue.Submit(&.{command_buffer});
         command_buffer.Release();
 
         surface.Present();
