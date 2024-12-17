@@ -1,5 +1,9 @@
 const std = @import("std");
 
+const OptimizeMode = std.builtin.OptimizeMode;
+const Target = std.Build.ResolvedTarget;
+const Module = std.Build.Module;
+
 // Although this function looks imperative, note that its job is to
 // declaratively construct a build graph that will be executed by an external
 // runner.
@@ -12,6 +16,33 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
+    const zgl = b.addModule("zgl", .{
+        .root_source_file = b.path("src/zgl.zig"),
+        .target = target,
+        .optimize = optimize,
+        // .link_libc = true,
+        // .strip = true
+    });
+
+    if (target.result.isWasm()) {
+        buildWeb(b, zgl, target, optimize);
+    } else {
+        buildNative(b, zgl, target, optimize);
+    }
+
+}
+
+fn buildWeb(b: *std.Build, zgl: *Module, target: Target, optimize: OptimizeMode) void {
+    _ = b;
+    _ = zgl;
+    _ = target;
+    _ = optimize;
+
+    @panic("not yet implemented");
+
+}
+
+fn buildNative(b: *std.Build, zgl: *Module, target: Target, optimize: OptimizeMode) void {
     const DisplayServer = enum {
         X11,
         Wayland
@@ -25,34 +56,8 @@ pub fn build(b: *std.Build) void {
     const options = b.addOptions();
     options.addOption(DisplayServer, "DisplayServer", display_server);
 
+    zgl.link_libc = true;
 
-    const opt_str = switch (optimize) {
-        .Debug => "debug",
-        else => "release"
-    };
-
-    const os_str = switch (target.result.os.tag) {
-        .macos,
-        .windows,
-        .linux,
-        => |res| @tagName(res),
-        else => @panic("Unsupported OS")
-    };
-
-    const arch_str = switch (target.result.cpu.arch) {
-        .aarch64,
-        .x86_64,
-        => |res| @tagName(res),
-        else => @panic("Unsupported arch")
-    };
-
-    const zgl = b.addModule("zgl", .{
-        .root_source_file = b.path("src/zgl.zig"),
-        .target = target,
-        .optimize = optimize,
-        .link_libc = true,
-        // .strip = true
-    });
 
     const glfw_dep = b.dependency("glfw", .{});
     const glfw = b.addStaticLibrary(.{
@@ -64,10 +69,6 @@ pub fn build(b: *std.Build) void {
     });
 
     zgl.addOptions("zgl_options", options);
-
-    const wgpu_pkg_name = b.fmt("wgpu_{s}_{s}_{s}", .{os_str, arch_str, opt_str});
-
-    const wgpu_native = b.dependency(wgpu_pkg_name, .{});
 
     switch (target.result.os.tag) {
         .macos => {
@@ -252,8 +253,32 @@ pub fn build(b: *std.Build) void {
             
 
         },
+
         else => @panic("Unsupported OS")
     }
+
+    const opt_str = switch (optimize) {
+        .Debug => "debug",
+        else => "release"
+    };
+
+    const os_str = switch (target.result.os.tag) {
+        .macos,
+        .windows,
+        .linux,
+        => |res| @tagName(res),
+        else => @panic("Unsupported OS")
+    };
+
+    const arch_str = switch (target.result.cpu.arch) {
+        .aarch64,
+        .x86_64,
+        => |res| @tagName(res),
+        else => @panic("Unsupported archiwdj")
+    };
+    const wgpu_pkg_name = b.fmt("wgpu_{s}_{s}_{s}", .{os_str, arch_str, opt_str});
+
+    const wgpu_native = b.dependency(wgpu_pkg_name, .{});
 
     // TODO: look into using addObjectFile instead
     zgl.addLibraryPath(wgpu_native.path("lib/"));
