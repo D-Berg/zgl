@@ -18,10 +18,13 @@ pub fn init() GlfwError!void {
 
     if (status == 0) {
         log.err("Failed to init glfw", .{});
+        
 
-        var description: [*:0]u8 = undefined;
-        _ = glfwGetError(&description);
-        log.err("error description = {s}", .{description});
+        if (os_tag != .emscripten) { // glfwGetError doesnt work
+            var description: [*:0]u8 = undefined;
+            _ = glfwGetError(&description);
+            log.err("error description = {s}", .{description});
+        }
 
         return error.GLFWFailedInit;
     }
