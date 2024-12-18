@@ -78,10 +78,9 @@ pub fn emLinkStep(b: *std.Build, lib: *Compile, emsdk: *Dependency) *std.Build.S
         } else {
             emcc.addArg("-O3");
         }
-
-        emcc.addArg("-sUSE_WEBGPU=1");
     }
 
+    emcc.addArg("-sUSE_WEBGPU=1");
     emcc.addArtifactArg(lib);
     
     emcc.addArg("-o");
