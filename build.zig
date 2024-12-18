@@ -3,7 +3,8 @@ const std = @import("std");
 const OptimizeMode = std.builtin.OptimizeMode;
 const Target = std.Build.ResolvedTarget;
 const Module = std.Build.Module;
-
+const Dependency = std.Build.Dependency;
+const Compile = std.Build.Step.Compile;
 // Although this function looks imperative, note that its job is to
 // declaratively construct a build graph that will be executed by an external
 // runner.
@@ -20,13 +21,11 @@ pub fn build(b: *std.Build) void {
         .root_source_file = b.path("src/zgl.zig"),
         .target = target,
         .optimize = optimize,
-        // .link_libc = true,
+        .link_libc = true,
         // .strip = true
     });
 
-    if (target.result.isWasm()) {
-        buildWeb(b, zgl, target, optimize);
-    } else {
+    if (!target.result.isWasm()) {
         buildNative(b, zgl, target, optimize);
     }
 
@@ -35,13 +34,105 @@ pub fn build(b: *std.Build) void {
 fn buildWeb(b: *std.Build, zgl: *Module, target: Target, optimize: OptimizeMode) void {
     _ = b;
     _ = zgl;
-    _ = target;
     _ = optimize;
 
-    @panic("not yet implemented");
+    if (target.result.os.tag != .emscripten) {
+        std.log.err("Please build with 'zig build -Dtarget=wasm32-emscripten", .{});
+        @panic("must use emscripten");
+    }
+    
+    // const emsdk_dep = b.dependency("emsdk", .{});
+    //
+    // const emsdk_install = createEmsdkStep(b, emsdk_dep);
+    // emsdk_install.addArgs(&.{ "install", "latest" });
+    //
+    // const emsdk_activate = createEmsdkStep(b, emsdk_dep);
+    // emsdk_activate.addArgs(&.{ "activate", "latest" });
+    // emsdk_activate.step.dependOn(&emsdk_install.step);
+
+    // @panic("not yet implemented");
 
 }
 
+///https://github.com/floooh/sokol-zig/blob/master/build.zig#L409
+pub fn emLinkStep(b: *std.Build, lib: *Compile, emsdk: *Dependency) *std.Build.Step.InstallDir {
+
+    // setup emsdk if not already done
+    if (setupEmsdk(b, emsdk)) |emsdk_setup| {
+        lib.step.dependOn(&emsdk_setup.step);
+    }
+
+    lib.addSystemIncludePath(b.path(b.pathJoin(&.{ "upstream", "emscripten", "cache", "sysroot", "include" })));
+
+    const emcc_path = emsdk.path(b.pathJoin(&.{"upstream", "emscripten", "emcc"})).getPath(b);
+    const emcc = b.addSystemCommand(&.{emcc_path});
+
+    emcc.setName("emcc");
+
+    const optimize = lib.root_module.optimize.?;
+    if (optimize == .Debug) {
+        emcc.addArgs(&.{ "-Og", "-sSAFE_HEAP=1", "-sSTACK_OVERFLOW_CHECK=1" });
+    } else {
+        if (optimize == .ReleaseSmall) {
+            emcc.addArg("-Oz");
+        } else {
+            emcc.addArg("-O3");
+        }
+
+        emcc.addArg("-sUSE_WEBGPU=1");
+    }
+
+    emcc.addArtifactArg(lib);
+    
+    emcc.addArg("-o");
+
+    const out_file = emcc.addOutputFileArg(b.fmt("{s}.html", .{lib.name}));
+
+    const install = b.addInstallDirectory(.{
+        .source_dir = out_file.dirname(),
+        .install_dir = .prefix,
+        .install_subdir = "web"
+    });
+
+    install.step.dependOn(&emcc.step);
+
+    return install;
+
+}
+
+
+/// Setup emsdk if it is not already done.
+/// runs ('emsdk install + activate')
+fn setupEmsdk(b: *std.Build, emsdk: *Dependency) ?*std.Build.Step.Run {
+    const dot_emsc_path = emsdk.path(".emscripten").getPath(b);
+    const dot_emsc_exists = !std.meta.isError(std.fs.accessAbsolute(dot_emsc_path, .{}));
+
+    if (!dot_emsc_exists) {
+        const emsdk_install = createEmsdkStep(b, emsdk);
+        emsdk_install.addArgs(&.{ "install", "latest" });
+
+        const emsdk_activate = createEmsdkStep(b, emsdk);
+        emsdk_activate.addArgs(&.{ "activate", "latest" });
+
+        emsdk_activate.step.dependOn(&emsdk_install.step);
+
+        return emsdk_activate;
+    } else {
+        return null;
+    }
+
+}
+
+fn createEmsdkStep(b: *std.Build, emsdk: *std.Build.Dependency) *std.Build.Step.Run {
+    if (b.graph.host.result.os.tag == .windows) {
+        return b.addSystemCommand(&.{emsdk.path("emsdk.bat").getPath(b)});
+    } else {
+        return b.addSystemCommand(&.{emsdk.path("emsdk").getPath(b)});
+    }
+}
+
+
+// TODO: build lib and link it to module
 fn buildNative(b: *std.Build, zgl: *Module, target: Target, optimize: OptimizeMode) void {
     const DisplayServer = enum {
         X11,
@@ -55,9 +146,6 @@ fn buildNative(b: *std.Build, zgl: *Module, target: Target, optimize: OptimizeMo
 
     const options = b.addOptions();
     options.addOption(DisplayServer, "DisplayServer", display_server);
-
-    zgl.link_libc = true;
-
 
     const glfw_dep = b.dependency("glfw", .{});
     const glfw = b.addStaticLibrary(.{
