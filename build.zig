@@ -31,29 +31,6 @@ pub fn build(b: *std.Build) void {
 
 }
 
-fn buildWeb(b: *std.Build, zgl: *Module, target: Target, optimize: OptimizeMode) void {
-    _ = b;
-    _ = zgl;
-    _ = optimize;
-
-    if (target.result.os.tag != .emscripten) {
-        std.log.err("Please build with 'zig build -Dtarget=wasm32-emscripten", .{});
-        @panic("must use emscripten");
-    }
-    
-    // const emsdk_dep = b.dependency("emsdk", .{});
-    //
-    // const emsdk_install = createEmsdkStep(b, emsdk_dep);
-    // emsdk_install.addArgs(&.{ "install", "latest" });
-    //
-    // const emsdk_activate = createEmsdkStep(b, emsdk_dep);
-    // emsdk_activate.addArgs(&.{ "activate", "latest" });
-    // emsdk_activate.step.dependOn(&emsdk_install.step);
-
-    // @panic("not yet implemented");
-
-}
-
 ///https://github.com/floooh/sokol-zig/blob/master/build.zig#L409
 pub fn emLinkStep(b: *std.Build, lib: *Compile, emsdk: *Dependency) *std.Build.Step.InstallDir {
 
@@ -62,7 +39,8 @@ pub fn emLinkStep(b: *std.Build, lib: *Compile, emsdk: *Dependency) *std.Build.S
         lib.step.dependOn(&emsdk_setup.step);
     }
 
-    lib.addSystemIncludePath(b.path(b.pathJoin(&.{ "upstream", "emscripten", "cache", "sysroot", "include" })));
+    const emsdk_include_path = emsdk.path(b.pathJoin(&.{ "upstream", "emscripten", "cache", "sysroot", "include" }));
+    lib.addSystemIncludePath(emsdk_include_path);
 
     const emcc_path = emsdk.path(b.pathJoin(&.{"upstream", "emscripten", "emcc"})).getPath(b);
     const emcc = b.addSystemCommand(&.{emcc_path});
@@ -80,6 +58,7 @@ pub fn emLinkStep(b: *std.Build, lib: *Compile, emsdk: *Dependency) *std.Build.S
         }
     }
 
+    emcc.addArg("-sUSE_GLFW=3");
     emcc.addArg("-sUSE_WEBGPU=1");
     emcc.addArg("-sUSE_OFFSET_CONVERTER");
     emcc.addArg("-sASYNCIFY"); // needed for emscripten_sleep
