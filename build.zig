@@ -81,6 +81,9 @@ pub fn emLinkStep(b: *std.Build, lib: *Compile, emsdk: *Dependency) *std.Build.S
     }
 
     emcc.addArg("-sUSE_WEBGPU=1");
+    emcc.addArg("-sUSE_OFFSET_CONVERTER");
+    emcc.addArg("-sASYNCIFY"); // needed for emscripten_sleep
+
     emcc.addArtifactArg(lib);
     
     emcc.addArg("-o");
