@@ -12,6 +12,9 @@
     // In a future version of Zig it will be used for package deduplication.
     .version = "0.1.0",
 
+
+    .minimum_zig_version = "0.14.0",
+
     // This field is optional.
     // This is currently advisory only; Zig does not yet do anything
     // with this value.
@@ -94,7 +97,13 @@
         .wgpu_windows_x86_64_release = .{
             .url = "https://github.com/gfx-rs/wgpu-native/releases/download/v22.1.0.5/wgpu-windows-x86_64-gnu-release.zip",
             .hash = "1220245eaf64beab185bdd1b52cb7cedd8d0b7f1d545e41f67325dd32e562fee0380"
-        }
+        },
+
+        .emsdk = .{
+            .url = "git+https://github.com/emscripten-core/emsdk#3.1.50",
+            .hash = "1220e8fe9509f0843e5e22326300ca415c27afbfbba3992f3c3184d71613540b5564",
+            // .lazy = true,
+        },
     },
 
     // Specifies the set of files and directories that are included in this package.
