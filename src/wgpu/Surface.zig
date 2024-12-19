@@ -149,7 +149,6 @@ const GetSurfaceTextureError = error {
 
 extern "c" fn wgpuSurfaceGetCurrentTexture(surface: SurfaceImpl, surfaceTexture: *Texture) void;
 /// Unsupported on emscripten.
-/// Create a SwapChain instead and use that.
 pub fn GetCurrentTexture(surface: Surface) GetSurfaceTextureError!wgpu.Texture {
 
     var surface_texture = Texture{};
