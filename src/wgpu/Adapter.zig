@@ -1,7 +1,9 @@
 const std = @import("std");
+const builting = @import("builtin");
 const log = std.log.scoped(.@"wgpu/adapter");
 const Allocator = std.mem.Allocator;
 
+const emscripten = std.os.emscripten;
 
 const wgpu = @import("wgpu.zig");
 const WGPUError = wgpu.WGPUError;
@@ -43,7 +45,11 @@ pub fn RequestDevice(adapter: Adapter, descriptor: ?*const Device.Descriptor) WG
 
     wgpuAdapterRequestDevice(adapter._inner, descriptor, &onDeviceRequestEnded, &userdata);
 
-    if (!userdata.requestEnded) return error.FailedToRequestDevice;
+    if (builting.target.os.tag == .emscripten) {
+        while (!userdata.requestEnded) emscripten.emscripten_sleep(100);
+    } else {
+        if (!userdata.requestEnded) return error.FailedToRequestDevice;
+    }
 
     if (userdata.deviceImpl) |dev_impl| {
         log.info("Got device: {}", .{dev_impl});
