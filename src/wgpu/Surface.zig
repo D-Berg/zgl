@@ -47,6 +47,11 @@ pub const DescriptorFromWaylandSurface = extern struct {
     surface: *anyopaque
 };
 
+pub const DescriptorFromCanvasHTMLSelector = extern struct {
+    chain: ChainedStruct,
+    selector: [*]const u8,
+};
+
 extern "c" fn wgpuSurfaceRelease(surface: SurfaceImpl) void;
 pub fn Release(surface: Surface) void {
     
