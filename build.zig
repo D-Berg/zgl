@@ -41,15 +41,24 @@ pub fn emLinkStep(b: *std.Build, lib: *Compile, emsdk: *Dependency) *std.Build.S
 
     const emsdk_include_path = emsdk.path(b.pathJoin(&.{ "upstream", "emscripten", "cache", "sysroot", "include" }));
     lib.addSystemIncludePath(emsdk_include_path);
+    // const emsdk_lib_path = emsdk.path(b.pathJoin(&.{ "upstream", "emscripten", "cache", "sysroot", "lib", "wasm32-emscripten" }));
 
     const emcc_path = emsdk.path(b.pathJoin(&.{"upstream", "emscripten", "emcc"})).getPath(b);
     const emcc = b.addSystemCommand(&.{emcc_path});
 
     emcc.setName("emcc");
+    // emcc.addArg("-sVERBOSE=1");
+
+    // emcc.addArg(b.fmt("-L{s}", .{emsdk_lib_path.getPath(b)}));
 
     const optimize = lib.root_module.optimize.?;
     if (optimize == .Debug) {
-        emcc.addArgs(&.{ "-Og", "-sSAFE_HEAP=1", "-sSTACK_OVERFLOW_CHECK=1" });
+        emcc.addArgs(&.{ 
+            "-O0", 
+            // "-sSAFE_HEAP=1", 
+            "-sSTACK_OVERFLOW_CHECK=1" 
+        });
+        // emcc.addArg("-sASSERTIONS");
     } else {
         if (optimize == .ReleaseSmall) {
             emcc.addArg("-Oz");
@@ -58,10 +67,13 @@ pub fn emLinkStep(b: *std.Build, lib: *Compile, emsdk: *Dependency) *std.Build.S
         }
     }
 
-    emcc.addArg("-sUSE_GLFW=3");
-    emcc.addArg("-sUSE_WEBGPU=1");
-    emcc.addArg("-sUSE_OFFSET_CONVERTER");
-    emcc.addArg("-sASYNCIFY"); // needed for emscripten_sleep
+    emcc.addArgs(&.{
+        "-sUSE_GLFW=3",
+        "-sUSE_WEBGPU=1",
+        "-sUSE_OFFSET_CONVERTER",
+        "-sASYNCIFY", // needed for emscripten_sleep
+        "-sALLOW_MEMORY_GROWTH"
+    });
 
     emcc.addArtifactArg(lib);
     
@@ -115,6 +127,9 @@ fn createEmsdkStep(b: *std.Build, emsdk: *std.Build.Dependency) *std.Build.Step.
 
 // TODO: build lib and link it to module
 fn buildNative(b: *std.Build, zgl: *Module, target: Target, optimize: OptimizeMode) void {
+
+    zgl.link_libc = true;
+
     const DisplayServer = enum {
         X11,
         Wayland
