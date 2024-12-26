@@ -62,25 +62,26 @@ pub fn Release(surface: Surface) void {
 
 pub const Capabilities = extern struct {
     nextInChain: ?*ChainedStructOut = null,
-    usages: TextureUsage = .None,
+    // usages: TextureUsage = .None, // TODO: not defined in emscripten. Find out which one is valid.
     formatCount: usize = 0,
-    formats: ?[*]const TextureFormat = null,
+    formats: [*c]const TextureFormat = null,
     presentModeCount: usize = 0,
     presentModes: ?[*]const PresentMode = null,
     alphaModeCount: usize = 0,
     alphaModes: ?[*]const CompositeAlphaMode = null,
     
-    extern "c" fn wgpuSurfaceCapabilitiesFreeMembers(capabilities: Capabilities) void;
-    pub fn FreeMembers(capabilities: Capabilities) void {
+    extern "c" fn wgpuSurfaceCapabilitiesFreeMembers(capabilities: *const Capabilities) void;
+    pub fn FreeMembers(capabilities: *const Capabilities) void {
         wgpuSurfaceCapabilitiesFreeMembers(capabilities);
     }
     
-    pub fn logCapabilites(capabilities: Capabilities) void {
+    pub fn logCapabilites(capabilities: *const Capabilities) void {
         
         log.info("Surface capabilities:", .{});
         log.info(" - nextInChain: {?}", .{capabilities.nextInChain});
-        log.info(" - formats:", .{});
+        log.info(" - formats: {}", .{capabilities.formatCount});
         for (0..capabilities.formatCount) |i| {
+            // log.info("  - {x}", .{@intFromEnum(capabilities.formats.?[i])});
             log.info("  - {s}", .{@tagName(capabilities.formats.?[i])});
         }
 
