@@ -26,6 +26,8 @@ pub fn build(b: *std.Build) void {
         const link_step = zgl.emLinkStep(b, lib, emsdk);
         b.getInstallStep().dependOn(&link_step.step);
 
+        b.installArtifact(lib);
+
     } else {
 
         const exe = b.addExecutable(.{
