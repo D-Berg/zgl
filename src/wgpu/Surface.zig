@@ -69,7 +69,7 @@ pub fn GetPreferredFormat(surface: Surface, adapter: Adapter) TextureFormat {
     const capabilities = surface.GetCapabilities(adapter);
     defer capabilities.FreeMembers();
 
-    if (capabilities.formatCount > 0) {
+    if (capabilities.formats.len > 0) {
         return capabilities.formats[0];
     } else {
         return TextureFormat.Undefined;
@@ -77,72 +77,78 @@ pub fn GetPreferredFormat(surface: Surface, adapter: Adapter) TextureFormat {
 }
 
 
-pub const Capabilities = extern struct {
+const MAX_USAGES = @typeInfo(TextureUsage).@"enum".fields.len;
+var usages_buffer: [MAX_USAGES]TextureUsage = undefined;
+pub const Capabilities = struct {
     nextInChain: ?*ChainedStructOut = null,
-    usages: u32 = 0,// TODO: not defined in emscripten. Find out which one is valid.
-    formatCount: usize = 0,
-    formats: [*c]const TextureFormat = null,
-    presentModeCount: usize = 0,
-    presentModes: ?[*]const PresentMode = null,
-    alphaModeCount: usize = 0,
-    alphaModes: ?[*]const CompositeAlphaMode = null,
+    usages: ?[]const TextureUsage = null, // TODO: not defined in emscripten. Find out which one is valid.
+    formats: []const TextureFormat,
+    presentModes: []const PresentMode,
+    alphaModes: []const CompositeAlphaMode,
+    _inner: WGPUCapabilities,
+
+
+    const WGPUCapabilities = union(enum) {
+        native: Native,
+        web: Web,
+    };
+
+    const Web = extern struct {
+        nextInChain: ?*ChainedStructOut = null,
+        formatCount: usize = 0,
+        formats: [*c]const TextureFormat = null,
+        presentModeCount: usize = 0,
+        presentModes: [*c]const PresentMode = null,
+        alphaModeCount: usize = 0,
+        alphaModes: [*c]const CompositeAlphaMode = null,
+
+    };
+
+    const Native = extern struct {
+        nextInChain: ?*ChainedStructOut = null,
+        usages: u32 = 0,// TODO: not defined in emscripten.
+        formatCount: usize = 0,
+        formats: [*c]const TextureFormat = null,
+        presentModeCount: usize = 0,
+        presentModes: [*c]const PresentMode = null,
+        alphaModeCount: usize = 0,
+        alphaModes: [*c]const CompositeAlphaMode = null,
+    };
+
     
-    extern "c" fn wgpuSurfaceCapabilitiesFreeMembers(capabilities: *const Capabilities) void;
+    extern "c" fn wgpuSurfaceCapabilitiesFreeMembers(capabilities: *const anyopaque) void;
     pub fn FreeMembers(capabilities: *const Capabilities) void {
-        wgpuSurfaceCapabilitiesFreeMembers(capabilities);
+        switch (capabilities._inner) {
+            inline else => |*caps| wgpuSurfaceCapabilitiesFreeMembers(caps),
+        }
     }
     
     pub fn logCapabilites(capabilities: *const Capabilities) void {
         
         log.info("Surface capabilities:", .{});
         log.info(" - nextInChain: {?}", .{capabilities.nextInChain});
+        if (capabilities.usages) |usages| {
+            log.info(" - usages:", .{});
 
-        
-        const MAX_USAGES = @typeInfo(TextureUsage).@"enum".fields.len;
-        var usages_buffer: [MAX_USAGES]u32 = undefined;
-        var usage_idx: usize = 0;
-        inline for (@typeInfo(TextureUsage).@"enum".fields) |field| {
-
-            const bit_is_set: bool = blk: {
-                if (field.value == 0) {
-                    if (capabilities.usages == 0) {
-                        break :blk true;
-                    } else {
-                        break :blk false;
-                    }
-                } else {
-                    break :blk capabilities.usages & field.value == field.value;
-                }
-            };
-
-            if (bit_is_set) {
-                usages_buffer[usage_idx] = field.value;
-                usage_idx += 1;
+            for (usages) |usage| {
+                log.info("  - {s}", .{@tagName(usage)});
             }
         }
 
-        const usages = usages_buffer[0..usage_idx];
-
-        log.info(" - usages:", .{});
-
-        for (usages) |usage| {
-            log.info("  - {s}", .{@tagName(@as(TextureUsage, @enumFromInt(usage)))});
-        }
-
-        log.info(" - formats: {}", .{capabilities.formatCount});
-        for (0..capabilities.formatCount) |i| {
+        log.info(" - formats: {}", .{capabilities.formats.len});
+        for (capabilities.formats) |format| {
             // log.info("  - {x}", .{@intFromEnum(capabilities.formats.?[i])});
-            log.info("  - {s}", .{@tagName(capabilities.formats.?[i])});
+            log.info("  - {s}", .{@tagName(format)});
         }
 
         log.info(" - presentModes:", .{});
-        for (0..capabilities.presentModeCount) |i| {
-            log.info("  - {s}", .{@tagName(capabilities.presentModes.?[i])});
+        for (capabilities.presentModes) |presentMode| {
+            log.info("  - {s}", .{@tagName(presentMode)});
         }
 
         log.info(" - alpaModes:", .{});
-        for (0..capabilities.alphaModeCount) |i| {
-            log.info("  - {s}", .{@tagName(capabilities.alphaModes.?[i])});
+        for (capabilities.alphaModes) |alphaMode| {
+            log.info("  - {s}", .{@tagName(alphaMode)});
         }
     }
     
@@ -151,16 +157,63 @@ pub const Capabilities = extern struct {
 extern "c" fn wgpuSurfaceGetCapabilities(
     surface: SurfaceImpl, 
     adapter: AdapterImpl, 
-    capabilities: *Capabilities
+    capabilities: *anyopaque
 ) void;
 /// Surface Members need to be freed by calling FreeMembers.
 pub fn GetCapabilities(surface: Surface, adapter: Adapter) Capabilities {
 
-    var capabilities = Capabilities{};
+    // Since emscripten SurfaceCapabilities doesnt (as of yet) have
+    // usages we need two different one.
+    if (builtin.target.os.tag == .emscripten) {
+        var web_cap = Capabilities.Web{};
+        wgpuSurfaceGetCapabilities(surface._inner, adapter._inner, &web_cap);
 
-    wgpuSurfaceGetCapabilities(surface._inner, adapter._inner, &capabilities);
+        return Capabilities{
+            .nextInChain = web_cap.nextInChain,
+            .formats = web_cap.formats[0..web_cap.formatCount],
+            .presentModes = web_cap.presentModes[0..web_cap.presentModeCount],
+            .alphaModes = web_cap.alphaModes[0..web_cap.alphaModeCount],
+            ._inner = .{ .web = web_cap }
+        };
+    } else {
+        var native_cap = Capabilities.Native{};
+        
+        wgpuSurfaceGetCapabilities(surface._inner, adapter._inner, &native_cap);
 
-    return capabilities;
+        var usage_idx: usize = 0;
+        inline for (@typeInfo(TextureUsage).@"enum".fields) |field| {
+
+            const bit_is_set: bool = blk: {
+                if (field.value == 0) {
+                    if (native_cap.usages == 0) {
+                        break :blk true;
+                    } else {
+                        break :blk false;
+                    }
+                } else {
+                    break :blk native_cap.usages & field.value == field.value;
+                }
+            };
+
+            if (bit_is_set) {
+                usages_buffer[usage_idx] = @as(TextureUsage, @enumFromInt(field.value));
+                usage_idx += 1;
+            }
+        }
+
+        return Capabilities {
+            .nextInChain = native_cap.nextInChain,
+            .usages = usages_buffer[0..usage_idx],
+            .formats = native_cap.formats[0..native_cap.formatCount],
+            .presentModes = native_cap.presentModes[0..native_cap.presentModeCount],
+            .alphaModes = native_cap.alphaModes[0..native_cap.alphaModeCount],
+            ._inner = .{ .native = native_cap }
+        };
+
+    }
+
+
+
 
 }
 
