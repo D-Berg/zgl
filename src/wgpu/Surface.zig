@@ -81,7 +81,7 @@ const MAX_USAGES = @typeInfo(TextureUsage).@"enum".fields.len;
 var usages_buffer: [MAX_USAGES]TextureUsage = undefined;
 pub const Capabilities = struct {
     nextInChain: ?*ChainedStructOut = null,
-    usages: ?[]const TextureUsage = null, // TODO: not defined in emscripten. Find out which one is valid.
+    usages: ?[]const TextureUsage = null, // TODO: check if emscripten has implemented usages when updating its version
     formats: []const TextureFormat,
     presentModes: []const PresentMode,
     alphaModes: []const CompositeAlphaMode,
