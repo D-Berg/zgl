@@ -120,11 +120,12 @@ pub const ProgrammableStageDescriptor = extern struct {
 };
 
 pub const PrimitiveTopology = enum(u32) {
-    PointList = 0x00000000,
-    LineList = 0x00000001,
-    LineStrip = 0x00000002,
-    TriangleList = 0x00000003,
-    TriangleStrip = 0x00000004,
+    Undefined = 0x00000000,
+    PointList = 0x00000001,
+    LineList = 0x00000002,
+    LineStrip = 0x00000003,
+    TriangleList = 0x00000004,
+    TriangleStrip = 0x00000005,
     Force32 = 0x7FFFFFFF
 };
 
@@ -137,9 +138,12 @@ pub const IndexFormat = enum(u32) {
 };
 
 
+/// in wgpu-native its defined differently.
+/// fixed in 
 pub const FrontFace = enum(u32) {
-    CCW = 0x00000000,
-    CW = 0x00000001,
+    Undefined = 0x00000000,
+    CCW = 0x00000001,
+    CW = 0x00000002,
     Force32 = 0x7FFFFFFF
 };
 
@@ -153,9 +157,9 @@ pub const CullMode = enum(u32) {
 
 pub const PrimitiveState = extern struct {
     nextInChain: ?*const ChainedStruct = null,
-    topology: PrimitiveTopology,
+    topology: PrimitiveTopology = .Undefined,
     stripIndexFormat: IndexFormat = .Undefined,
-    frontFace: FrontFace = .CCW,
+    frontFace: FrontFace = .Undefined,
     cullMode: CullMode = .None,
 };
 

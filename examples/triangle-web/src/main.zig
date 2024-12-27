@@ -12,8 +12,8 @@ const Allocator = std.mem.Allocator;
 const stdout = std.io.getStdOut().writer();
 const emscripten = std.os.emscripten;
 
-const WINDOW_WIDTH = 800;
-const WINDOW_HEIGHT = 600;
+const WINDOW_WIDTH = 400;
+const WINDOW_HEIGHT = 400;
 const triange_shader = @embedFile("shaders/triangle.wgsl");
 
 const App = struct {
@@ -65,7 +65,7 @@ const App = struct {
 
         const code_desc = wgpu.ShaderModule.WGSLDescriptor{
             .code = triange_shader,
-            .chain = .{ .next = null, .sType = .ShaderModuleWGSLDescriptor }
+            .chain = .{ .sType = .ShaderModuleWGSLDescriptor }
         };
         const shader_module = try device.CreateShaderModule(&.{
             .nextInChain = &code_desc.chain
@@ -73,43 +73,44 @@ const App = struct {
 
         const blend_state = wgpu.BlendState{
             .color = .{ 
-                .srcFactor = .SrcAlpha,
-                .dstFactor = .OneMinusSrcAlpha,
+                .srcFactor = .One,
+                .dstFactor = .Zero,
                 .operation = .Add,
             },
             .alpha = .{
-                .srcFactor = .Zero,
-                .dstFactor = .One,
+                .srcFactor = .One,
+                .dstFactor = .OneMinusSrcAlpha,
                 .operation = .Add
             }
         };
+        _ = blend_state;
 
         const zero: u32 = 0;
 
         const color_target = wgpu.ColorTargetState{
             .format = surface.GetPreferredFormat(adapter),
-            .blend = &blend_state,
+            .blend = null,
             .writeMask = .All
         };
 
-        const render_pipeline = try device.CreateRenderPipeline(&.{
-            .vertex = .{
+        const render_pipeline = try device.CreateRenderPipeline(&wgpu.RenderPipeline.Descriptor {
+            .vertex = wgpu.VertexState{
                 .module = shader_module._impl,
                 .entryPoint = "vs_main",
             },
-            .primitive = .{
+            .primitive = wgpu.PrimitiveState{
                 .topology = .TriangleList,
                 .stripIndexFormat = .Undefined,
                 .frontFace = .CCW, //counter clockwise
                 .cullMode = .None,
             },
-            .fragment = &.{
+            .fragment = &wgpu.FragmentState{
                 .module = shader_module._impl,    
                 .entryPoint = "fs_main",
                 .targetCount = 1,
                 .targets = &[1]wgpu.ColorTargetState{ color_target }
             },
-            .multisample = .{
+            .multisample = wgpu.MultiSampleState{
                 .count = 1,
                 .mask = ~zero,
                 .alphaToCoverageEnabled = false
@@ -151,8 +152,9 @@ const App = struct {
         const queue = self.queue;
         const render_pipeline = self.render_pipeline;
 
-        const texture = surface.GetCurrentTexture() catch {
-            @panic("failed to get texture");
+        const texture = surface.GetCurrentTexture() catch |err| {
+            log.err("failed to get texture: {}", .{err});
+            return;
         };
         defer texture.Release();
 
@@ -165,8 +167,9 @@ const App = struct {
             .baseArrayLayer = 0,
             .arrayLayerCount = 1,
             .aspect = .All,
-        }) catch { 
-            @panic("failed to get view");
+        }) catch |err| { 
+            log.err("failed to get view: {}", .{err});
+            return;
         };
         defer view.Release();
 
@@ -178,19 +181,20 @@ const App = struct {
             .resolveTarget = null,
             .loadOp = .Clear,
             .storeOp = .Store,
-            .clearValue = .{ .r = 0.9, .g = 0.1, .b = 0.2, .a = 1.0 },
+            .clearValue = .{ .r = 0, .g = 0, .b = 0, .a = 1.0 },
             .depthSlice = .Undefined,
         };
 
         {
-            const render_pass_encoder = command_encoder.BeginRenderPass(&.{
+            const render_pass_encoder = command_encoder.BeginRenderPass(&wgpu.RenderPass.Descriptor {
                 .colorAttachmentCount = 1,
-                .colorAttachments = &.{render_pass_color_attachement},
+                .colorAttachments = &[1]wgpu.RenderPass.ColorAttachment{render_pass_color_attachement},
                 .depthStencilAttachment = null,
                 .occlusionQuerySet = null,
                 .timestampWrites = null,
-            }) catch {
-                @panic("Failed to get render pass encoder");
+            }) catch |err| {
+                log.err("Failed to get render pass encoder: {s}", .{@errorName(err)});
+                return;
             };
 
             render_pass_encoder.SetPipeline(render_pipeline);
@@ -206,6 +210,11 @@ const App = struct {
 
         queue.Submit(&.{command_buffer});
         command_buffer.Release();
+
+        if (os_tag != .emscripten) {
+            surface.Present();
+            _ = device.Poll(false, null);
+        }
 
     }
 
@@ -225,11 +234,14 @@ pub fn main() !void {
     var app = try App.init(allocator);
     defer app.deinit();
 
+    log.debug("{s}", .{triange_shader});
+
     if (os_tag == .emscripten) {
         emscripten.emscripten_set_main_loop_arg(App.loop, &app, 0, @intFromBool(true));
     } else {
         while (!app.shouldClose()) {
             glfw.pollEvents();
+            App.loop(&app);
         }
     }
     
