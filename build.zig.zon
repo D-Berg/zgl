@@ -75,7 +75,8 @@
         },
         .wgpu_macos_x86_64_debug = .{ 
             .url = "https://github.com/gfx-rs/wgpu-native/releases/download/v22.1.0.5/wgpu-macos-x86_64-debug.zip", 
-            .hash = "122021723e9887d700e1852830ad12b79debc964a9f789b6e79701105c36f5d5ce44" },
+            .hash = "122021723e9887d700e1852830ad12b79debc964a9f789b6e79701105c36f5d5ce44" 
+        },
         .wgpu_macos_x86_64_release = .{
             .url = "https://github.com/gfx-rs/wgpu-native/releases/download/v22.1.0.5/wgpu-macos-x86_64-release.zip",
             .hash = "1220fe8168bcc47892ef649c2a525635ec9fd932ac2998d5503d38cc552c4cd89698",
