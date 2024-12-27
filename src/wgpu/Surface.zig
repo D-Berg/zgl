@@ -62,7 +62,7 @@ pub fn Release(surface: Surface) void {
 
 /// Not official webgpu api, but nice to have.
 /// ensures that we don't accidently index out of range if formatCount is 0.
-pub fn GetPrefferedFormat(surface: Surface, adapter: Adapter) TextureFormat {
+pub fn GetPreferredFormat(surface: Surface, adapter: Adapter) TextureFormat {
 
     const capabilities = surface.GetCapabilities(adapter);
     defer capabilities.FreeMembers();
