@@ -13,6 +13,8 @@ const CompositeAlphaMode = wgpu.CompositeAlphaMode;
 const DeviceImpl = wgpu.Device.DeviceImpl;
 const SurfaceGetCurrentTextureStatus = wgpu.SurfaceGetCurrentTextureStatus;
 
+const builtin = @import("builtin");
+
 const Surface = @This();
 pub const SurfaceImpl = *opaque {};
 
@@ -47,6 +49,11 @@ pub const DescriptorFromWaylandSurface = extern struct {
     surface: *anyopaque
 };
 
+pub const DescriptorFromCanvasHTMLSelector = extern struct {
+    chain: ChainedStruct,
+    selector: [*]const u8,
+};
+
 extern "c" fn wgpuSurfaceRelease(surface: SurfaceImpl) void;
 pub fn Release(surface: Surface) void {
     
@@ -55,27 +62,76 @@ pub fn Release(surface: Surface) void {
 
 }
 
+/// Not official webgpu api, but nice to have.
+/// ensures that we don't accidently index out of range if formatCount is 0.
+pub fn GetPreferredFormat(surface: Surface, adapter: Adapter) TextureFormat {
+
+    const capabilities = surface.GetCapabilities(adapter);
+    defer capabilities.FreeMembers();
+
+    if (capabilities.formatCount > 0) {
+        return capabilities.formats[0];
+    } else {
+        return TextureFormat.Undefined;
+    }
+}
+
+
 pub const Capabilities = extern struct {
     nextInChain: ?*ChainedStructOut = null,
-    usages: TextureUsage = .None,
+    usages: u32 = 0,// TODO: not defined in emscripten. Find out which one is valid.
     formatCount: usize = 0,
-    formats: ?[*]const TextureFormat = null,
+    formats: [*c]const TextureFormat = null,
     presentModeCount: usize = 0,
     presentModes: ?[*]const PresentMode = null,
     alphaModeCount: usize = 0,
     alphaModes: ?[*]const CompositeAlphaMode = null,
     
-    extern "c" fn wgpuSurfaceCapabilitiesFreeMembers(capabilities: Capabilities) void;
-    pub fn FreeMembers(capabilities: Capabilities) void {
+    extern "c" fn wgpuSurfaceCapabilitiesFreeMembers(capabilities: *const Capabilities) void;
+    pub fn FreeMembers(capabilities: *const Capabilities) void {
         wgpuSurfaceCapabilitiesFreeMembers(capabilities);
     }
     
-    pub fn logCapabilites(capabilities: Capabilities) void {
+    pub fn logCapabilites(capabilities: *const Capabilities) void {
         
         log.info("Surface capabilities:", .{});
         log.info(" - nextInChain: {?}", .{capabilities.nextInChain});
-        log.info(" - formats:", .{});
+
+        
+        const MAX_USAGES = @typeInfo(TextureUsage).@"enum".fields.len;
+        var usages_buffer: [MAX_USAGES]u32 = undefined;
+        var usage_idx: usize = 0;
+        inline for (@typeInfo(TextureUsage).@"enum".fields) |field| {
+
+            const bit_is_set: bool = blk: {
+                if (field.value == 0) {
+                    if (capabilities.usages == 0) {
+                        break :blk true;
+                    } else {
+                        break :blk false;
+                    }
+                } else {
+                    break :blk capabilities.usages & field.value == field.value;
+                }
+            };
+
+            if (bit_is_set) {
+                usages_buffer[usage_idx] = field.value;
+                usage_idx += 1;
+            }
+        }
+
+        const usages = usages_buffer[0..usage_idx];
+
+        log.info(" - usages:", .{});
+
+        for (usages) |usage| {
+            log.info("  - {s}", .{@tagName(@as(TextureUsage, @enumFromInt(usage)))});
+        }
+
+        log.info(" - formats: {}", .{capabilities.formatCount});
         for (0..capabilities.formatCount) |i| {
+            // log.info("  - {x}", .{@intFromEnum(capabilities.formats.?[i])});
             log.info("  - {s}", .{@tagName(capabilities.formats.?[i])});
         }
 
@@ -140,7 +196,10 @@ const GetSurfaceTextureError = error {
     RecoverableTexture,
     UnrecoverableTexture
 };
+
+
 extern "c" fn wgpuSurfaceGetCurrentTexture(surface: SurfaceImpl, surfaceTexture: *Texture) void;
+/// Unsupported on emscripten.
 pub fn GetCurrentTexture(surface: Surface) GetSurfaceTextureError!wgpu.Texture {
 
     var surface_texture = Texture{};

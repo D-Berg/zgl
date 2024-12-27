@@ -1,5 +1,7 @@
 const std = @import("std");
 const log = std.log.scoped(.@"wgpu/instance");
+const builtin = @import("builtin");
+
 const wgpu = @import("wgpu.zig");
 const Allocator = std.mem.Allocator;
 const WGPUError = wgpu.WGPUError;
@@ -56,7 +58,13 @@ pub fn RequestAdapter(instance: Instance, options: ?*const wgpu.RequestAdapterOp
     // async
     wgpuInstanceRequestAdapter(instance._inner, options, &onAdapterRequestEnded, &user_data);
 
-    if (!user_data.requestEnded) return error.FailedToRequestAdapter;
+
+    if (builtin.target.os.tag == .emscripten) {
+        while (!user_data.requestEnded) std.os.emscripten.emscripten_sleep(100);
+    } else {
+        if (!user_data.requestEnded) return error.FailedToRequestAdapter;
+    }
+
 
     log.info("Request adapter ended", .{});
 

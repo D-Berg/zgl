@@ -14,9 +14,9 @@ pub const EncoderImpl = *opaque {};
 
 pub const ColorAttachment = extern struct {
     nextInChain: ?*const ChainedStruct = null,
-    view: ?ViewImpl,
-    depthSlice: DepthSlice,
-    resolveTarget: ?ViewImpl,
+    view: ?ViewImpl = null,
+    depthSlice: DepthSlice = .Undefined,
+    resolveTarget: ?ViewImpl = null,
     loadOp: LoadOp,
     storeOp: StoreOp,
     clearValue: Color
@@ -45,12 +45,12 @@ pub const TimestampWrites = extern struct {
 
 pub const Descriptor = extern struct {
     nextInChain: ?*const ChainedStruct = null,
-    label: [*]const u8 = "",
-    colorAttachmentCount: usize,
-    colorAttachments: [*]const ColorAttachment,
-    depthStencilAttachment: ?*const DepthStencilAttachment,
-    occlusionQuerySet: ?QuerySetImpl,
-    timestampWrites: ?*const TimestampWrites
+    label: ?[*]const u8 = null,
+    colorAttachmentCount: usize = 0,
+    colorAttachments: ?[*]const ColorAttachment = null,
+    depthStencilAttachment: ?*const DepthStencilAttachment = null,
+    occlusionQuerySet: ?QuerySetImpl = null,
+    timestampWrites: ?*const TimestampWrites = null
 };
 
 pub const Encoder = struct {

@@ -9,7 +9,6 @@ const ChainedStructOut = wgpu.ChainedStructOut;
 const FeatureName = wgpu.FeatureName;
 const RequiredLimits = wgpu.RequiredLimits;
 const Queue = wgpu.Queue;
-const QueueImpl = Queue.QueueImpl;
 const UncapturedErrorCallbackInfo = wgpu.UncapturedErrorCallbackInfo;
 const Limits = wgpu.Limits;
 const CommandEncoder = wgpu.CommandEncoder;
@@ -20,6 +19,7 @@ const RenderPipeline = wgpu.RenderPipeline;
 const RenderPipelineImpl = RenderPipeline.RenderPipelineImpl;
 const Buffer = wgpu.Buffer;
 const BufferImpl = Buffer.BufferImpl;
+const ComputePipeline = wgpu.ComputePipeline;
 
 const Device = @This();
 ///Used for calling c API
@@ -107,13 +107,13 @@ pub fn GetLimits(device: Device) !SupportedLimits {
     
 }
 
-extern "c" fn wgpuDeviceGetQueue(device: DeviceImpl) ?QueueImpl;
-pub fn GetQueue(device: Device) WGPUError!Queue {
-    const maybe_impl = wgpuDeviceGetQueue(device._inner);
+extern "c" fn wgpuDeviceGetQueue(device: DeviceImpl) ?*Queue;
+pub fn GetQueue(device: Device) WGPUError!*Queue {
+    const maybe_queue = wgpuDeviceGetQueue(device._inner);
 
-    if (maybe_impl) |impl| {
-        log.info("Got Queue: {}", .{impl});
-        return Queue{ ._inner = impl };
+    if (maybe_queue) |queue| {
+        log.info("Got Queue: {}", .{queue});
+        return queue;
     } else {
         return error.FailedToGetQueue;
     }
@@ -155,6 +155,26 @@ pub fn CreateRenderPipeline(device: Device, descriptor: *const RenderPipeline.De
 
     if (maybe_impl) |impl| return RenderPipeline{ ._impl = impl } else return error.FailedToCreateRenderPipeline;
 
+}
+
+extern "c" fn wgpuDeviceCreateComputePipeline(
+    device: DeviceImpl,
+    descriptor: *const ComputePipeline.Descriptor
+) ?*ComputePipeline;
+
+pub fn CreateComputePipeline(
+    device: Device,
+    descriptor: *const ComputePipeline.Descriptor
+) WGPUError!*ComputePipeline {
+    const maybe_compute_pipeline = wgpuDeviceCreateComputePipeline(
+        device._inner, descriptor
+    );
+
+    if (maybe_compute_pipeline) |compute_pipeline| {
+        return compute_pipeline;
+    } else {
+        return WGPUError.FailedToCreateComputePipeline;
+    }
 }
 
 pub const SupportedFeatures = struct {

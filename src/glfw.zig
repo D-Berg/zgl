@@ -18,10 +18,13 @@ pub fn init() GlfwError!void {
 
     if (status == 0) {
         log.err("Failed to init glfw", .{});
+        
 
-        var description: [*:0]u8 = undefined;
-        _ = glfwGetError(&description);
-        log.err("error description = {s}", .{description});
+        if (os_tag != .emscripten) { // glfwGetError doesnt work
+            var description: [*:0]u8 = undefined;
+            _ = glfwGetError(&description);
+            log.err("error description = {s}", .{description});
+        }
 
         return error.GLFWFailedInit;
     }
@@ -148,6 +151,9 @@ pub fn GetWGPUSurface(window: Window, instance: Instance) wgpu.WGPUError!Surface
         .windows => {
             return try GetWGPUWindowsSurface(window, instance);
         },
+        .emscripten => {
+            return try GetWGPUCanvasSurface(instance);
+        },
         else => {
             @panic("Unsupported OS");
         }
@@ -259,5 +265,24 @@ fn GetWGPUMetalSurface(window: Window, instance: Instance) wgpu.WGPUError!Surfac
 
     log.info("Getting Cocoa Surface", .{});
     return try Instance.CreateSurface(instance, &surfaceDesc);
+}
+
+fn GetWGPUCanvasSurface(instance: Instance) wgpu.WGPUError!Surface {
+
+    const fromCanvasHTMLSelector = Surface.DescriptorFromCanvasHTMLSelector {
+        .chain = .{ .sType = .SurfaceDescriptorFromCanvasHTMLSelector },
+        .selector = "canvas"
+    };
+
+    const surfaceDesc = Surface.Descriptor {
+        .nextInChain = &fromCanvasHTMLSelector.chain
+    };
+
+    log.info("Getting Canvas HTML Surface", .{});
+
+    return try Instance.CreateSurface(instance, &surfaceDesc);
+
+
+
 }
 
