@@ -54,11 +54,11 @@ pub fn emLinkStep(b: *std.Build, lib: *Compile, emsdk: *Dependency) *std.Build.S
     const optimize = lib.root_module.optimize.?;
     if (optimize == .Debug) {
         emcc.addArgs(&.{ 
-            "-O0", 
+            // "-O0", 
             // "-sSAFE_HEAP=1", 
-            "-sSTACK_OVERFLOW_CHECK=1" 
+            // "-sSTACK_OVERFLOW_CHECK=1" 
         });
-        // emcc.addArg("-sASSERTIONS");
+        emcc.addArg("-sASSERTIONS=0");
     } else {
         if (optimize == .ReleaseSmall) {
             emcc.addArg("-Oz");
