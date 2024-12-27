@@ -23,6 +23,7 @@ const App = struct {
     adapter: wgpu.Adapter,
     device: wgpu.Device,
     queue: *wgpu.Queue,
+    shader_module: wgpu.ShaderModule,
     render_pipeline: wgpu.RenderPipeline, 
     allocator: Allocator,
 
@@ -36,11 +37,31 @@ const App = struct {
 
         const surface = try glfw.GetWGPUSurface(window, instance);
 
-        const adapter = try instance.RequestAdapter(null);
+
+        const adapter = try instance.RequestAdapter(&.{
+            .compatibleSurface = surface._inner,
+        });
+
+
+        const surface_capabilities = surface.GetCapabilities(adapter);
+        defer surface_capabilities.FreeMembers();
+
+        surface_capabilities.logCapabilites();
 
         const device = try adapter.RequestDevice(null);
 
         const queue = try device.GetQueue();
+
+        var surface_config = wgpu.Surface.Configuration{
+            .device = device._inner,
+            .width = WINDOW_WIDTH,
+            .height = WINDOW_HEIGHT,
+            .usage = .RenderAttachment,
+            .format = surface.GetPreferredFormat(adapter),
+            .presentMode = .Undefined,
+            .alphaMode = .Auto
+        };
+        surface.Configure(&surface_config);
 
         const code_desc = wgpu.ShaderModule.WGSLDescriptor{
             .code = triange_shader,
@@ -49,7 +70,6 @@ const App = struct {
         const shader_module = try device.CreateShaderModule(&.{
             .nextInChain = &code_desc.chain
         });
-        defer shader_module.Release();
 
         const blend_state = wgpu.BlendState{
             .color = .{ 
@@ -67,7 +87,7 @@ const App = struct {
         const zero: u32 = 0;
 
         const color_target = wgpu.ColorTargetState{
-            .format = .Undefined,
+            .format = surface.GetPreferredFormat(adapter),
             .blend = &blend_state,
             .writeMask = .All
         };
@@ -103,6 +123,7 @@ const App = struct {
             .adapter = adapter,
             .device = device,
             .queue = queue,
+            .shader_module = shader_module,
             .render_pipeline = render_pipeline,
             .allocator = allocator,
         };
@@ -117,12 +138,14 @@ const App = struct {
         defer self.adapter.Release();
         defer self.device.Release();
         defer self.queue.Release();
+        defer self.shader_module.Release();
         defer self.render_pipeline.Release();
 
     }
 
     fn loop(ctx: ?*anyopaque) callconv(.C) void {
         const self = @as(*App, @alignCast(@ptrCast(ctx)));
+
         const surface = self.surface;
         const device = self.device;
         const queue = self.queue;
@@ -178,7 +201,7 @@ const App = struct {
         }
 
 
-        const command_buffer = command_encoder.Finish(&.{});
+        const command_buffer = command_encoder.Finish(&.{.label = "cmd buffer"});
         command_encoder.Release();
 
         queue.Submit(&.{command_buffer});
