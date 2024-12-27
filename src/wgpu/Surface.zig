@@ -13,6 +13,8 @@ const CompositeAlphaMode = wgpu.CompositeAlphaMode;
 const DeviceImpl = wgpu.Device.DeviceImpl;
 const SurfaceGetCurrentTextureStatus = wgpu.SurfaceGetCurrentTextureStatus;
 
+const builtin = @import("builtin");
+
 const Surface = @This();
 pub const SurfaceImpl = *opaque {};
 
@@ -74,9 +76,10 @@ pub fn GetPreferredFormat(surface: Surface, adapter: Adapter) TextureFormat {
     }
 }
 
+
 pub const Capabilities = extern struct {
     nextInChain: ?*ChainedStructOut = null,
-    // usages: TextureUsage = .None, // TODO: not defined in emscripten. Find out which one is valid.
+    usages: u32 = 0, // TODO: not defined in emscripten. Find out which one is valid.
     formatCount: usize = 0,
     formats: [*c]const TextureFormat = null,
     presentModeCount: usize = 0,
@@ -93,6 +96,39 @@ pub const Capabilities = extern struct {
         
         log.info("Surface capabilities:", .{});
         log.info(" - nextInChain: {?}", .{capabilities.nextInChain});
+
+        
+        const MAX_USAGES = @typeInfo(TextureUsage).@"enum".fields.len;
+        var usages_buffer: [MAX_USAGES]u32 = undefined;
+        var usage_idx: usize = 0;
+        inline for (@typeInfo(TextureUsage).@"enum".fields) |field| {
+
+            const bit_is_set: bool = blk: {
+                if (field.value == 0) {
+                    if (capabilities.usages == 0) {
+                        break :blk true;
+                    } else {
+                        break :blk false;
+                    }
+                } else {
+                    break :blk capabilities.usages & field.value == field.value;
+                }
+            };
+
+            if (bit_is_set) {
+                usages_buffer[usage_idx] = field.value;
+                usage_idx += 1;
+            }
+        }
+
+        const usages = usages_buffer[0..usage_idx];
+
+        log.info(" - usages:", .{});
+
+        for (usages) |usage| {
+            log.info("  - {s}", .{@tagName(@as(TextureUsage, @enumFromInt(usage)))});
+        }
+
         log.info(" - formats: {}", .{capabilities.formatCount});
         for (0..capabilities.formatCount) |i| {
             // log.info("  - {x}", .{@intFromEnum(capabilities.formats.?[i])});
