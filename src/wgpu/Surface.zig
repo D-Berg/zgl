@@ -79,7 +79,7 @@ pub fn GetPreferredFormat(surface: Surface, adapter: Adapter) TextureFormat {
 
 pub const Capabilities = extern struct {
     nextInChain: ?*ChainedStructOut = null,
-    usages: u32 = 0, // TODO: not defined in emscripten. Find out which one is valid.
+    usages: u32 = 0,// TODO: not defined in emscripten. Find out which one is valid.
     formatCount: usize = 0,
     formats: [*c]const TextureFormat = null,
     presentModeCount: usize = 0,
