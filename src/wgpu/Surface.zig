@@ -60,6 +60,20 @@ pub fn Release(surface: Surface) void {
 
 }
 
+/// Not official webgpu api, but nice to have.
+/// ensures that we don't accidently index out of range if formatCount is 0.
+pub fn GetPrefferedFormat(surface: Surface, adapter: Adapter) TextureFormat {
+
+    const capabilities = surface.GetCapabilities(adapter);
+    defer capabilities.FreeMembers();
+
+    if (capabilities.formatCount > 0) {
+        return capabilities.formats[0];
+    } else {
+        return TextureFormat.Undefined;
+    }
+}
+
 pub const Capabilities = extern struct {
     nextInChain: ?*ChainedStructOut = null,
     // usages: TextureUsage = .None, // TODO: not defined in emscripten. Find out which one is valid.
