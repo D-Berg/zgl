@@ -65,9 +65,9 @@
             .url = "https://github.com/hexops/x11-headers/archive/29aefb525d5c08b05b0351e34b1623854a138c21.zip",
             .hash = "1220e79da2d5efd5e9dd8b6453f83a9ec79534e2e203b3331766b81e49171f3db474"
         },
-        .wgpu_macos_aarch64_debug = .{
-            .url = "https://github.com/gfx-rs/wgpu-native/releases/download/v22.1.0.5/wgpu-macos-aarch64-debug.zip",
-            .hash = "12209db4f886436958ef2b74186189e69c2020e3dad4a9397eea58c4ff75f2f1e460",
+        .wgpu_macos_aarch64_debug = .{ // TODO: temporary until its pulled in on wgpu-native
+            .url = "https://github.com/eliemichel/wgpu-native/releases/download/v23.0.0-gamma/wgpu-macos-aarch64-debug.zip",
+            .hash = "1220876cfb980c0f3461519a2f77ac88b768cc7cfee06deeb54b0e99288136c78e07"
         },
         .wgpu_macos_aarch64_release = .{
             .url = "https://github.com/gfx-rs/wgpu-native/releases/download/v22.1.0.5/wgpu-macos-aarch64-release.zip",
