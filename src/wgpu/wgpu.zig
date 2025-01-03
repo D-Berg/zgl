@@ -104,7 +104,7 @@ pub const VertexBufferLayout = extern struct {
 pub const VertexState = extern struct {
     nextInChain: ?*const ChainedStruct = null,
     module: ShaderModuleImpl,
-    entryPoint: ?[*]const u8 = null,
+    entryPoint: StringView = .{ .data = "", .length = 0 },
     constantCount: usize = 0,
     constants: ?[*]const ConstantEntry = null,
     bufferCount: usize = 0,
@@ -149,9 +149,10 @@ pub const FrontFace = enum(u32) {
 
 
 pub const CullMode = enum(u32) {
-    None = 0x00000000,
-    Front = 0x00000001,
-    Back = 0x00000002,
+    Undefined = 0x00000000,
+    None = 0x00000001,
+    Front = 0x00000002,
+    Back = 0x00000003,
     Force32 = 0x7FFFFFFF
 };
 
@@ -161,6 +162,9 @@ pub const PrimitiveState = extern struct {
     stripIndexFormat: IndexFormat = .Undefined,
     frontFace: FrontFace = .Undefined,
     cullMode: CullMode = .None,
+    unclippedDepth: bool = false,
+    
+
 };
 
 
@@ -251,29 +255,35 @@ pub const SupportedFeatures = extern struct {
 };
 
 pub const BlendOperation = enum(u32) {
-    Add = 0x00000000,
-    Subtract = 0x00000001,
-    ReverseSubtract = 0x00000002,
-    Min = 0x00000003,
-    Max = 0x00000004,
+    Undefined = 0x00000000,
+    Add = 0x00000001,
+    Subtract = 0x00000002,
+    ReverseSubtract = 0x00000003,
+    Min = 0x00000004,
+    Max = 0x00000005,
     Force32 = 0x7FFFFFFF
 };
 
 
 pub const BlendFactor = enum(u32) {
-    Zero = 0x00000000,
-    One = 0x00000001,
-    Src = 0x00000002,
-    OneMinusSrc = 0x00000003,
-    SrcAlpha = 0x00000004,
-    OneMinusSrcAlpha = 0x00000005,
-    Dst = 0x00000006,
-    OneMinusDst = 0x00000007,
-    DstAlpha = 0x00000008,
-    OneMinusDstAlpha = 0x00000009,
-    SrcAlphaSaturated = 0x0000000A,
-    Constant = 0x0000000B,
-    OneMinusConstant = 0x0000000C,
+    Undefined = 0x00000000,
+    Zero = 0x00000001,
+    One = 0x00000002,
+    Src = 0x00000003,
+    OneMinusSrc = 0x00000004,
+    SrcAlpha = 0x00000005,
+    OneMinusSrcAlpha = 0x00000006,
+    Dst = 0x00000007,
+    OneMinusDst = 0x00000008,
+    DstAlpha = 0x00000009,
+    OneMinusDstAlpha = 0x0000000A,
+    SrcAlphaSaturated = 0x0000000B,
+    Constant = 0x0000000C,
+    OneMinusConstant = 0x0000000D,
+    Src1 = 0x0000000E,
+    OneMinusSrc1 = 0x0000000F,
+    Src1Alpha = 0x00000010,
+    OneMinusSrc1Alpha = 0x00000011,
     Force32 = 0x7FFFFFFF
 };
 
@@ -296,13 +306,14 @@ pub const ColorWriteMask = enum(u32) {
     const GREEN = 0x00000002;
     const BLUE = 0x00000004;
     const ALPHA = 0x00000008;
+    const MASK = 0x000000000000000F;
 
     None = 0x00000000,
     Red = RED,
     Green = GREEN,
     Blue = BLUE,
     Alpha = ALPHA,
-    All = NONE | RED | GREEN | BLUE | ALPHA,
+    All = MASK | RED | GREEN | BLUE | ALPHA,
     Force32 = 0x7FFFFFFF
 }; 
 
@@ -313,10 +324,16 @@ pub const ColorTargetState = extern struct {
     writeMask: ColorWriteMask
 }; 
 
+
+pub const ShaderSourceWGSL = extern struct {
+    chain: ChainedStruct,
+    code: StringView = .{ .data = "", .length = 0},
+};
+
 pub const FragmentState = extern struct {
     nextInChain: ?*const ChainedStruct = null,
     module: ShaderModuleImpl,
-    entryPoint: ?[*]const u8,
+    entryPoint: StringView = .{ .data = "", .length = 0 },
     constantCount: usize = 0,
     constants: ?[*]const ConstantEntry = null,
     targetCount: usize = 0,
@@ -357,13 +374,30 @@ const SType = enum(u32) {
 };
 
 pub const SurfaceGetCurrentTextureStatus = enum(u32) {
-    Success = 0,
-    Timeout = 1,
-    Outdated = 2,
-    Lost = 3,
-    OutOfMemory = 4,
-    DeviceLost = 5,
-    Force32 = 0x7FFFFFFF,
+    /// Yay! Everything is good and we can render this frame.
+    SuccessOptimal = 0x00000001,
+
+    /// Still OK - the surface can present the frame, but in a suboptimal way. The surface may need reconfiguration.
+    SuccessSuboptimal = 0x00000002,
+    
+    /// Some operation timed out while trying to acquire the frame.
+    Timeout = 0x00000003,
+
+    /// The surface is too different to be used, compared to when it was originally created.
+    Outdated = 0x00000004,
+
+    ///The connection to whatever owns the surface was lost.
+    Lost = 0x00000005,
+
+    /// The system ran out of memory.
+    OutOfMemory = 0x00000006,
+    
+    /// The @ref WGPUDevice configured on the @ref WGPUSurface was lost.
+    DeviceLost = 0x00000007,
+
+    /// The surface is not configured, or there was an @ref OutStructChainError.
+    Error = 0x00000008,
+    WGPUSurfaceGetCurrentTextureStatus_Force32 = 0x7FFFFFFF
 };
 
 
@@ -430,9 +464,10 @@ pub const TexureViewDimension = enum(u32) {
 
 
 pub const TextureAspect = enum(u32) {
-    All = 0x00000000,
-    StencilOnly = 0x00000001,
-    DepthOnly = 0x00000002,
+    Undefined = 0x00000000,
+    All = 0x00000001,
+    StencilOnly = 0x00000002,
+    DepthOnly = 0x00000003,
     Force32 = 0x7FFFFFFF
 };
 
@@ -537,7 +572,7 @@ pub const TextureFormat = enum(u32) {
 };
 
 
-pub const TextureUsage = enum(u32) {
+pub const TextureUsage = enum(u64) {
     // TODO: document meaning
     None = 0x00000000,
     CopySrc = 0x00000001,
@@ -788,8 +823,8 @@ pub const WrappedSubmissionIndex = extern struct {
 
 pub const LoadOp = enum(u32) {
     Undefined = 0x00000000,
-    Clear = 0x00000001,
-    Load = 0x00000002,
+    Load = 0x00000001,
+    Clear = 0x00000002,
     Force32 = 0x7FFFFFFF
 };
 

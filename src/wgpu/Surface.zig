@@ -1,4 +1,5 @@
 const std = @import("std");
+const zgl = @import("../zgl.zig");
 const log = std.log.scoped(.@"wgpu/surface");
 const wgpu = @import("wgpu.zig");
 const WGPUError = wgpu.WGPUError;
@@ -212,27 +213,44 @@ pub fn GetCapabilities(surface: Surface, adapter: Adapter) Capabilities {
 
     }
 
-
-
-
 }
 
-
+/// https://webgpu-native.github.io/webgpu-headers/structWGPUSurfaceConfiguration.html
 pub const Configuration = extern struct {
     nextInChain: ?*const ChainedStruct = null,
-    device: DeviceImpl,
-    format: TextureFormat,
-    usage: TextureUsage,
-    width: u32,
-    height: u32,
+    device: ?DeviceImpl = null,
+    format: TextureFormat = .Undefined,
+    usage: TextureUsage = .RenderAttachment,
+    width: u32 = 0,
+    height: u32 = 0,
     viewFormatCount: usize = 0,
     viewFormats: ?[*]const TextureFormat = null,
-    alphaMode: CompositeAlphaMode,
-    presentMode: PresentMode,
+    alphaMode: CompositeAlphaMode = .Auto,
+    presentMode: PresentMode = .Undefined,
 };
 
-extern "c" fn wgpuSurfaceConfigure(surface: SurfaceImpl, config: *const Configuration) void;
-pub fn Configure(surface: Surface, config: *const Configuration) void {
+
+extern "c" fn wgpuSurfaceConfigure(surface: SurfaceImpl, config: *const Surface.Configuration) void;
+pub fn Configure(surface: Surface, config: *const Surface.Configuration) void {
+    log.debug("configuring surface", .{});
+
+    const name = @typeName(@TypeOf(config.*));
+    log.debug("size of {s} = {}", .{name, @sizeOf(@TypeOf(config.*))});
+
+    inline for (@typeInfo(Surface.Configuration).@"struct".fields) |field| {
+
+        log.debug("{s}: offset = {}, size = {}, alignment = {}", .{
+            field.name, 
+            @offsetOf(Surface.Configuration, field.name),
+            @sizeOf(field.type),
+            @alignOf(field.type)
+        });
+        log.debug("value = {any}, type = {}", .{@field(config, field.name), field.type});
+
+    }
+
+    log.debug("poiner size = {}", .{@sizeOf(@TypeOf(config))});
+    log.debug("pointer alignment = {}", .{@alignOf(@TypeOf(config))});
     wgpuSurfaceConfigure(surface._inner, config);
     log.debug("Configured", .{});
 }
@@ -259,7 +277,7 @@ pub fn GetCurrentTexture(surface: Surface) GetSurfaceTextureError!wgpu.Texture {
     wgpuSurfaceGetCurrentTexture(surface._inner, &surface_texture);
 
     switch (surface_texture.status) {
-        .Success => {
+        .SuccessOptimal, .SuccessSuboptimal => {
 
             if (surface_texture.texture) |texture| {
                 return wgpu.Texture { ._impl = texture };
@@ -269,7 +287,7 @@ pub fn GetCurrentTexture(surface: Surface) GetSurfaceTextureError!wgpu.Texture {
             }
 
         }, 
-        .Timeout, .Outdated, .Lost => {
+        .Timeout, .Outdated, .DeviceLost => {
             return GetSurfaceTextureError.RecoverableTexture;
         },
         inline else => |status| {
@@ -282,9 +300,9 @@ pub fn GetCurrentTexture(surface: Surface) GetSurfaceTextureError!wgpu.Texture {
 }
 
 pub const Texture = extern struct {
+    nextInChain: ?*const ChainedStructOut = null,
     texture: ?wgpu.Texture.TextureImpl = null,
-    suboptimal: bool = false,
-    status: wgpu.SurfaceGetCurrentTextureStatus = .Lost
+    status: wgpu.SurfaceGetCurrentTextureStatus = .DeviceLost
 };
 
 extern "c" fn wgpuSurfacePresent(surface: SurfaceImpl) void;

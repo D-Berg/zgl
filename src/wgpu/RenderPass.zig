@@ -45,7 +45,7 @@ pub const TimestampWrites = extern struct {
 
 pub const Descriptor = extern struct {
     nextInChain: ?*const ChainedStruct = null,
-    label: ?[*]const u8 = null,
+    label: wgpu.StringView = .{ .data = "", .length = 0 },
     colorAttachmentCount: usize = 0,
     colorAttachments: ?[*]const ColorAttachment = null,
     depthStencilAttachment: ?*const DepthStencilAttachment = null,

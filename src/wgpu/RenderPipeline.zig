@@ -14,7 +14,7 @@ _impl: RenderPipelineImpl,
 
 pub const Descriptor = extern struct {
     nextInChain: ?*const ChainedStruct = null,
-    label: ?[*]const u8 = null,
+    label: wgpu.StringView = .{ .data = "", .length = 0 },
     layout: ?PipelineLayoutImpl = null,
     vertex: VertexState,
     primitive: PrimitiveState,

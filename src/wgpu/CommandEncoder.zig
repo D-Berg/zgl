@@ -16,7 +16,7 @@ _inner: CommandEncoderImpl,
 
 pub const Descriptor = extern struct {
     nextInChain: ?*const ChainedStruct = null,
-    label: [*]const u8 = "",
+    label: wgpu.StringView = .{ .data = "", .length = 0 },
 }; 
 
 extern "c" fn wgpuCommandEncoderRelease(commandEncoder: CommandEncoderImpl) void;

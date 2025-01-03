@@ -24,29 +24,34 @@ pub const Queue = opaque {
 
     extern "c" fn wgpuQueueOnSubmittedWorkDone(
         queue: *Queue, 
-        callback: OnSubmittedWorkDoneCallback, 
-        userdata: ?*anyopaque
-    ) void;
+        callbackInfo: WorkDoneCallbackInfo, 
+    ) wgpu.Future;
     /// set up a function to be called back once the queues work is done. Takes a pointet to a user defined func 
     /// wich need to match OnSubmittedWorkDoneCallback
-    pub fn OnSubmittedWorkDone(queue: *Queue, callback: OnSubmittedWorkDoneCallback, userdata: ?*anyopaque) void {
-        wgpuQueueOnSubmittedWorkDone(queue, callback, userdata);
+    pub fn OnSubmittedWorkDone(queue: *Queue, callbackInfo: WorkDoneCallbackInfo) wgpu.Future {
+        return wgpuQueueOnSubmittedWorkDone(queue, callbackInfo);
     }
-
-    pub const OnSubmittedWorkDoneCallback = *const fn(
+    pub const WorkDoneCallback = *const fn(
         status: WorkDoneStatus, 
-        message: [*c]const u8, 
-        userdata: ?*anyopaque
+        userdata1: ?*anyopaque,
+        userdata2: ?*anyopaque,
     ) callconv(.C) void;
 
     pub const WorkDoneStatus = enum(u32) {
-        Success = 0x00000000,
-        Error = 0x00000001,
-        Unknown = 0x00000002,
-        DeviceLost = 0x00000003,
+        Success = 0x00000001,
+        InstanceDropped = 0x00000002,
+        Error = 0x00000003,
+        Unknown = 0x00000004,
         Force32 = 0x7FFFFFFF
     };
-
+    
+    pub const WorkDoneCallbackInfo = extern struct {
+        nextInChain: ?*const ChainedStruct = null,
+        mode: wgpu.CallBackMode = .WaitAnyOnly,
+        callback: WorkDoneCallback,
+        userdata1: ?*anyopaque,
+        userdata2: ?*anyopaque,
+    };
 
 
     extern "c" fn wgpuQueueSubmit(queue: *Queue, commandCount: usize, commands: [*]const CommandBufferImpl) void;

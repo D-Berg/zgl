@@ -5,6 +5,7 @@ const WGPUError = wgpu.WGPUError;
 const ChainedStruct = wgpu.ChainedStruct;
 const TextureFormat = wgpu.TextureFormat;
 const TextureViewDimension = wgpu.TexureViewDimension;
+const TextureUsage = wgpu.TextureUsage;
 
 const TextureAspect = wgpu.TextureAspect;
 const Texture = @This();
@@ -45,7 +46,7 @@ pub const View = struct {
 
     pub const Descriptor = extern struct {
         nextInChain: ?*const ChainedStruct = null,
-        label: [*]const u8 = "",
+        label: wgpu.StringView = .{ .data = "", .length = 0 },
         format: TextureFormat,
         dimension: TextureViewDimension,
         baseMipLevel: u32,
@@ -53,6 +54,8 @@ pub const View = struct {
         baseArrayLayer: u32,
         arrayLayerCount: u32,
         aspect: TextureAspect,
+        usage: TextureUsage,
     };
+
 };
 

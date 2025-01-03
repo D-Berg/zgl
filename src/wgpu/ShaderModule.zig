@@ -14,16 +14,9 @@ pub const CompilationHint = extern struct {
     layout: ?PipelineLayoutImpl
 };
 
-pub const WGSLDescriptor = extern struct {
-    chain: ChainedStruct,
-    code: [*]const u8,
-};
-
 pub const Descriptor = extern struct {
     nextInChain: ?*const ChainedStruct = null,
-    label: [*]const u8 = "",
-    hintCount: usize = 0,
-    hints: ?[*]const CompilationHint = null,
+    label: wgpu.StringView = .{ .data = "", .length = 0},
 };
 
 extern "c" fn wgpuShaderModuleRelease(shaderModule: ShaderModuleImpl) void;
