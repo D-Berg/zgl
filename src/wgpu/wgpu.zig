@@ -304,10 +304,11 @@ pub const Status = enum(u32) {
 
 
 pub const RequestAdapterStatus = enum(u32) {
-    Success = 0x00000000,
-    Unavailable = 0x00000001,
-    Error = 0x00000002,
-    Unknown = 0x00000003,
+    Success = 0x00000001,
+    InstanceDropped = 0x00000002,
+    Unavailable = 0x00000003,
+    Error = 0x00000004,
+    Unknown = 0x00000005,
     Force32 = 0x7FFFFFFF
 };
 
@@ -537,13 +538,89 @@ pub const ChainedStructOut = extern struct {
     sType: SType,
 };
 
+pub const StringView = extern struct {
+    data: [*]const u8,
+    length: usize,
+
+    pub fn toSlice(stringView: StringView) []const u8 {
+        var slice: []const u8 = undefined;
+
+        slice.ptr = stringView.data;
+        slice.len = stringView.length;
+
+        return slice;
+    }
+
+    pub fn fromSlice(slice: []const u8) StringView {
+        return StringView {
+            .data = slice.ptr,
+            .length = slice.len
+        };
+    }
+};
+
+pub const Future = u64;
+
+/// The callback mode controls how a callback for an asynchronous operation may be fired. 
+/// See Asynchronous Operations for how these are used.
+pub const CallBackMode = enum(u32) { // TODO: fix doc.
+
+    /// Callbacks created with `WGPUCallbackMode_WaitAnyOnly`:
+    ///     - fire when the asynchronous operation's future is passed to a call to `::wgpuInstanceWaitAny`
+    /// AND the operation has already completed or it completes inside the call to `::wgpuInstanceWaitAny`.
+    WaitAnyOnly = 0x00000001,
+
+    /// Callbacks created with `WGPUCallbackMode.AllowProcessEvents`:
+    ///  - fire for the same reasons as callbacks created with `WGPUCallbackMode_WaitAnyOnly`
+    ///  - fire inside a call to `::wgpuInstanceProcessEvents` if the asynchronous operation is complete.
+    AllowProcessEvents = 0x00000002,
+
+    /// Callbacks created with `WGPUCallbackMode_AllowSpontaneous`:
+    /// - fire for the same reasons as callbacks created with `WGPUCallbackMode_AllowProcessEvents`
+    /// - **may** fire spontaneously on an arbitrary or application thread, when the WebGPU implementations discovers that the asynchronous operation is complete.
+    /// 
+    /// Implementations _should_ fire spontaneous callbacks as soon as possible.
+    /// 
+    /// @note Because spontaneous callbacks may fire at an arbitrary time on an arbitrary thread, applications should take extra care when acquiring locks or mutating state inside the callback. It undefined behavior to re-entrantly call into the webgpu.h API if the callback fires while inside the callstack of another webgpu.h function that is not `wgpuInstanceWaitAny` or `wgpuInstanceProcessEvents`.
+    AllowSpontaneous = 0x00000003,
+    Force32 = 0x7FFFFFFF
+};
+
+pub const RequestAdapterCallbackInfo = extern struct {
+    nextInChain: ?*const ChainedStruct = null,
+    mode: CallBackMode,
+    callback: ?*const Instance.RequestAdapterCallback,
+    userdata1: ?*anyopaque,
+    userdata2: ?*anyopaque,
+};
 
 pub const RequestAdapterOptions = extern struct {
     nextInChain: ?*const ChainedStruct = null,
-    compatibleSurface: ?SurfaceImpl = null,
+    featureLevel: FeatureLevel = .Compatibility,
     powerPreference: PowerPreference = .Undefined,
-    backendType: BackendType = .Undefined,
+
+    /// If true, requires the adapter to be a "fallback" adapter as defined by the JS spec.
+    /// If this is not possible, the request returns null.
     forceFallbackAdapter: bool = false,
+
+    /// If set, requires the adapter to have a particular backend type.
+    /// If this is not possible, the request returns null.
+    backendType: BackendType = .Undefined,
+
+    /// If set, requires the adapter to be able to output to a particular surface.
+    /// If this is not possible, the request returns null.
+    compatibleSurface: ?SurfaceImpl = null,
+
+};
+
+/// "Feature level" for the adapter request. If an adapter is returned, 
+/// it must support the features and limits in the requested feature level.
+pub const FeatureLevel = enum(u32) {
+    /// "Compatibility" profile which can be supported on OpenGL ES 3.1.
+    Compatibility = 0x00000001,
+    /// "Core" profile which can be supported on Vulkan/Metal/D3D12.
+    Core = 0x00000002,
+    Force32 = 0x7FFFFFFF
 };
 
 const PowerPreference = enum(u32){

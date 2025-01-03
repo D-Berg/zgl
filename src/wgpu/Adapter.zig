@@ -118,10 +118,10 @@ pub fn GetFeatures(adapter: Adapter, allocator: Allocator) !SupportedAdapterFeat
 }
 
 const AdapterType = enum(u32) {
-    DiscreteGPU = 0x00000000,
-    IntegratedGPU = 0x00000001,
-    CPU = 0x00000002,
-    Unknown = 0x00000003,
+    DiscreteGPU = 0x00000001,
+    IntegratedGPU = 0x00000002,
+    CPU = 0x00000003,
+    Unknown = 0x00000004,
     Force32 = 0x7FFFFFFF
 };
 
@@ -136,10 +136,10 @@ const RequestDeviceStatus = enum(u32)  {
 
 const Info = extern struct {
     nextInChain: ?*const wgpu.ChainedStructOut = null,
-    vendor: [*c]const u8 = "",
-    architecture: [*c]const u8 = "",
-    device: [*c]const u8 = "",
-    description: [*c]const u8 = "",
+    vendor: wgpu.StringView = undefined,
+    architecture: wgpu.StringView = undefined,
+    device: wgpu.StringView = undefined,
+    description: wgpu.StringView = undefined,
     backendType: BackendType = .Null,
     adapterType: AdapterType = .Unknown,
     vendorID: u32 = 0,
@@ -147,10 +147,10 @@ const Info = extern struct {
 
     pub fn logInfo(info: Info) void {
         log.info("Adapter info:", .{});
-        log.info(" - vendor: {s}", .{info.vendor});
-        log.info(" - architecture: {s}", .{info.architecture});
-        log.info(" - device: {s}", .{info.device});
-        log.info(" - description: {s}", .{info.description});
+        log.info(" - vendor: {s}", .{info.vendor.toSlice()});
+        log.info(" - architecture: {s}", .{info.architecture.toSlice()});
+        log.info(" - device: {s}", .{info.device.toSlice()});
+        log.info(" - description: {s}", .{info.description.toSlice()});
         log.info(" - backendType: {s}", .{@tagName(info.backendType)});
         log.info(" - adapterType: {s}", .{@tagName(info.adapterType)});
         log.info(" - vendorID: {}", .{info.vendorID});

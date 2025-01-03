@@ -42,22 +42,28 @@ pub fn Release(instance: Instance) void {
 
 pub const Descriptor = extern struct {
     nextInChain: ?*const wgpu.ChainedStruct = null,
+    timedWaitAnyEnable: bool = false,
+    timedWaitAnyMaxCount: usize = 0
 };
 
 extern "c" fn wgpuInstanceRequestAdapter(
     instance: InstanceImpl, 
     options: ?*const wgpu.RequestAdapterOptions, 
-    callback: *const Instance.RequestAdapterCallback,
-    userdata: ?*anyopaque
-) void;
+    callbackInfo: wgpu.RequestAdapterCallbackInfo,
+) wgpu.Future;
 pub fn RequestAdapter(instance: Instance, options: ?*const wgpu.RequestAdapterOptions) WGPUError!Adapter {
 
     log.info("Requesting adapter...", .{});
     var user_data = Adapter.UserData{};
 
     // async
-    wgpuInstanceRequestAdapter(instance._inner, options, &onAdapterRequestEnded, &user_data);
-
+    _ = wgpuInstanceRequestAdapter(instance._inner, options, .{
+        .nextInChain = null,
+        .mode = .AllowProcessEvents,
+        .callback = &onAdapterRequestEnded,
+        .userdata1 = &user_data,
+        .userdata2 = null,
+    });
 
     if (builtin.target.os.tag == .emscripten) {
         while (!user_data.requestEnded) std.os.emscripten.emscripten_sleep(100);
@@ -79,11 +85,12 @@ pub fn RequestAdapter(instance: Instance, options: ?*const wgpu.RequestAdapterOp
 
 }
 
-const RequestAdapterCallback = fn (
+pub const RequestAdapterCallback = fn (
     status: wgpu.RequestAdapterStatus, 
     adapterImpl: ?AdapterImpl, 
-    message: [*c]const u8,
-    userdata: ?*anyopaque,
+    message: wgpu.StringView,
+    userdata1: ?*anyopaque,
+    userdata2: ?*anyopaque,
 ) callconv(.C) void;
 
 
@@ -91,11 +98,14 @@ const RequestAdapterCallback = fn (
 fn onAdapterRequestEnded(
     status: wgpu.RequestAdapterStatus, 
     adapterImpl: ?AdapterImpl, 
-    message: [*c]const u8,
-    userdata: ?*anyopaque,
+    message: wgpu.StringView,
+    userdata1: ?*anyopaque,
+    userdata2: ?*anyopaque,
 ) callconv(.C) void {
 
-    var user_data = @as(*Adapter.UserData, @alignCast(@ptrCast(userdata)));
+    _ = userdata2;
+
+    var user_data = @as(*Adapter.UserData, @alignCast(@ptrCast(userdata1)));
 
     switch (status) {
         .Success => {
@@ -104,7 +114,7 @@ fn onAdapterRequestEnded(
         inline else => |status_val| {
 
             log.err("Request adapter status: {s}, message: {s}", .{
-                @tagName(status_val), message
+                @tagName(status_val), message.toSlice()
             });
 
         }
