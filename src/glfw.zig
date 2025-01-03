@@ -179,7 +179,7 @@ fn GetWGPUWindowsSurface(window: Window, instance: Instance) wgpu.WGPUError!Surf
     const fromWindowsHWND = Surface.DescriptorFromWindowsHWND{
         .hwnd = hwnd,
         .hinstance = hinstance,
-        .chain = .{ .sType = .SurfaceDescriptorFromWindowsHWND }
+        .chain = .{ .sType = .SurfaceSourceWindowsHWND }
     };
 
     const surface_desc = Surface.Descriptor{
@@ -201,7 +201,7 @@ fn GetWGPUX11Surface(window: Window, instance: Instance) wgpu.WGPUError!Surface 
     const fromX11 = Surface.DescriptorFromXlibWindow{
         .window = @intFromPtr(x11_window),
         .display = x11_display,
-        .chain = .{ .sType = .SurfaceDescriptorFromXlibWindow }
+        .chain = .{ .sType = .SurfaceSourceXlibWindow }
     };
     const surface_desc = Surface.Descriptor {
         .nextInChain = &fromX11.chain,
@@ -223,7 +223,7 @@ fn GetWGPUWaylandSurface(window: Window, instance: Instance) wgpu.WGPUError!Surf
         return wgpu.WGPUError.FailedToCreateSurface;
 
     const fromWaland = Surface.DescriptorFromWaylandSurface{
-        .chain = .{ .sType = .SurfaceDescriptorFromWaylandSurface },
+        .chain = .{ .sType = .SurfaceSourceWaylandSurface },
         .display = wl_display,
         .surface = wl_surface
     };
@@ -254,12 +254,11 @@ fn GetWGPUMetalSurface(window: Window, instance: Instance) wgpu.WGPUError!Surfac
     log.debug("metal_layer: {any}", .{metal_layer});
 
     const fromMetalLayer = Surface.DescriptorFromMetalLayer {
-        .chain = .{ .next = null, .sType = .SurfaceDescriptorFromMetalLayer },
+        .chain = .{ .next = null, .sType = .SurfaceSourceMetalLayer },
         .layer = metal_layer
     };
 
     const surfaceDesc = Surface.Descriptor {
-        .label = "",
         .nextInChain = &fromMetalLayer.chain
     };
 
@@ -270,7 +269,7 @@ fn GetWGPUMetalSurface(window: Window, instance: Instance) wgpu.WGPUError!Surfac
 fn GetWGPUCanvasSurface(instance: Instance) wgpu.WGPUError!Surface {
 
     const fromCanvasHTMLSelector = Surface.DescriptorFromCanvasHTMLSelector {
-        .chain = .{ .sType = .SurfaceDescriptorFromCanvasHTMLSelector },
+        .chain = .{ .sType = .DescriptorFromCanvasHTMLSelector },
         .selector = "canvas"
     };
 

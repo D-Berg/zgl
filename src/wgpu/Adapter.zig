@@ -11,6 +11,7 @@ const Device = wgpu.Device;
 const DeviceImpl = Device.DeviceImpl;
 const FeatureName = wgpu.FeatureName;
 const BackendType = wgpu.BackendType;
+const ChainedStruct = wgpu.ChainedStruct;
 const ChainedStructOut = wgpu.ChainedStructOut;
 const Limits = wgpu.Limits;
 
@@ -34,16 +35,21 @@ pub fn Release(adapter: Adapter) void {
 extern "c" fn wgpuAdapterRequestDevice(
     adapter: AdapterImpl, 
     descriptor: ?*const Device.Descriptor, 
-    callback: *const RequestDeviceCallback, 
-    userdata: ?*anyopaque
-) void;
+    callbackInfo: RequestDeviceCallbackInfo
+) wgpu.Future;
 pub fn RequestDevice(adapter: Adapter, descriptor: ?*const Device.Descriptor) WGPUError!Device {
     
     log.info("Requesting device...", .{});
 
     var userdata = Device.UserData{};
 
-    wgpuAdapterRequestDevice(adapter._inner, descriptor, &onDeviceRequestEnded, &userdata);
+    _ = wgpuAdapterRequestDevice(adapter._inner, descriptor, RequestDeviceCallbackInfo{
+        .nextInChain = null,
+        .mode = .WaitAnyOnly,
+        .callback = &onDeviceRequestEnded,
+        .userdata1 = &userdata,
+        .userdata2 = null,
+    });
 
     if (builting.target.os.tag == .emscripten) {
         while (!userdata.requestEnded) emscripten.emscripten_sleep(100);
@@ -64,19 +70,23 @@ pub fn RequestDevice(adapter: Adapter, descriptor: ?*const Device.Descriptor) WG
 const RequestDeviceCallback = fn(
     status: RequestDeviceStatus,
     deviceImpl: ?DeviceImpl,
-    message: [*c]const u8,
-    userdata: ?*anyopaque
+    message: wgpu.StringView,
+    userdata1: ?*anyopaque,
+    userdata2: ?*anyopaque,
 ) callconv(.C) void;
 
 /// My user implementation of RequestDeviceCallback, not part of webgpu.h
 fn onDeviceRequestEnded(
     status: RequestDeviceStatus, 
     deviceImpl: ?DeviceImpl, 
-    message: [*c]const u8,
-    user_data_any: ?*anyopaque
+    message: wgpu.StringView,
+    userdata1: ?*anyopaque,
+    userdata2: ?*anyopaque
 ) callconv(.C) void {
 
-    var user_data = @as(*Device.UserData, @alignCast(@ptrCast(user_data_any)));
+    _ = userdata2;
+
+    var user_data = @as(*Device.UserData, @alignCast(@ptrCast(userdata1)));
 
     switch (status) {
         .Success => {
@@ -84,15 +94,21 @@ fn onDeviceRequestEnded(
         }, 
 
         inline else => |case| {
-            
-            log.err("Could not get WebGPU device, status: {s}, message: {s}", .{@tagName(case), message});
-
+            log.err("Could not get WebGPU device, status: {s}, message: {s}", .{@tagName(case), message.toSlice()});
         }
 
     }
 
     user_data.requestEnded = true;
 }
+
+const RequestDeviceCallbackInfo = extern struct {
+    nextInChain: ?*const ChainedStruct,
+    mode: wgpu.CallBackMode,
+    callback: *const RequestDeviceCallback,
+    userdata1: ?*anyopaque,
+    userdata2: ?*anyopaque,
+};
 
 extern fn wgpuAdapterGetLimits(adapter: AdapterImpl, limits: *SupportedLimits) u32;
 pub fn GetLimits(adapter: Adapter) ?SupportedLimits {
@@ -104,17 +120,16 @@ pub fn GetLimits(adapter: Adapter) ?SupportedLimits {
 }
 
 
-extern fn wgpuAdapterEnumerateFeatures(adapter: AdapterImpl, features: [*c]FeatureName) usize;
-pub fn GetFeatures(adapter: Adapter, allocator: Allocator) !SupportedAdapterFeatures {
+extern fn wgpuAdapterGetFeatures(adapter: AdapterImpl, features: *wgpu.SupportedFeatures) void;
+pub fn GetFeatures(adapter: Adapter) wgpu.SupportedFeatures {
+    var sup_features = wgpu.SupportedFeatures {
+        .featureCount = 0,
+        .features = undefined,
+    };
 
-    const featureCount = wgpuAdapterEnumerateFeatures(adapter._inner, null);
+    wgpuAdapterGetFeatures(adapter._inner, &sup_features);
     
-    const features = try allocator.alloc(FeatureName, featureCount);
-    
-    _ = wgpuAdapterEnumerateFeatures(adapter._inner, @ptrCast(features));
-
-    return SupportedAdapterFeatures{ .allocator = allocator, .features = features };
-
+    return sup_features;
 }
 
 const AdapterType = enum(u32) {
@@ -126,9 +141,10 @@ const AdapterType = enum(u32) {
 };
 
 const RequestDeviceStatus = enum(u32)  {
-    Success = 0x00000000,
-    Error = 0x00000001,
-    Unknown = 0x00000002,
+    Success = 0x00000001,
+    InstanceDropped = 0x00000002,
+    Error = 0x00000003,
+    Unknown = 0x00000004,
     Force32 = 0x7FFFFFFF
 };
 
@@ -145,18 +161,27 @@ const Info = extern struct {
     vendorID: u32 = 0,
     deviceID: u32 = 0,
 
-    pub fn logInfo(info: Info) void {
-        log.info("Adapter info:", .{});
-        log.info(" - vendor: {s}", .{info.vendor.toSlice()});
-        log.info(" - architecture: {s}", .{info.architecture.toSlice()});
-        log.info(" - device: {s}", .{info.device.toSlice()});
-        log.info(" - description: {s}", .{info.description.toSlice()});
-        log.info(" - backendType: {s}", .{@tagName(info.backendType)});
-        log.info(" - adapterType: {s}", .{@tagName(info.adapterType)});
-        log.info(" - vendorID: {}", .{info.vendorID});
-        log.info(" - deviceID: {}", .{info.deviceID});
-
+    extern "c" fn wgpuAdapterInfoFreeMembers(info: Info) void;
+    pub fn deinit(self: Info) void {
+        wgpuAdapterInfoFreeMembers(self);
     }
+
+    pub fn format(self: *const Info, comptime fmt: []const u8, _: std.fmt.FormatOptions, writer: anytype) !void {
+        if (fmt.len != 0) {
+            std.fmt.invalidFmtError(fmt, self);
+        }
+
+        try writer.print("Adapter info:\n", .{});
+        try writer.print("  - vendor: {s}\n", .{self.vendor.toSlice()});
+        try writer.print("  - architecture: {s}\n", .{self.architecture.toSlice()});
+        try writer.print("  - device: {s}\n", .{self.device.toSlice()});
+        try writer.print("  - description: {s}\n", .{self.description.toSlice()});
+        try writer.print("  - backendType: {s}\n", .{@tagName(self.backendType)});
+        try writer.print("  - adapterType: {s}\n", .{@tagName(self.adapterType)});
+        try writer.print("  - vendorID: {}\n", .{self.vendorID});
+        try writer.print("  - deviceID: {}\n", .{self.deviceID});
+    }
+
 };
 
 extern fn wgpuAdapterGetInfo(adapter: AdapterImpl, info: *Info) void;

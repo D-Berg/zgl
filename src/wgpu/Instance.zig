@@ -10,6 +10,7 @@ const AdapterImpl = Adapter.AdapterImpl;
 const Surface = wgpu.Surface;
 const SurfaceImpl = Surface.SurfaceImpl;
 const ChainedStruct = wgpu.ChainedStruct;
+const RequestAdapterOptions = wgpu.RequestAdapterOptions;
 
 const Instance = @This();
 const InstanceImpl = *opaque {};
@@ -48,10 +49,10 @@ pub const Descriptor = extern struct {
 
 extern "c" fn wgpuInstanceRequestAdapter(
     instance: InstanceImpl, 
-    options: ?*const wgpu.RequestAdapterOptions, 
-    callbackInfo: wgpu.RequestAdapterCallbackInfo,
+    options: ?*const RequestAdapterOptions, 
+    callbackInfo: RequestAdapterCallbackInfo,
 ) wgpu.Future;
-pub fn RequestAdapter(instance: Instance, options: ?*const wgpu.RequestAdapterOptions) WGPUError!Adapter {
+pub fn RequestAdapter(instance: Instance, options: ?*const RequestAdapterOptions) WGPUError!Adapter {
 
     log.info("Requesting adapter...", .{});
     var user_data = Adapter.UserData{};
@@ -124,6 +125,16 @@ fn onAdapterRequestEnded(
     user_data.requestEnded = true;
 
 }
+
+
+const RequestAdapterCallbackInfo = extern struct {
+    nextInChain: ?*const ChainedStruct = null,
+    mode: wgpu.CallBackMode,
+    callback: ?*const Instance.RequestAdapterCallback,
+    userdata1: ?*anyopaque,
+    userdata2: ?*anyopaque,
+};
+
 
 pub const EnumerateAdapterOptions = extern struct {
     nextInChain: ?*const ChainedStruct = null,

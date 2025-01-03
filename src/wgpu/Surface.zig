@@ -22,7 +22,7 @@ _inner: SurfaceImpl,
 
 pub const Descriptor = extern struct {
     nextInChain: ?*const ChainedStruct = null,
-    label: ?[*]const u8 = null,
+    label: wgpu.StringView = .{.data = "", .length = 0}
 };
 
 pub const DescriptorFromMetalLayer = extern struct {
@@ -223,11 +223,11 @@ pub const Configuration = extern struct {
     device: DeviceImpl,
     format: TextureFormat,
     usage: TextureUsage,
+    width: u32,
+    height: u32,
     viewFormatCount: usize = 0,
     viewFormats: ?[*]const TextureFormat = null,
     alphaMode: CompositeAlphaMode,
-    width: u32,
-    height: u32,
     presentMode: PresentMode,
 };
 

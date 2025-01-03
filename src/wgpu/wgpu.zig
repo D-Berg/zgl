@@ -218,6 +218,37 @@ pub const MultiSampleState = extern struct {
     alphaToCoverageEnabled: bool,
 };
 
+pub const SupportedFeatures = extern struct {
+    featureCount: usize,
+    features: [*c]const FeatureName,
+    
+    extern "c" fn wgpuSupportedFeaturesFreeMembers(supportedFeatures: SupportedFeatures) void;
+    pub fn deinit(self: SupportedFeatures) void {
+        wgpuSupportedFeaturesFreeMembers(self);
+    }
+
+    pub fn toSlice(self: SupportedFeatures) []const FeatureName {
+        var slice: []const FeatureName = undefined;
+
+        slice.ptr = self.features;
+        slice.len = self.featureCount;
+
+        return slice;
+    }
+
+    
+    pub fn format(self: *const SupportedFeatures, comptime fmt: []const u8, _: std.fmt.FormatOptions, writer: anytype) !void {
+        if (fmt.len != 0) {
+            std.fmt.invalidFmtError(fmt, self);
+        }
+        for (self.toSlice()) |feature| {
+            try writer.print("  - {s}\n", .{@tagName(feature)});
+        }
+    }
+
+
+    
+};
 
 pub const BlendOperation = enum(u32) {
     Add = 0x00000000,
@@ -313,18 +344,15 @@ pub const RequestAdapterStatus = enum(u32) {
 };
 
 const SType = enum(u32) {
-    Invalid = 0x00000000,
-    SurfaceDescriptorFromMetalLayer = 0x00000001,
-    SurfaceDescriptorFromWindowsHWND = 0x00000002,
-    SurfaceDescriptorFromXlibWindow = 0x00000003,
-    SurfaceDescriptorFromCanvasHTMLSelector = 0x00000004,
-    ShaderModuleSPIRVDescriptor = 0x00000005,
-    ShaderModuleWGSLDescriptor = 0x00000006,
-    PrimitiveDepthClipControl = 0x00000007,
-    SurfaceDescriptorFromWaylandSurface = 0x00000008,
-    SurfaceDescriptorFromAndroidNativeWindow = 0x00000009,
-    SurfaceDescriptorFromXcbWindow = 0x0000000A,
-    RenderPassDescriptorMaxDrawCount = 0x0000000F,
+    ShaderSourceSPIRV = 0x00000001,
+    ShaderSourceWGSL = 0x00000002,
+    RenderPassMaxDrawCount = 0x00000003,
+    SurfaceSourceMetalLayer = 0x00000004,
+    SurfaceSourceWindowsHWND = 0x00000005,
+    SurfaceSourceXlibWindow = 0x00000006,
+    SurfaceSourceWaylandSurface = 0x00000007,
+    SurfaceSourceAndroidNativeWindow = 0x00000008,
+    SurfaceSourceXCBWindow = 0x00000009,
     Force32 = 0x7FFFFFFF
 };
 
@@ -586,14 +614,6 @@ pub const CallBackMode = enum(u32) { // TODO: fix doc.
     Force32 = 0x7FFFFFFF
 };
 
-pub const RequestAdapterCallbackInfo = extern struct {
-    nextInChain: ?*const ChainedStruct = null,
-    mode: CallBackMode,
-    callback: ?*const Instance.RequestAdapterCallback,
-    userdata1: ?*anyopaque,
-    userdata2: ?*anyopaque,
-};
-
 pub const RequestAdapterOptions = extern struct {
     nextInChain: ?*const ChainedStruct = null,
     featureLevel: FeatureLevel = .Compatibility,
@@ -679,29 +699,47 @@ pub const FeatureName = enum(u32) {
     ClipDistances = 0x0000000F,
     DualSourceBlending = 0x00000010,
     Force32 = 0x7FFFFFFF,
-    PushConstants = 196609,
-    TextureAdapterSpecificFormatFeatures = 196610,
-    MultiDrawIndirect = 196611,
-    MultiDrawIndirectCount = 196612,
-    VertexWritableStorage = 196613,
-    TextureBindingArray = 196614,
-    SampledTextureAndStorageBufferArrayNonUniformIndexing = 196615,
-    PipelineStatisticsQuery = 196616,
-    StorageResourceBindingArray = 196617,
-    PartiallyBoundBindingArray = 196618,
-    TextureFormat16bitNorm = 196619,
-    TextureCompressionAstcHdr = 196620,
-    MappablePrimaryBuffers = 196622,
-    BufferBindingArray = 196623,
-    UniformBufferAndStorageTextureArrayNonUniformIndexing = 196624,
-    VertexAttribute64bit = 196633,
-    TextureFormatNv12 = 196634,
-    RayTracingAccelerationStructure = 196635,
-    RayQuery = 196636,
-    ShaderF64 = 196637,
-    ShaderI16 = 196638,
-    ShaderPrimitiveIndex = 196639,
-    ShaderEarlyDepthTest = 196640,
+
+    // not part of webgpu.h
+    WGPUNativeFeature_PushConstants = 0x00030001,
+    WGPUNativeFeature_TextureAdapterSpecificFormatFeatures = 0x00030002,
+    WGPUNativeFeature_MultiDrawIndirect = 0x00030003,
+    WGPUNativeFeature_MultiDrawIndirectCount = 0x00030004,
+    WGPUNativeFeature_VertexWritableStorage = 0x00030005,
+    WGPUNativeFeature_TextureBindingArray = 0x00030006,
+    WGPUNativeFeature_SampledTextureAndStorageBufferArrayNonUniformIndexing = 0x00030007,
+    WGPUNativeFeature_PipelineStatisticsQuery = 0x00030008,
+    WGPUNativeFeature_StorageResourceBindingArray = 0x00030009,
+    WGPUNativeFeature_PartiallyBoundBindingArray = 0x0003000A,
+    WGPUNativeFeature_TextureFormat16bitNorm = 0x0003000B,
+    WGPUNativeFeature_TextureCompressionAstcHdr = 0x0003000C,
+    WGPUNativeFeature_MappablePrimaryBuffers = 0x0003000E,
+    WGPUNativeFeature_BufferBindingArray = 0x0003000F,
+    WGPUNativeFeature_UniformBufferAndStorageTextureArrayNonUniformIndexing = 0x00030010,
+    // TODO: requires wgpu.h api change
+    // WGPUNativeFeature_AddressModeClampToZero = 0x00030011,
+    // WGPUNativeFeature_AddressModeClampToBorder = 0x00030012,
+    // WGPUNativeFeature_PolygonModeLine = 0x00030013,
+    // WGPUNativeFeature_PolygonModePoint = 0x00030014,
+    // WGPUNativeFeature_ConservativeRasterization = 0x00030015,
+    // WGPUNativeFeature_ClearTexture = 0x00030016,
+    WGPUNativeFeature_SpirvShaderPassthrough = 0x00030017,
+    // WGPUNativeFeature_Multiview = 0x00030018,
+    WGPUNativeFeature_VertexAttribute64bit = 0x00030019,
+    WGPUNativeFeature_TextureFormatNv12 = 0x0003001A,
+    WGPUNativeFeature_RayTracingAccelerationStructure = 0x0003001B,
+    WGPUNativeFeature_RayQuery = 0x0003001C,
+    WGPUNativeFeature_ShaderF64 = 0x0003001D,
+    WGPUNativeFeature_ShaderI16 = 0x0003001E,
+    WGPUNativeFeature_ShaderPrimitiveIndex = 0x0003001F,
+    WGPUNativeFeature_ShaderEarlyDepthTest = 0x00030020,
+    WGPUNativeFeature_Subgroup = 0x00030021,
+    WGPUNativeFeature_SubgroupVertex = 0x00030022,
+    WGPUNativeFeature_SubgroupBarrier = 0x00030023,
+    WGPUNativeFeature_TimestampQueryInsideEncoders = 0x00030024,
+    WGPUNativeFeature_TimestampQueryInsidePasses = 0x00030025,
+
+
 };
 
 pub const Limits = extern struct {

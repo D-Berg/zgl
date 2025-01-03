@@ -36,12 +36,12 @@ pub fn Release(device: Device) void {
 
 pub const Descriptor = struct {
     nextInChain: ?*const ChainedStruct = null,
-    label: [*c]const u8 = "",
+    label: wgpu.StringView = .{ .data = "", .length = 0},
     requiredFeatureCount: usize = 0,
     requiredFeatures: ?[*]const FeatureName = null,
     requiredLimits: ?*const RequiredLimits = null,
     defaultQueue: Queue.Descriptor = .{
-        .label =  "",
+        .label = .{ .data = "", .length = 0},
         .nextInChain = null
     },
     deviceLostCallback: ?*const LostCallback = null,
@@ -66,17 +66,17 @@ pub const UserData = struct {
     requestEnded: bool = false,        
 };
 
-extern fn wgpuDeviceEnumerateFeatures(device: DeviceImpl, features: [*c]FeatureName) usize;
-pub fn GetFeatures(device: Device, allocator: Allocator) !SupportedFeatures {
 
-    const featureCount = wgpuDeviceEnumerateFeatures(device._inner, null);
+
+extern fn wgpuDeviceGetFeatures(device: DeviceImpl, features: *wgpu.SupportedFeatures) void;
+/// Members neeed to be freed by calling deinit
+pub fn GetFeatures(device: Device) wgpu.SupportedFeatures {
     
-    const features = try allocator.alloc(FeatureName, featureCount);
-    
-    _ = wgpuDeviceEnumerateFeatures(device._inner, @ptrCast(features));
+    var sup_features = wgpu.SupportedFeatures{.features = undefined, .featureCount = undefined};
 
-    return SupportedFeatures{ .allocator = allocator, .features = features };
+    wgpuDeviceGetFeatures(device._inner, &sup_features);
 
+    return sup_features;
 }
 
 
@@ -176,24 +176,6 @@ pub fn CreateComputePipeline(
         return WGPUError.FailedToCreateComputePipeline;
     }
 }
-
-pub const SupportedFeatures = struct {
-    allocator: std.mem.Allocator,
-    features: []FeatureName,
-
-    pub fn deinit(sfeatures: *const SupportedFeatures) void {
-        sfeatures.allocator.free(sfeatures.features);
-    }
-
-    pub fn logFeautures(sfeatures: *const SupportedFeatures) void {
-
-        log.info("Supported Device Features: {}", .{sfeatures.features.len});
-        for (sfeatures.features) |feature| {
-            log.info(" - {s}", .{@tagName(feature)});
-        }
-    }
-    
-};
 
 extern "c" fn wgpuDeviceCreateBuffer(
     device: DeviceImpl, 

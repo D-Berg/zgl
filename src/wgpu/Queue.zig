@@ -12,7 +12,7 @@ const BufferImpl = Buffer.BufferImpl;
 pub const Queue = opaque {
     pub const Descriptor = struct {
         nextInChain: ?ChainedStruct = null,
-        label: [*c]const u8 = ""
+        label: wgpu.StringView = .{ .data = "", .length = 0}
     };
 
     extern "c" fn wgpuQueueRelease(queue: *Queue) void;
