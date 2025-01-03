@@ -232,27 +232,10 @@ pub const Configuration = extern struct {
 
 extern "c" fn wgpuSurfaceConfigure(surface: SurfaceImpl, config: *const Surface.Configuration) void;
 pub fn Configure(surface: Surface, config: *const Surface.Configuration) void {
-    log.debug("configuring surface", .{});
 
-    const name = @typeName(@TypeOf(config.*));
-    log.debug("size of {s} = {}", .{name, @sizeOf(@TypeOf(config.*))});
-
-    inline for (@typeInfo(Surface.Configuration).@"struct".fields) |field| {
-
-        log.debug("{s}: offset = {}, size = {}, alignment = {}", .{
-            field.name, 
-            @offsetOf(Surface.Configuration, field.name),
-            @sizeOf(field.type),
-            @alignOf(field.type)
-        });
-        log.debug("value = {any}, type = {}", .{@field(config, field.name), field.type});
-
-    }
-
-    log.debug("poiner size = {}", .{@sizeOf(@TypeOf(config))});
-    log.debug("pointer alignment = {}", .{@alignOf(@TypeOf(config))});
     wgpuSurfaceConfigure(surface._inner, config);
     log.debug("Configured", .{});
+
 }
 
 extern "c" fn wgpuSurfaceUnconfigure(surface: SurfaceImpl) void;
