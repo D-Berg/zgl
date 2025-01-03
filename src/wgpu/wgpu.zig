@@ -3,25 +3,71 @@ const std = @import("std");
 const log = std.log.scoped(.@"wgpu");
 const Allocator = std.mem.Allocator;
 
-pub const Instance = @import("Instance.zig");
-pub const Adapter = @import("Adapter.zig");
-pub const Device = @import("Device.zig");
-pub const Queue = @import("Queue.zig").Queue;
-pub const Surface = @import("Surface.zig");
-const SurfaceImpl = Surface.SurfaceImpl;
-pub const CommandEncoder = @import("CommandEncoder.zig");
-pub const CommandBuffer = @import("CommandBuffer.zig");
-pub const Texture = @import("Texture.zig");
-pub const RenderPass = @import("RenderPass.zig");
-pub const QuerySet = @import("QuerySet.zig");
-pub const ShaderModule = @import("ShaderModule.zig");
-pub const ShaderModuleImpl = ShaderModule.ShaderModuleImpl;
-pub const PipelineLayout = @import("PipelineLayout.zig");
-pub const RenderPipeline = @import("RenderPipeline.zig");
-pub const Buffer = @import("Buffer.zig");
-pub const ComputePipeline = @import("ComputePipeline.zig").ComputePipeline;
+/// If you want to import submodules lazily, define them as functions returning their types or namespaces.
+/// Example usage in your code: `const Instance = wgpu.lazyInstance();`
+pub fn lazyInstance() type {
+    return @import("Instance.zig");
+}
 
+pub fn lazyAdapter() type {
+    return @import("Adapter.zig");
+}
 
+pub fn lazyDevice() type {
+    return @import("Device.zig");
+}
+
+pub fn lazyQueue() type {
+    // `Queue` is also exported from `Queue.zig`;  
+    // return the entire file or the single type. 
+    return @import("Queue.zig");
+}
+
+pub fn lazySurface() type {
+    return @import("Surface.zig");
+}
+
+pub fn lazyCommandEncoder() type {
+    return @import("CommandEncoder.zig");
+}
+
+pub fn lazyCommandBuffer() type {
+    return @import("CommandBuffer.zig");
+}
+
+pub fn lazyTexture() type {
+    return @import("Texture.zig");
+}
+
+pub fn lazyRenderPass() type {
+    return @import("RenderPass.zig");
+}
+
+pub fn lazyQuerySet() type {
+    return @import("QuerySet.zig");
+}
+
+pub fn lazyShaderModule() type {
+    return @import("ShaderModule.zig");
+}
+
+pub fn lazyPipelineLayout() type {
+    return @import("PipelineLayout.zig");
+}
+
+pub fn lazyRenderPipeline() type {
+    return @import("RenderPipeline.zig");
+}
+
+pub fn lazyBuffer() type {
+    return @import("Buffer.zig");
+}
+
+pub fn lazyComputePipeline() type {
+    return @import("ComputePipeline.zig");
+}
+
+/// Common error type returned by various WebGPU operations.
 pub const WGPUError = error {
     FailedToCreateInstance,
     FailedToRequestDevice,
@@ -35,24 +81,25 @@ pub const WGPUError = error {
     FailedToCreateRenderPipeline,
     FailedToCreateSurface,
     FailedToCreateBuffer,
-    FailedToCreateComputePipeline
-    
+    FailedToCreateComputePipeline,
 };
 
+/// Used for specifying numeric constants (push constants, specialization constants, etc.).
 pub const ConstantEntry = extern struct {
     nextInChain: ?*const ChainedStruct = null,
     key: [*]const u8,
     value: f64,
 };
 
+/// Describes how vertex data is stepped: per-vertex, per-instance, or no usage.
 pub const VertexStepMode = enum(u32) {
     Vertex = 0x00000000,
     Instance = 0x00000001,
     VertexBufferNotUsed = 0x00000002,
-    Force32 = 0x7FFFFFFF
+    Force32 = 0x7FFFFFFF,
 };
 
-
+/// Available vertex formats describing how data is laid out for the GPU.
 pub const VertexFormat = enum(u32) {
     Undefined = 0x00000000,
     Uint8x2 = 0x00000001,
@@ -85,40 +132,47 @@ pub const VertexFormat = enum(u32) {
     Sint32x2 = 0x0000001C,
     Sint32x3 = 0x0000001D,
     Sint32x4 = 0x0000001E,
-    Force32 = 0x7FFFFFFF
+    Force32 = 0x7FFFFFFF,
 };
 
+/// Describes a single attribute (format, offset, and shader location) within a vertex buffer.
 pub const VertextAttribute = extern struct {
     format: VertexFormat,
     offset: u64,
-    shaderLocation: u32
+    shaderLocation: u32,
 };
 
+/// Describes the layout of a single vertex buffer (stride, stepping mode, and attribute list).
 pub const VertexBufferLayout = extern struct {
     arrayStride: u64,
     stepMode: VertexStepMode,
     attributeCount: usize,
-    attributes: [*]const VertextAttribute
+    attributes: [*]const VertextAttribute,
 };
 
+/// Describes the vertex stage of a rendering pipeline.
 pub const VertexState = extern struct {
     nextInChain: ?*const ChainedStruct = null,
-    module: ShaderModuleImpl,
+    module: ShaderModule.ShaderModuleImpl,
     entryPoint: ?[*]const u8 = null,
+
     constantCount: usize = 0,
     constants: ?[*]const ConstantEntry = null,
+
     bufferCount: usize = 0,
     buffers: ?[*]const VertexBufferLayout = null,
 };
 
+/// Describes a programmable shader stage (like vertex or fragment).
 pub const ProgrammableStageDescriptor = extern struct {
     nextInChain: ?*const ChainedStruct = null,
-    module: ShaderModuleImpl,
+    module: ShaderModule.ShaderModuleImpl,
     entryPoint: ?[*]const u8 = null,
     constantCount: usize = 0,
     constants: ?[*]const ConstantEntry = null,
 };
 
+/// Various topologies describing how the GPU interprets vertex data.
 pub const PrimitiveTopology = enum(u32) {
     Undefined = 0x00000000,
     PointList = 0x00000001,
@@ -126,35 +180,34 @@ pub const PrimitiveTopology = enum(u32) {
     LineStrip = 0x00000003,
     TriangleList = 0x00000004,
     TriangleStrip = 0x00000005,
-    Force32 = 0x7FFFFFFF
+    Force32 = 0x7FFFFFFF,
 };
 
-
+/// Index data formats used for triangle/line lists, or undefined if none is used.
 pub const IndexFormat = enum(u32) {
     Undefined = 0x00000000,
     Uint16 = 0x00000001,
     Uint32 = 0x00000002,
-    Force32 = 0x7FFFFFFF
+    Force32 = 0x7FFFFFFF,
 };
 
-
-/// in wgpu-native its defined differently.
-/// fixed in 
+/// Defines which side of a triangle is considered the front face.
 pub const FrontFace = enum(u32) {
     Undefined = 0x00000000,
     CCW = 0x00000001,
     CW = 0x00000002,
-    Force32 = 0x7FFFFFFF
+    Force32 = 0x7FFFFFFF,
 };
 
-
+/// Defines whether to cull (discard) front- or back-facing triangles.
 pub const CullMode = enum(u32) {
     None = 0x00000000,
     Front = 0x00000001,
     Back = 0x00000002,
-    Force32 = 0x7FFFFFFF
+    Force32 = 0x7FFFFFFF,
 };
 
+/// Describes the primitive state of a render pipeline (topology, culling, front face, etc.).
 pub const PrimitiveState = extern struct {
     nextInChain: ?*const ChainedStruct = null,
     topology: PrimitiveTopology = .Undefined,
@@ -163,7 +216,7 @@ pub const PrimitiveState = extern struct {
     cullMode: CullMode = .None,
 };
 
-
+/// Comparison functions used for depth or stencil tests.
 pub const CompareFunction = enum(u32) {
     Undefined = 0x00000000,
     Never = 0x00000001,
@@ -174,10 +227,10 @@ pub const CompareFunction = enum(u32) {
     Equal = 0x00000006,
     NotEqual = 0x00000007,
     Always = 0x00000008,
-    Force32 = 0x7FFFFFFF
+    Force32 = 0x7FFFFFFF,
 };
 
-
+/// Operations performed on stencil values.
 pub const StencilOperation = enum(u32) {
     Keep = 0x00000000,
     Zero = 0x00000001,
@@ -187,9 +240,10 @@ pub const StencilOperation = enum(u32) {
     DecrementClamp = 0x00000005,
     IncrementWrap = 0x00000006,
     DecrementWrap = 0x00000007,
-    Force32 = 0x7FFFFFFF
+    Force32 = 0x7FFFFFFF,
 };
 
+/// Describes how stencil values are tested and updated on a particular face.
 pub const StencilFaceState = extern struct {
     compare: CompareFunction,
     failOp: StencilOperation,
@@ -197,20 +251,24 @@ pub const StencilFaceState = extern struct {
     passOp: StencilOperation,
 };
 
+/// Describes depth-stencil state (depth test/write, stencil front/back faces, etc.).
 pub const DepthStencilState = extern struct {
     nextInChain: ?*const ChainedStruct = null,
     format: TextureFormat,
     depthWriteEnabled: bool,
     depthCompare: CompareFunction,
+
     stencilFront: StencilFaceState,
     stencilBack: StencilFaceState,
     stencilReadMask: u32,
     stencilWriteMask: u32,
+
     depthBias: i32,
     depthBiasSlopeScale: f32,
-    depthBiasClamp: f32
+    depthBiasClamp: f32,
 };
 
+/// Describes multisampling state in a render pipeline.
 pub const MultiSampleState = extern struct {
     nextInChain: ?*const ChainedStruct = null,
     count: u32,
@@ -218,17 +276,17 @@ pub const MultiSampleState = extern struct {
     alphaToCoverageEnabled: bool,
 };
 
-
+/// Blend operations for color/alpha channels.
 pub const BlendOperation = enum(u32) {
     Add = 0x00000000,
     Subtract = 0x00000001,
     ReverseSubtract = 0x00000002,
     Min = 0x00000003,
     Max = 0x00000004,
-    Force32 = 0x7FFFFFFF
+    Force32 = 0x7FFFFFFF,
 };
 
-
+/// Blend factor used in alpha/color blending.
 pub const BlendFactor = enum(u32) {
     Zero = 0x00000000,
     One = 0x00000001,
@@ -243,22 +301,23 @@ pub const BlendFactor = enum(u32) {
     SrcAlphaSaturated = 0x0000000A,
     Constant = 0x0000000B,
     OneMinusConstant = 0x0000000C,
-    Force32 = 0x7FFFFFFF
+    Force32 = 0x7FFFFFFF,
 };
 
+/// A single component (color or alpha) in the blending pipeline.
 pub const BlendComponent = extern struct {
     operation: BlendOperation,
     srcFactor: BlendFactor,
-    dstFactor: BlendFactor
+    dstFactor: BlendFactor,
 };
 
-
+/// Describes the combined color/alpha blending operations.
 pub const BlendState = extern struct {
     color: BlendComponent,
-    alpha: BlendComponent
+    alpha: BlendComponent,
 };
 
-
+/// Masks which color channels are written to in a color attachment.
 pub const ColorWriteMask = enum(u32) {
     const NONE = 0x00000000;
     const RED = 0x00000001;
@@ -266,52 +325,59 @@ pub const ColorWriteMask = enum(u32) {
     const BLUE = 0x00000004;
     const ALPHA = 0x00000008;
 
-    None = 0x00000000,
+    None = NONE,
     Red = RED,
     Green = GREEN,
     Blue = BLUE,
     Alpha = ALPHA,
     All = NONE | RED | GREEN | BLUE | ALPHA,
-    Force32 = 0x7FFFFFFF
-}; 
+    Force32 = 0x7FFFFFFF,
+};
 
+/// Describes how a particular color attachment is configured in a render pipeline.
 pub const ColorTargetState = extern struct {
     nextInChain: ?*const ChainedStruct = null,
     format: TextureFormat,
     blend: ?*const BlendState,
-    writeMask: ColorWriteMask
-}; 
-
-pub const FragmentState = extern struct {
-    nextInChain: ?*const ChainedStruct = null,
-    module: ShaderModuleImpl,
-    entryPoint: ?[*]const u8,
-    constantCount: usize = 0,
-    constants: ?[*]const ConstantEntry = null,
-    targetCount: usize = 0,
-    targets:  ?[*]const ColorTargetState = null
+    writeMask: ColorWriteMask,
 };
 
+/// Describes the fragment stage of a rendering pipeline.
+pub const FragmentState = extern struct {
+    nextInChain: ?*const ChainedStruct = null,
+    module: ShaderModule.ShaderModuleImpl,
+    entryPoint: ?[*]const u8,
+
+    constantCount: usize = 0,
+    constants: ?[*]const ConstantEntry = null,
+
+    targetCount: usize = 0,
+    targets: ?[*]const ColorTargetState = null,
+};
+
+/// A fallback or undefined depth-slice representation.
 pub const DepthSlice = enum(u32) {
     Undefined = 0xffffffff,
 };
 
+/// Basic success/error status codes for some asynchronous or immediate ops.
 pub const Status = enum(u32) {
     Success = 0x00000001,
     Error = 0x00000002,
-    Force32 = 0x7FFFFFFF
+    Force32 = 0x7FFFFFFF,
 };
 
-
+/// Result codes when requesting an adapter from an `Instance`.
 pub const RequestAdapterStatus = enum(u32) {
     Success = 0x00000001,
     InstanceDropped = 0x00000002,
     Unavailable = 0x00000003,
     Error = 0x00000004,
     Unknown = 0x00000005,
-    Force32 = 0x7FFFFFFF
+    Force32 = 0x7FFFFFFF,
 };
 
+/// SType enumerates special structures used to extend descriptors at runtime.
 const SType = enum(u32) {
     Invalid = 0x00000000,
     SurfaceDescriptorFromMetalLayer = 0x00000001,
@@ -325,9 +391,10 @@ const SType = enum(u32) {
     SurfaceDescriptorFromAndroidNativeWindow = 0x00000009,
     SurfaceDescriptorFromXcbWindow = 0x0000000A,
     RenderPassDescriptorMaxDrawCount = 0x0000000F,
-    Force32 = 0x7FFFFFFF
+    Force32 = 0x7FFFFFFF,
 };
 
+/// Status codes returned by `Surface.getCurrentTexture()`.
 pub const SurfaceGetCurrentTextureStatus = enum(u32) {
     Success = 0,
     Timeout = 1,
@@ -338,7 +405,7 @@ pub const SurfaceGetCurrentTextureStatus = enum(u32) {
     Force32 = 0x7FFFFFFF,
 };
 
-
+/// Backends for WGPU: Vulkan, Metal, D3D, etc.
 pub const BackendType = enum(u32) {
     Undefined = 0x00000000,
     Null = 0x00000001,
@@ -352,43 +419,27 @@ pub const BackendType = enum(u32) {
     Force32 = 0x7FFFFFFF,
 };
 
-
+/// How alpha is handled when composing surfaces with OS visuals.
 pub const CompositeAlphaMode = enum(u32) {
-    /// Lets the WebGPU implementation choose the best mode (supported, and with the best performance) between
     Auto = 0x00000000,
-
-    /// The alpha component of the image is ignored and teated as if it is always 1.0.
     Opaque = 0x00000001,
-
-    /// The alpha component is respected and non-alpha components are assumed to be already multiplied with 
-    /// the alpha component. For example, (0.5, 0, 0, 0.5) is semi-transparent bright red.
     Premultiplied = 0x00000002,
-
-    /// The alpha component is respected and non-alpha components are assumed to 
-    /// NOT be already multiplied with the alpha component. For example, (1.0, 0, 0, 0.5) is semi-transparent bright red.
     Unpremultiplied = 0x00000003,
-    
-    /// The handling of the alpha component is unknown to WebGPU and should be handled by the application 
-    /// using system-specific APIs. This mode may be unavailable (for example on Wasm).
     Inherit = 0x00000004,
-
-    Force32 = 0x7FFFFFFF
+    Force32 = 0x7FFFFFFF,
 };
 
-///https://webgpu-native.github.io/webgpu-headers/group__Enumerations.html#ga9a635cf4a9ef07c0211b7cdbfb3eb60c
+/// Present modes controlling V-sync or triple-buffer semantics.
 pub const PresentMode = enum(u32) {
-    // TODO: document meaning
     Undefined = 0x00000000,
     Fifo = 0x00000001,
     FifoRelaxed = 0x00000002,
     Immediate = 0x00000003,
     Mailbox = 0x00000004,
-    Force32 = 0x7FFFFFFF
+    Force32 = 0x7FFFFFFF,
 };
 
-
-
-
+/// Dimensional view of textures (1D/2D/3D/cube).
 pub const TexureViewDimension = enum(u32) {
     Undefined = 0x00000000,
     @"1D" = 0x00000001,
@@ -397,17 +448,18 @@ pub const TexureViewDimension = enum(u32) {
     Cube = 0x00000004,
     CubeArray = 0x00000005,
     @"3D" = 0x00000006,
-    Force32 = 0x7FFFFFFF
+    Force32 = 0x7FFFFFFF,
 };
 
-
+/// Which aspect(s) of a texture is accessible (e.g., depth only, stencil only, or both).
 pub const TextureAspect = enum(u32) {
     All = 0x00000000,
     StencilOnly = 0x00000001,
     DepthOnly = 0x00000002,
-    Force32 = 0x7FFFFFFF
+    Force32 = 0x7FFFFFFF,
 };
 
+/// Commonly used texture formats.
 pub const TextureFormat = enum(u32) {
     Undefined = 0x00000000,
     R8Unorm = 0x00000001,
@@ -505,87 +557,75 @@ pub const TextureFormat = enum(u32) {
     ASTC12x10UnormSrgb = 0x0000005D,
     ASTC12x12Unorm = 0x0000005E,
     ASTC12x12UnormSrgb = 0x0000005F,
-    Force32 = 0x7FFFFFFF
+    Force32 = 0x7FFFFFFF,
 };
 
-
+/// Bitmask usage flags describing how a texture can be used.
 pub const TextureUsage = enum(u32) {
-    // TODO: document meaning
     None = 0x00000000,
     CopySrc = 0x00000001,
     CopyDst = 0x00000002,
     TextureBinding = 0x00000004,
     StorageBinding = 0x00000008,
     RenderAttachment = 0x00000010,
-    Force32 = 0x7FFFFFFF
+    Force32 = 0x7FFFFFFF,
 };
 
+/// A texture can be 1D, 2D, or 3D in dimension.
 pub const TextureDimension = enum(u32) {
     Undefined = 0x00000000,
     @"1D" = 0x00000001,
     @"2D" = 0x00000002,
     @"3D" = 0x00000003,
-    Force32 = 0x7FFFFFFF
+    Force32 = 0x7FFFFFFF,
 };
 
+/// Structure used to chain descriptors together at runtime for extension.
 pub const ChainedStruct = extern struct {
     next: ?*const ChainedStruct = null,
     sType: SType,
 };
 
+/// Outbound structure used similarly to `ChainedStruct`, for returning extended info.
 pub const ChainedStructOut = extern struct {
     next: ?*const ChainedStructOut,
     sType: SType,
 };
 
+/// Minimal string type used in this API: pointer + length.
 pub const StringView = extern struct {
     data: [*]const u8,
     length: usize,
 
+    /// Convert a StringView to a slice of const u8.
     pub fn toSlice(stringView: StringView) []const u8 {
         var slice: []const u8 = undefined;
-
         slice.ptr = stringView.data;
         slice.len = stringView.length;
-
         return slice;
     }
 
+    /// Construct a StringView from any slice of const u8.
     pub fn fromSlice(slice: []const u8) StringView {
-        return StringView {
+        return StringView{
             .data = slice.ptr,
-            .length = slice.len
+            .length = slice.len,
         };
     }
 };
 
+/// Represents an asynchronous operation ID or handle.
 pub const Future = u64;
 
-/// The callback mode controls how a callback for an asynchronous operation may be fired. 
-/// See Asynchronous Operations for how these are used.
-pub const CallBackMode = enum(u32) { // TODO: fix doc.
-
-    /// Callbacks created with `WGPUCallbackMode_WaitAnyOnly`:
-    ///     - fire when the asynchronous operation's future is passed to a call to `::wgpuInstanceWaitAny`
-    /// AND the operation has already completed or it completes inside the call to `::wgpuInstanceWaitAny`.
+/// Modes describing how a callback for asynchronous operations is invoked.
+pub const CallBackMode = enum(u32) {
     WaitAnyOnly = 0x00000001,
-
-    /// Callbacks created with `WGPUCallbackMode.AllowProcessEvents`:
-    ///  - fire for the same reasons as callbacks created with `WGPUCallbackMode_WaitAnyOnly`
-    ///  - fire inside a call to `::wgpuInstanceProcessEvents` if the asynchronous operation is complete.
     AllowProcessEvents = 0x00000002,
-
-    /// Callbacks created with `WGPUCallbackMode_AllowSpontaneous`:
-    /// - fire for the same reasons as callbacks created with `WGPUCallbackMode_AllowProcessEvents`
-    /// - **may** fire spontaneously on an arbitrary or application thread, when the WebGPU implementations discovers that the asynchronous operation is complete.
-    /// 
-    /// Implementations _should_ fire spontaneous callbacks as soon as possible.
-    /// 
-    /// @note Because spontaneous callbacks may fire at an arbitrary time on an arbitrary thread, applications should take extra care when acquiring locks or mutating state inside the callback. It undefined behavior to re-entrantly call into the webgpu.h API if the callback fires while inside the callstack of another webgpu.h function that is not `wgpuInstanceWaitAny` or `wgpuInstanceProcessEvents`.
     AllowSpontaneous = 0x00000003,
-    Force32 = 0x7FFFFFFF
+    Force32 = 0x7FFFFFFF,
 };
 
+/// Info needed to request an adapter asynchronously with a certain callback mode.
 pub const RequestAdapterCallbackInfo = extern struct {
     nextInChain: ?*const ChainedStruct = null,
     mode: CallBackMode,
@@ -594,42 +634,32 @@ pub const RequestAdapterCallbackInfo = extern struct {
     userdata2: ?*anyopaque,
 };
 
+/// Options controlling how we search for a compatible adapter (e.g., backend, fallback, etc.).
 pub const RequestAdapterOptions = extern struct {
     nextInChain: ?*const ChainedStruct = null,
     featureLevel: FeatureLevel = .Compatibility,
     powerPreference: PowerPreference = .Undefined,
-
-    /// If true, requires the adapter to be a "fallback" adapter as defined by the JS spec.
-    /// If this is not possible, the request returns null.
     forceFallbackAdapter: bool = false,
-
-    /// If set, requires the adapter to have a particular backend type.
-    /// If this is not possible, the request returns null.
     backendType: BackendType = .Undefined,
-
-    /// If set, requires the adapter to be able to output to a particular surface.
-    /// If this is not possible, the request returns null.
-    compatibleSurface: ?SurfaceImpl = null,
-
+    compatibleSurface: ?Surface.SurfaceImpl = null,
 };
 
-/// "Feature level" for the adapter request. If an adapter is returned, 
-/// it must support the features and limits in the requested feature level.
+/// The minimal or "compatibility" level an adapter must support, e.g. ES 3.1 or better.
 pub const FeatureLevel = enum(u32) {
-    /// "Compatibility" profile which can be supported on OpenGL ES 3.1.
     Compatibility = 0x00000001,
-    /// "Core" profile which can be supported on Vulkan/Metal/D3D12.
     Core = 0x00000002,
-    Force32 = 0x7FFFFFFF
+    Force32 = 0x7FFFFFFF,
 };
 
+/// GPU power preference: none, low-power, high-performance, etc.
 const PowerPreference = enum(u32){
     Undefined = 0x00000000,
     LowPower = 0x00000001,
     HighPerformance = 0x00000002,
-    Force32 = 0x7FFFFFFF
+    Force32 = 0x7FFFFFFF,
 };
 
+/// Defines how to handle uncaptured errors (e.g. device lost, out of memory).
 pub const UncapturedErrorCallbackInfo = struct {
     nextInChain: ?*const ChainedStruct = null,
     callback: ErrorCallback,
@@ -637,12 +667,12 @@ pub const UncapturedErrorCallbackInfo = struct {
 };
 
 const ErrorCallback = *const fn(
-    type: ErrorType,
+    err_type: ErrorType,
     message: [*c]const u8,
     userdata: ?*anyopaque
 ) callconv(.C) void;
 
-
+/// Classifications of error for WebGPU operations.
 pub const ErrorType = enum(u32) {
     NoError = 0x00000000,
     Validation = 0x00000001,
@@ -650,16 +680,16 @@ pub const ErrorType = enum(u32) {
     Internal = 0x00000003,
     Unknown = 0x00000004,
     DeviceLost = 0x00000005,
-    Force32 = 0x7FFFFFFF
+    Force32 = 0x7FFFFFFF,
 };
 
-
+/// A descriptor for specifying mandatory device limits.
 pub const RequiredLimits = struct {
     nextInChain: ?ChainedStruct,
-    limits: Limits
+    limits: Limits,
 };
 
-
+/// Feature names that can be enabled on an adapter or device.
 pub const FeatureName = enum(u32) {
     Undefined = 0x00000000,
     DepthClipControl = 0x00000001,
@@ -679,6 +709,8 @@ pub const FeatureName = enum(u32) {
     ClipDistances = 0x0000000F,
     DualSourceBlending = 0x00000010,
     Force32 = 0x7FFFFFFF,
+
+    // Some extended feature codes
     PushConstants = 196609,
     TextureAdapterSpecificFormatFeatures = 196610,
     MultiDrawIndirect = 196611,
@@ -704,6 +736,7 @@ pub const FeatureName = enum(u32) {
     ShaderEarlyDepthTest = 196640,
 };
 
+/// Collection of required GPU resource and usage limits.
 pub const Limits = extern struct {
     maxTextureDimension1D: u32 = 0,
     maxTextureDimension2D: u32 = 0,
@@ -718,7 +751,7 @@ pub const Limits = extern struct {
     maxSamplersPerShaderStage: u32 = 0,
     maxStorageBuffersPerShaderStage: u32 = 0,
     maxStorageTexturesPerShaderStage: u32 = 0,
-    maxUniformBuffersPerShaderStage: u32 =0,
+    maxUniformBuffersPerShaderStage: u32 = 0,
     maxUniformBufferBindingSize: u64 = 0,
     maxStorageBufferBindingSize: u64 = 0,
     minUniformBufferOffsetAlignment: u32 = 0,
@@ -739,35 +772,35 @@ pub const Limits = extern struct {
     maxComputeWorkgroupsPerDimension: u32 = 0,
 };
 
-
+/// A 64-bit handle for submission indices on a given queue.
 const SubmissionIndex = u64;
 
+/// Holds a queue and the submission index to track GPU operation completions.
 pub const WrappedSubmissionIndex = extern struct {
-    queue: *const Queue,
-    submissionIndex: SubmissionIndex
+    queue: *const lazyQueue().Queue,
+    submissionIndex: SubmissionIndex,
 };
 
-
+/// Load operations for attachments in render passes.
 pub const LoadOp = enum(u32) {
     Undefined = 0x00000000,
     Clear = 0x00000001,
     Load = 0x00000002,
-    Force32 = 0x7FFFFFFF
+    Force32 = 0x7FFFFFFF,
 };
 
-
+/// Store operations for attachments in render passes.
 pub const StoreOp = enum(u32) {
     Undefined = 0x00000000,
     Store = 0x00000001,
     Discard = 0x00000002,
-    Force32 = 0x7FFFFFFF
+    Force32 = 0x7FFFFFFF,
 };
 
-
-pub const Color = extern struct { 
+/// A color struct used for specifying clear color values, etc.
+pub const Color = extern struct {
     r: f64,
     g: f64,
     b: f64,
     a: f64,
 };
-
