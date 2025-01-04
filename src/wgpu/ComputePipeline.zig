@@ -1,3 +1,5 @@
+const std = @import("std");
+const log = std.log.scoped(.@"wgpu/ComputePipeline");
 const wgpu = @import("wgpu.zig");
 const ChainedStruct = wgpu.ChainedStruct;
 const PipeLineLayout = wgpu.PipelineLayout;
@@ -7,7 +9,7 @@ const ProgrammableStageDescriptor = wgpu.ProgrammableStageDescriptor;
 pub const ComputePipeline = opaque {
     pub const Descriptor = extern struct {
         nextInChain: ?*const ChainedStruct = null,
-        label: ?[*]const u8 = null,
+        label: wgpu.StringView = .{ .data = "", .length = 0 },
         layout: ?PipeLineLayoutImpl = null,
         compute: ProgrammableStageDescriptor
     };
@@ -15,5 +17,6 @@ pub const ComputePipeline = opaque {
     extern "c" fn wgpuComputePipelineRelease(compute_pipeline: *ComputePipeline) void;
     pub fn Release(compute_pipeline: *ComputePipeline) void {
         wgpuComputePipelineRelease(compute_pipeline);
+        log.info("Released ComputePipeline", .{});
     }
 };

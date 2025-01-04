@@ -86,7 +86,7 @@ pub const Queue = opaque {
             buffer._impl, 
             buffer_offset, 
             data.ptr, 
-            data.len
+            data.len * @sizeOf(T)
         );
     }
 

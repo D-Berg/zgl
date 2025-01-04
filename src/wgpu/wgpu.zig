@@ -22,6 +22,8 @@ pub const Buffer = @import("Buffer.zig");
 pub const ComputePipeline = @import("ComputePipeline.zig").ComputePipeline;
 
 
+pub const Flag = u64;
+
 pub const WGPUError = error {
     FailedToCreateInstance,
     FailedToRequestDevice,
@@ -46,45 +48,55 @@ pub const ConstantEntry = extern struct {
 };
 
 pub const VertexStepMode = enum(u32) {
-    Vertex = 0x00000000,
-    Instance = 0x00000001,
-    VertexBufferNotUsed = 0x00000002,
+    Undefined = 0x00000001,
+    Vertex = 0x00000002,
+    Instance = 0x00000003,
     Force32 = 0x7FFFFFFF
 };
 
 
 pub const VertexFormat = enum(u32) {
-    Undefined = 0x00000000,
-    Uint8x2 = 0x00000001,
-    Uint8x4 = 0x00000002,
-    Sint8x2 = 0x00000003,
-    Sint8x4 = 0x00000004,
-    Unorm8x2 = 0x00000005,
-    Unorm8x4 = 0x00000006,
-    Snorm8x2 = 0x00000007,
-    Snorm8x4 = 0x00000008,
-    Uint16x2 = 0x00000009,
-    Uint16x4 = 0x0000000A,
-    Sint16x2 = 0x0000000B,
-    Sint16x4 = 0x0000000C,
-    Unorm16x2 = 0x0000000D,
-    Unorm16x4 = 0x0000000E,
-    Snorm16x2 = 0x0000000F,
-    Snorm16x4 = 0x00000010,
-    Float16x2 = 0x00000011,
-    Float16x4 = 0x00000012,
-    Float32 = 0x00000013,
-    Float32x2 = 0x00000014,
-    Float32x3 = 0x00000015,
-    Float32x4 = 0x00000016,
-    Uint32 = 0x00000017,
-    Uint32x2 = 0x00000018,
-    Uint32x3 = 0x00000019,
-    Uint32x4 = 0x0000001A,
-    Sint32 = 0x0000001B,
-    Sint32x2 = 0x0000001C,
-    Sint32x3 = 0x0000001D,
-    Sint32x4 = 0x0000001E,
+    Uint8 = 0x00000001,
+    Uint8x2 = 0x00000002,
+    Uint8x4 = 0x00000003,
+    Sint8 = 0x00000004,
+    Sint8x2 = 0x00000005,
+    Sint8x4 = 0x00000006,
+    Unorm8 = 0x00000007,
+    Unorm8x2 = 0x00000008,
+    Unorm8x4 = 0x00000009,
+    Snorm8 = 0x0000000A,
+    Snorm8x2 = 0x0000000B,
+    Snorm8x4 = 0x0000000C,
+    Uint16 = 0x0000000D,
+    Uint16x2 = 0x0000000E,
+    Uint16x4 = 0x0000000F,
+    Sint16 = 0x00000010,
+    Sint16x2 = 0x00000011,
+    Sint16x4 = 0x00000012,
+    Unorm16 = 0x00000013,
+    Unorm16x2 = 0x00000014,
+    Unorm16x4 = 0x00000015,
+    Snorm16 = 0x00000016,
+    Snorm16x2 = 0x00000017,
+    Snorm16x4 = 0x00000018,
+    Float16 = 0x00000019,
+    Float16x2 = 0x0000001A,
+    Float16x4 = 0x0000001B,
+    Float32 = 0x0000001C,
+    Float32x2 = 0x0000001D,
+    Float32x3 = 0x0000001E,
+    Float32x4 = 0x0000001F,
+    Uint32 = 0x00000020,
+    Uint32x2 = 0x00000021,
+    Uint32x3 = 0x00000022,
+    Uint32x4 = 0x00000023,
+    Sint32 = 0x00000024,
+    Sint32x2 = 0x00000025,
+    Sint32x3 = 0x00000026,
+    Sint32x4 = 0x00000027,
+    Unorm10_10_10_2 = 0x00000028,
+    Unorm8x4BGRA = 0x00000029,
     Force32 = 0x7FFFFFFF
 };
 
@@ -95,8 +107,8 @@ pub const VertextAttribute = extern struct {
 };
 
 pub const VertexBufferLayout = extern struct {
-    arrayStride: u64,
     stepMode: VertexStepMode,
+    arrayStride: u64,
     attributeCount: usize,
     attributes: [*]const VertextAttribute
 };
@@ -114,7 +126,7 @@ pub const VertexState = extern struct {
 pub const ProgrammableStageDescriptor = extern struct {
     nextInChain: ?*const ChainedStruct = null,
     module: ShaderModuleImpl,
-    entryPoint: ?[*]const u8 = null,
+    entryPoint: StringView = .{ .data = "", .length = 0 },
     constantCount: usize = 0,
     constants: ?[*]const ConstantEntry = null,
 };
@@ -222,6 +234,7 @@ pub const MultiSampleState = extern struct {
     alphaToCoverageEnabled: bool,
 };
 
+/// Supported Features should be freed by deinit() when no longer needed.
 pub const SupportedFeatures = extern struct {
     featureCount: usize,
     features: [*c]const FeatureName,
@@ -572,7 +585,7 @@ pub const TextureFormat = enum(u32) {
 };
 
 
-pub const TextureUsage = enum(u64) {
+pub const TextureUsage = enum(Flag) {
     // TODO: document meaning
     None = 0x00000000,
     CopySrc = 0x00000001,

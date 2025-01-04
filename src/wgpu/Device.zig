@@ -153,7 +153,13 @@ pub fn CreateRenderPipeline(device: Device, descriptor: *const RenderPipeline.De
 
     const maybe_impl = wgpuDeviceCreateRenderPipeline(device._inner, descriptor);
 
-    if (maybe_impl) |impl| return RenderPipeline{ ._impl = impl } else return error.FailedToCreateRenderPipeline;
+    if (maybe_impl) |impl| {
+        log.info("Created RenderPipeline {}", .{impl});
+        return RenderPipeline{ ._impl = impl };
+    } else {
+        log.err("Failed to create RenderPipeline: got null", .{});
+        return error.FailedToCreateRenderPipeline;
+    }
 
 }
 
@@ -171,6 +177,7 @@ pub fn CreateComputePipeline(
     );
 
     if (maybe_compute_pipeline) |compute_pipeline| {
+        log.info("Created ComputePipeline {}", .{compute_pipeline});
         return compute_pipeline;
     } else {
         return WGPUError.FailedToCreateComputePipeline;
@@ -190,6 +197,7 @@ pub fn CreateBuffer(
     const maybe_impl = wgpuDeviceCreateBuffer(device._inner, descriptor);
 
     if (maybe_impl) |impl| {
+        log.info("Created Buffer {s}", .{descriptor.label.toSlice()});
         return Buffer { ._impl = impl };
     } else {
         return WGPUError.FailedToCreateBuffer;

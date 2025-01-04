@@ -107,7 +107,7 @@ pub const Capabilities = struct {
 
     const Native = extern struct {
         nextInChain: ?*ChainedStructOut = null,
-        usages: u32 = 0,// TODO: not defined in emscripten.
+        usages: wgpu.Flag = 0,// TODO: not defined in emscripten.
         formatCount: usize = 0,
         formats: [*c]const TextureFormat = null,
         presentModeCount: usize = 0,

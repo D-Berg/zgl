@@ -1,3 +1,5 @@
+const std = @import("std");
+const log = std.log.scoped(.@"wgpu/RenderPipeline");
 const wgpu = @import("wgpu.zig");
 const ChainedStruct = wgpu.ChainedStruct;
 const PipelineLayoutImpl = wgpu.PipelineLayout.PipelineLayoutImpl;
@@ -26,6 +28,7 @@ pub const Descriptor = extern struct {
 extern "c" fn wgpuRenderPipelineRelease(renderPipeline: RenderPipelineImpl) void;
 pub fn Release(renderPipeline: RenderPipeline) void {
     wgpuRenderPipelineRelease(renderPipeline._impl);
+    log.info("Released RenderPipeline", .{});
 }
 
 

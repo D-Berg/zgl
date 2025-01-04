@@ -8,6 +8,7 @@ pub const ShaderModuleImpl = *opaque {};
 _impl: ShaderModuleImpl,
 
 
+// TODO: Update
 pub const CompilationHint = extern struct {
     nextInChain: ?*const ChainedStruct = null,
     entryPoint: [*]const u8,
