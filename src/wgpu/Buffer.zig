@@ -2,6 +2,7 @@ const std = @import("std");
 const log = std.log.scoped(.@"wgpu/Buffer");
 const wgpu = @import("wgpu.zig");
 const ChainedStruct = wgpu.ChainedStruct;
+const WGPUError = wgpu.WGPUError;
 
 pub const Buffer = @This();
 pub const BufferImpl = *opaque {};
@@ -36,4 +37,34 @@ extern "c" fn wgpuBufferRelease(buffer: BufferImpl) void;
 pub fn Release(buffer: Buffer) void {
     log.info("Released Buffer", .{});
     wgpuBufferRelease(buffer._impl);
+}
+
+
+extern "c" fn wgpuBufferGetSize(buffer: BufferImpl) u64;
+pub fn GetSize(buffer: Buffer) u64 {
+    return wgpuBufferGetSize(buffer._impl);
+}
+extern "c" fn wgpuBufferGetMappedRange(buffer: BufferImpl, offset: usize, size: usize) ?*anyopaque;
+
+pub fn GetMappedRange(buffer: Buffer, comptime T: type) WGPUError![]T {
+    const size: usize = @intCast(buffer.GetSize());
+
+    const maybe_ptr = wgpuBufferGetMappedRange(buffer._impl, 0, size);
+
+    if (maybe_ptr) |ptr| {
+
+        var range: []T = undefined;
+        range.ptr = @alignCast(@ptrCast(ptr));
+        range.len = size / @sizeOf(T);
+        return range;
+
+    } else {
+        return WGPUError.FailedToGetBufferMappedRange;
+    }
+
+}
+
+extern "c" fn wgpuBufferUnmap(buffer: BufferImpl) void;
+pub fn unmap(buffer: Buffer) void {
+    wgpuBufferUnmap(buffer._impl);
 }
