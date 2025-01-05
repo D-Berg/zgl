@@ -3,6 +3,7 @@ const zgl = @import("zgl");
 const log = std.log;
 const glfw = zgl.glfw;
 const wgpu = zgl.wgpu;
+const rand = std.crypto.random;
 
 const StringView = wgpu.StringView;
 
@@ -27,7 +28,6 @@ const SimParams = struct {
 
 pub fn main() !void {
 
-    const rand = std.crypto.random;
 
     try glfw.init();
     defer glfw.terminate();
