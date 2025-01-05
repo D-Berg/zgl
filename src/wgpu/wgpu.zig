@@ -20,6 +20,9 @@ pub const PipelineLayout = @import("PipelineLayout.zig");
 pub const RenderPipeline = @import("RenderPipeline.zig");
 pub const Buffer = @import("Buffer.zig");
 pub const ComputePipeline = @import("ComputePipeline.zig").ComputePipeline;
+pub const BindGroup = @import("BindGroup.zig").BindGroup;
+pub const Sampler = @import("Sampler.zig").Sampler;
+pub const ComputePass = @import("ComputePass.zig");
 
 
 pub const Flag = u64;
@@ -37,7 +40,11 @@ pub const WGPUError = error {
     FailedToCreateRenderPipeline,
     FailedToCreateSurface,
     FailedToCreateBuffer,
-    FailedToCreateComputePipeline
+    FailedToCreateComputePipeline,
+    FailedToCreateBindGroup,
+    FailedToGetBindGroupLayout,
+    FailedToCreateComputePassEncoder,
+    FailedToGetBufferMappedRange,
     
 };
 

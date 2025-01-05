@@ -13,6 +13,7 @@ pub const TextureImpl = *opaque {};
 _impl: TextureImpl,
 
 
+// TODO: rename to TextureView?
 pub const ViewImpl = *opaque {};
 
 extern "c" fn wgpuTextureRelease(texture: TextureImpl) void;
