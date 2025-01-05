@@ -55,6 +55,7 @@ pub const ConstantEntry = extern struct {
 };
 
 pub const VertexStepMode = enum(u32) {
+    VertexBufferNotUsed = 0x00000000,
     Undefined = 0x00000001,
     Vertex = 0x00000002,
     Instance = 0x00000003,
