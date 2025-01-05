@@ -432,7 +432,7 @@ pub const BackendType = enum(u32) {
     Vulkan = 0x00000006,
     OpenGL = 0x00000007,
     OpenGLES = 0x00000008,
-    Force32 = 0x7FFFFFFF,
+    Force32 = 0x7FFFFFFF
 };
 
 
