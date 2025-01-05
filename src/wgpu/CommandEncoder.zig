@@ -8,6 +8,7 @@ const CommandBufferImpl = CommandBuffer.CommandBufferImpl;
 const RenderPass = wgpu.RenderPass;
 const Buffer = wgpu.Buffer;
 const BufferImpl = Buffer.BufferImpl;
+const ComputePass = wgpu.ComputePass;
 
 const CommandEncoder = @This();
 pub const CommandEncoderImpl = *opaque {};
@@ -49,6 +50,30 @@ pub fn BeginRenderPass(commandEncoder: CommandEncoder, descriptor: *const Render
     const maybe_impl = wgpuCommandEncoderBeginRenderPass(commandEncoder._inner, descriptor);
 
     if (maybe_impl) |impl| return RenderPass.Encoder{ ._impl = impl } else return error.FailedToBeginRenderPass;
+}
+
+
+extern "c" fn wgpuCommandEncoderBeginComputePass(
+    commandEncoder: CommandEncoderImpl, 
+    descriptor: ?*const ComputePass.Descriptor
+) ?*ComputePass.Encoder;
+
+pub fn BeginComputePass(
+    commandEncoder: CommandEncoder, 
+    descriptor: ?*const ComputePass.Descriptor
+) WGPUError!*ComputePass.Encoder {
+
+    const maybe_compute_pass_encoder = wgpuCommandEncoderBeginComputePass(
+        commandEncoder._inner, 
+        descriptor
+    );
+
+    if (maybe_compute_pass_encoder) |compute_pass_encoder| {
+        return compute_pass_encoder;
+    } else {
+        return WGPUError.FailedToCreateComputePassEncoder;
+    }
+
 }
 
 
