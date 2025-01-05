@@ -225,7 +225,7 @@ pub fn main() !void {
     
     const sim_param_buffer = try device.CreateBuffer(&.{
         .label = StringView.fromSlice("sim params"),
-        .size = 7 * @sizeOf(f32),
+        .size = @sizeOf(SimParams),
         .usage = @intFromEnum(wgpu.Buffer.Usage.Uniform) | 
             @intFromEnum(wgpu.Buffer.Usage.CopyDst)
     });
