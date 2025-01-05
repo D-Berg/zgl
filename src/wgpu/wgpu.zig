@@ -714,7 +714,7 @@ pub const UncapturedErrorCallbackInfo = struct {
 
 const ErrorCallback = *const fn(
     type: ErrorType,
-    message: [*c]const u8,
+    message: [*c]const u8, // TODO: Change to StringView
     userdata: ?*anyopaque
 ) callconv(.C) void;
 
