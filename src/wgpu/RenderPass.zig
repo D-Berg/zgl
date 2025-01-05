@@ -8,6 +8,7 @@ const QuerySetImpl = wgpu.QuerySet.QuerySetImpl;
 const DepthSlice = wgpu.DepthSlice;
 const RenderPipeline = wgpu.RenderPipeline;
 const RenderPipelineImpl = RenderPipeline.RenderPipelineImpl;
+const Buffer = wgpu.Buffer;
 
 
 pub const EncoderImpl = *opaque {};
@@ -53,6 +54,7 @@ pub const Descriptor = extern struct {
     timestampWrites: ?*const TimestampWrites = null
 };
 
+// TODO: make methods lowercase since the return void
 pub const Encoder = struct {
     _impl: EncoderImpl,
 
@@ -77,6 +79,11 @@ pub const Encoder = struct {
         wgpuRenderPassEncoderDraw(renderPassEncoder._impl, vertexCount, instanceCount, firstVertex, firstInstance);
     }
 
-    
+    extern "c" fn wgpuRenderPassEncoderSetVertexBuffer(renderPassEncoder: EncoderImpl, slot: u32, buffer: ?Buffer.BufferImpl, offset: u64, size: u64) void;
+    pub fn setVertexBuffer(renderPassEncoder: Encoder, slot: u32, buffer: ?Buffer, offset: u64) void {
+        const buffer_impl: ?Buffer.BufferImpl = if (buffer) |b| b._impl else null;
+        const size: u64 = if (buffer) |b| b.GetSize() else 0;
+        wgpuRenderPassEncoderSetVertexBuffer(renderPassEncoder._impl, slot, buffer_impl, offset, size);
+    }
 };
 
