@@ -70,8 +70,8 @@
             .hash = "1220876cfb980c0f3461519a2f77ac88b768cc7cfee06deeb54b0e99288136c78e07"
         },
         .wgpu_macos_aarch64_release = .{
-            .url = "https://github.com/gfx-rs/wgpu-native/releases/download/v22.1.0.5/wgpu-macos-aarch64-release.zip",
-            .hash = "1220aa5c0ca2feb2ec5159623b4a50e0ab33add2eee329ffd922773e3952f4e46568",
+            .url = "https://github.com/eliemichel/wgpu-native/releases/download/v23.0.0-gamma/wgpu-macos-aarch64-release.zip",
+            .hash = "1220fcfcf5a780135b505e281d5ba7be3b01a5c37c6dc90c56941e4c3a8f98003912",
         },
         .wgpu_macos_x86_64_debug = .{ 
             .url = "https://github.com/gfx-rs/wgpu-native/releases/download/v22.1.0.5/wgpu-macos-x86_64-debug.zip", 
