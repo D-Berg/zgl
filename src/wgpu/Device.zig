@@ -20,6 +20,7 @@ const RenderPipelineImpl = RenderPipeline.RenderPipelineImpl;
 const Buffer = wgpu.Buffer;
 const BufferImpl = Buffer.BufferImpl;
 const ComputePipeline = wgpu.ComputePipeline;
+const BindGroup = wgpu.BindGroup;
 
 const Device = @This();
 ///Used for calling c API
@@ -205,3 +206,19 @@ pub fn CreateBuffer(
 
 }
 
+
+
+extern "c" fn wgpuDeviceCreateBindGroup(device: DeviceImpl, descriptor: *const BindGroup.Descriptor) ?*BindGroup;
+pub fn CreateBindGroup(device: Device, descriptor: *const BindGroup.Descriptor) WGPUError!*BindGroup {
+
+    const maybe_bindgroup = wgpuDeviceCreateBindGroup(device._inner, descriptor);
+
+    if (maybe_bindgroup) |bindgroup| {
+        log.info("Created BindGroup {s}", .{descriptor.label.toSlice()});
+        return bindgroup;
+    } else {
+        log.err("Failed to create Bindgroup {s}", .{descriptor.label.toSlice()});
+        return WGPUError.FailedToCreateBindGroup;
+    }
+
+}
