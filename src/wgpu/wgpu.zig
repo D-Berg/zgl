@@ -623,7 +623,7 @@ pub const ChainedStructOut = extern struct {
 };
 
 pub const StringView = extern struct {
-    data: [*]const u8,
+    data: [*:0]const u8,
     length: usize,
 
     pub fn toSlice(stringView: StringView) []const u8 {
@@ -637,7 +637,7 @@ pub const StringView = extern struct {
 
     pub fn fromSlice(slice: []const u8) StringView {
         return StringView {
-            .data = slice.ptr,
+            .data = @ptrCast(slice),
             .length = slice.len
         };
     }
