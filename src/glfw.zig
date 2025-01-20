@@ -60,13 +60,13 @@ pub const Window = struct {
     extern "c" fn glfwCreateWindow(
         width: u32, 
         height: u32, 
-        title: [*]const u8, 
+        title: [*:0]const u8, 
         monitor: ?*GLFWmonitor, 
         share: ?*GLFWwindow
     ) ?*GLFWwindow;
     pub fn Create(width: u32, height: u32, title: []const u8) GlfwError!Window {
 
-        const maybe_window = glfwCreateWindow(width, height, title.ptr, null, null);
+        const maybe_window = glfwCreateWindow(width, height, @ptrCast(title), null, null);
 
         if (maybe_window) |window| {
             log.info("Created Window", .{});
