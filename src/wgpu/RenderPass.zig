@@ -68,6 +68,7 @@ pub const Encoder = struct {
         wgpuRenderPassEncoderRelease(renderPassEncoder._impl);
     }
 
+    // TODO: start lowercase
     extern "c" fn wgpuRenderPassEncoderSetPipeline(renderPassEncoder: EncoderImpl, pipeline: RenderPipelineImpl) void;
     pub fn SetPipeline(renderPassEncoder: Encoder, pipeline: RenderPipeline) void {
         wgpuRenderPassEncoderSetPipeline(renderPassEncoder._impl, pipeline._impl);
