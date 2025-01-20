@@ -35,7 +35,10 @@ pub fn main() !void {
     const window = try glfw.Window.Create(WINDOW_WIDTH, WINDOW_HEIGHT, "My window");
     defer window.destroy();
 
-    const instance = try wgpu.Instance.Create(&.{});
+    // TODO: fix crash when supplying instance descriptor
+    // thread '<unnamed>' panicked at src/lib.rs:655:17
+    // Unsupported timed WaitAny features specified
+    const instance = try wgpu.Instance.Create(null);     
     defer instance.Release();
 
     const surface = try glfw.GetWGPUSurface(window, instance);
@@ -83,11 +86,12 @@ pub fn main() !void {
     const queue = try device.GetQueue();
     defer queue.Release();
 
-    _ = queue.OnSubmittedWorkDone(.{
-        .callback = &onQueueWorkDone,
-        .userdata1 = null,
-        .userdata2 = null
-    });
+    // TODO: fix this function call
+    // _ = queue.OnSubmittedWorkDone(.{
+    //     .callback = &onQueueWorkDone,
+    //     .userdata1 = null,
+    //     .userdata2 = null
+    // });
 
     var surface_config = Surface.Configuration{
         .nextInChain = null,
@@ -96,7 +100,7 @@ pub fn main() !void {
         .usage = .RenderAttachment,
         .width = WINDOW_WIDTH,
         .height = WINDOW_HEIGHT,
-        .presentMode = .Fifo,
+        .presentMode = .Immediate,
         .alphaMode = .Auto,
     };
 
