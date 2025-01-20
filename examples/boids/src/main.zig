@@ -4,25 +4,28 @@ const log = std.log;
 const glfw = zgl.glfw;
 const wgpu = zgl.wgpu;
 const rand = std.crypto.random;
+const assert = std.debug.assert;
 
 const StringView = wgpu.StringView;
 
 const sprite_code = @embedFile("shaders/sprite.wgsl");
 const update_sprite_code = @embedFile("shaders/updateSprites.wgsl");
 
-const NUM_PARTICLES = 1500;
+const NUM_PARTICLES = 3000;
 const PARTICLES_PER_GROUP = 64;
 
+
+const RENDER_SCALE = 2;
 const WIDTH = 600;
 const HEIGHT = 600;
 
 const SimParams = struct {
     delta_t: f32 = 0.04,
     rule1_distance: f32 = 0.10,
-    rule1_scale: f32 = 0.02,
     rule2_distance: f32 = 0.025,
-    rule2_scale: f32 = 0.05,
     rule3_distance: f32 = 0.025,
+    rule1_scale: f32 = 0.02,
+    rule2_scale: f32 = 0.05,
     rule3_scale: f32 = 0.005
 };
 
@@ -74,11 +77,11 @@ pub fn main() !void {
     const surface_config = wgpu.Surface.Configuration{
         .device = device._inner,
         .format = prefered_format,
-        .width = WIDTH,
-        .height = HEIGHT,
+        .width = RENDER_SCALE * WIDTH,
+        .height = RENDER_SCALE * HEIGHT,
         .usage = .RenderAttachment,
         .alphaMode = .Auto,
-        .presentMode = .Immediate
+        .presentMode = .Fifo
     };
     surface.Configure(&surface_config);
 
@@ -216,7 +219,7 @@ pub fn main() !void {
     defer sprite_vertex_buffer.Release();
 
     const sprite_range = try sprite_vertex_buffer.GetMappedRange(f32);
-    log.debug("sprite_len = {}, vertex_data_len = {}", .{sprite_range.len, vertex_buffer_data.len});
+    assert(sprite_range.len == vertex_buffer_data.len);
     for (0..sprite_range.len) |i| {
         sprite_range[i] = vertex_buffer_data[i];
     }
@@ -239,20 +242,21 @@ pub fn main() !void {
         &[_]f32{
             sim_params.delta_t,
             sim_params.rule1_distance,
-            sim_params.rule1_scale,
             sim_params.rule2_distance,
-            sim_params.rule2_scale,
             sim_params.rule3_distance,
+            sim_params.rule1_scale,
+            sim_params.rule2_scale,
             sim_params.rule3_scale,
         }
     );
 
     var initial_particle_data = [_]f32{0} ** (4 * NUM_PARTICLES);
     for (0..NUM_PARTICLES) |i| {
-        initial_particle_data[4 * i + 0] = 2 * (rand.float(f32) - 0.5);
-        initial_particle_data[4 * i + 1] = 2 * (rand.float(f32) - 0.5);
-        initial_particle_data[4 * i + 2] = 2 * (rand.float(f32) - 0.5) * 0.1;
-        initial_particle_data[4 * i + 3] = 2 * (rand.float(f32) - 0.5) * 0.1;
+        initial_particle_data[4 * i + 0] = 2 * (rand.float(f32) - 0.5); // x-pos
+        initial_particle_data[4 * i + 1] = 2 * (rand.float(f32) - 0.5); // y-pos
+        // setting them to 0 fixes stuck boids
+        initial_particle_data[4 * i + 2] = 0; // 2 * (rand.float(f32) - 0.5) * 0.1;
+        initial_particle_data[4 * i + 3] = 0; //2 * (rand.float(f32) - 0.5) * 0.1;
 
     }
 
@@ -267,6 +271,7 @@ pub fn main() !void {
         });
 
         const range = try particle_buffers[i].GetMappedRange(f32);
+        assert(range.len == initial_particle_data.len);
         for (0..range.len) |r_idx| {
             range[r_idx] = initial_particle_data[r_idx];
         }
@@ -295,13 +300,13 @@ pub fn main() !void {
                     .binding = 1,
                     .buffer = particle_buffers[i]._impl,
                     .offset = 0,
-                    .size = @intCast(@sizeOf(@TypeOf(initial_particle_data))),
+                    .size = particle_buffers[i].GetSize(),
                 },
                 wgpu.BindGroup.Entry{
                     .binding = 2,
                     .buffer = particle_buffers[(i + 1) % 2]._impl,
                     .offset = 0,
-                    .size = @intCast(@sizeOf(@TypeOf(initial_particle_data)))
+                    .size = particle_buffers[(i + 2) % 2].GetSize()
                 }
             },
         });
@@ -309,21 +314,21 @@ pub fn main() !void {
     defer for (bind_groups) |bind_group| bind_group.Release();
 
     var t: usize = 0;
-    var timer = try  std.time.Timer.start();
-    var elapsed_sec: f64 = 0;
-    var fps: f64 = 0;
-    var running: bool = true;
-
-    const thread = try std.Thread.spawn(.{}, printFPS, .{&fps, &running});
-    defer thread.join();
+    // var timer = try  std.time.Timer.start();
+    // var elapsed_sec: f64 = 0;
+    // var fps: f64 = 0;
+    // var running: bool = true;
+    //
+    // const thread = try std.Thread.spawn(.{}, printFPS, .{&fps, &running});
+    // defer thread.join();
     //
     while (!window.ShouldClose()) : (t += 1) {
-        const dt = timer.lap();
-        const dt_s = @as(f64, @floatFromInt(dt)) / 
-            @as(f64, @floatFromInt(std.time.ns_per_s));
+        // const dt = timer.lap();
+        // const dt_s = @as(f64, @floatFromInt(dt)) / 
+        //     @as(f64, @floatFromInt(std.time.ns_per_s));
 
-        elapsed_sec += dt_s;
-        fps = 1 / (dt_s);
+        // elapsed_sec += dt_s;
+        // fps = 1 / (dt_s);
 
         
         glfw.pollEvents();
@@ -374,9 +379,9 @@ pub fn main() !void {
             const rend_pass_enc = try command_encoder.BeginRenderPass(&render_pass_desc);
             defer rend_pass_enc.Release();
 
+            rend_pass_enc.SetPipeline(render_pipeline);
             rend_pass_enc.setVertexBuffer(0, particle_buffers[(t + 1) % 2], 0);
             rend_pass_enc.setVertexBuffer(1, sprite_vertex_buffer, 0);
-            rend_pass_enc.SetPipeline(render_pipeline);
             rend_pass_enc.Draw(3, NUM_PARTICLES, 0, 0);
             rend_pass_enc.End();
         }
@@ -390,10 +395,10 @@ pub fn main() !void {
         surface.Present();
         _ = device.Poll(false, null);
 
-        std.Thread.sleep(8 * std.time.ns_per_ms);
+        // std.Thread.sleep(8 * std.time.ns_per_ms);
     }
 
-    running = false;
+    // running = false;
 
 }
 
