@@ -1,6 +1,7 @@
 const std = @import("std");
 const log = std.log.scoped(.@"wgpu/RenderPipeline");
 const wgpu = @import("wgpu.zig");
+const WGPUError = wgpu.WGPUError;
 const ChainedStruct = wgpu.ChainedStruct;
 const PipelineLayoutImpl = wgpu.PipelineLayout.PipelineLayoutImpl;
 const VertexState = wgpu.VertexState;
@@ -8,6 +9,7 @@ const PrimitiveState = wgpu.PrimitiveState;
 const DepthStencilState = wgpu.DepthStencilState;
 const MultiSampleState = wgpu.MultiSampleState;
 const FragmentState = wgpu.FragmentState;
+const BindGroup = wgpu.BindGroup;
 
 const RenderPipeline = @This();
 pub const RenderPipelineImpl = *opaque {};
@@ -31,6 +33,18 @@ pub fn Release(renderPipeline: RenderPipeline) void {
     log.info("Released RenderPipeline", .{});
 }
 
+
+extern "c" fn wgpuRenderPipelineGetBindGroupLayout(renderPipeline: RenderPipelineImpl, groupIndex: u32) ?*BindGroup.Layout;
+pub fn GetBindGroupLayout(renderPipeline: RenderPipeline, groupIndex: u32) WGPUError!*BindGroup.Layout {
+    const maybe_layout = wgpuRenderPipelineGetBindGroupLayout(renderPipeline._impl, groupIndex);
+
+    if (maybe_layout) |layout| {
+        return layout;
+    } else {
+        return WGPUError.FailedToGetBindGroupLayout;
+    }
+
+}
 
 // WGPUChainedStruct const * nextInChain;
 // WGPU_NULLABLE char const * label;
