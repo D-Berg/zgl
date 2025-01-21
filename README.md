@@ -41,3 +41,8 @@ manually for learning purposes.
 - wgpuFrontFace enum values differs
 - wgpuPrimitiveTopology enum values differs
 
+## Documentation 
+
+```sh
+zig build docs -p ./
+```
