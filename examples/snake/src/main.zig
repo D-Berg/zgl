@@ -5,13 +5,14 @@ const glfw = zgl.glfw;
 const wgpu = zgl.wgpu;
 
 const RENDER_SIZE = 2;
-const WINDOW_WIDTH = 800;
-const WINDOW_HEIGHT = 640;
+const WINDOW_WIDTH = 768 + 32;
+const WINDOW_HEIGHT = 768 + 32;
+
+const GRID_SIZE = 32;
 
 const square_shader = @embedFile("shaders/square.wgsl");
 
 pub fn main() !void {
-
 
     try glfw.init();
     defer glfw.terminate();
@@ -73,6 +74,33 @@ pub fn main() !void {
 
     queue.WriteBuffer(vertex_buffer, 0, f32, square_vertices[0..]);
 
+    const uniform_array = [2]f32{ GRID_SIZE, GRID_SIZE };
+
+    const uniform_buffer = try device.CreateBuffer(&.{
+        .label = wgpu.StringView.fromSlice("uniform buffer"),
+        .usage = @intFromEnum(wgpu.Buffer.Usage.Uniform) | 
+            @intFromEnum(wgpu.Buffer.Usage.CopyDst),
+        .size = @sizeOf(@TypeOf(uniform_array))
+    });
+    defer uniform_buffer.Release();
+
+
+    var snake: [GRID_SIZE * GRID_SIZE]u32 = undefined;
+    for (0..snake.len) |i| snake[i] = @intFromBool(false);
+    snake[0] = @intFromBool(true);
+
+    const snake_buffer = try device.CreateBuffer(&.{
+        .label = wgpu.StringView.fromSlice("snake buffer"),
+        .usage = @intFromEnum(wgpu.Buffer.Usage.Storage) | 
+            @intFromEnum(wgpu.Buffer.Usage.CopyDst),
+        .size = @sizeOf(@TypeOf(snake)),
+    });
+    defer snake_buffer.Release();
+
+    queue.WriteBuffer(uniform_buffer,0, f32, uniform_array[0..]);
+    queue.WriteBuffer(snake_buffer, 0, u32, snake[0..]);
+
+
     const shader_code = wgpu.ShaderSourceWGSL{
         .code = wgpu.StringView.fromSlice(square_shader),
         .chain = .{ .sType = .ShaderSourceWGSL }
@@ -90,14 +118,14 @@ pub fn main() !void {
             .buffers = &[1]wgpu.VertexBufferLayout{
                 wgpu.VertexBufferLayout{
                     .stepMode = .Vertex,
-                    .arrayStride = 0 * @sizeOf(f32),
+                    .arrayStride = 0,
                     .attributeCount = 1,
                     .attributes = &[1]wgpu.VertextAttribute{
                         wgpu.VertextAttribute{
                             .format = .Float32x2,
                             .offset = 0,
                             .shaderLocation = 0
-                        }
+                        },
                     }
                 }
             }
@@ -137,59 +165,81 @@ pub fn main() !void {
     });
     defer render_pipeline.Release();
 
+
+    const layout = try render_pipeline.GetBindGroupLayout(0);
+    defer layout.Release();
+
+    const bind_group = try device.CreateBindGroup(&.{
+        .label = wgpu.StringView.fromSlice("bind group"),
+        .layout = layout,
+        .entryCount = 1,
+        .entries = &[1]wgpu.BindGroup.Entry {
+            wgpu.BindGroup.Entry{
+                .binding = 0,
+                .buffer = uniform_buffer._impl,
+                .size = uniform_buffer.GetSize()
+            },
+        }
+    });
+    defer bind_group.Release();
+
     while (!window.ShouldClose()) {
         glfw.pollEvents();
 
-        const texture = try surface.GetCurrentTexture();
-        defer texture.Release();
+        { // Render
+            const texture = try surface.GetCurrentTexture();
+            defer texture.Release();
 
-        const view = try texture.CreateView(&.{
-            .format = surface_pref_format,
-            .dimension = .@"2D",
-            .baseMipLevel = 0,
-            .mipLevelCount = 1,
-            .baseArrayLayer = 0,
-            .arrayLayerCount = 1,
-            .usage = surface_conf.usage,
-            .aspect = .All,
-        });
-        defer view.Release();
+            const view = try texture.CreateView(&.{
+                .format = surface_pref_format,
+                .dimension = .@"2D",
+                .baseMipLevel = 0,
+                .mipLevelCount = 1,
+                .baseArrayLayer = 0,
+                .arrayLayerCount = 1,
+                .usage = surface_conf.usage,
+                .aspect = .All,
+            });
+            defer view.Release();
 
-        const command_encoder = device.CreateCommandEncoder(&.{});
-        defer command_encoder.Release();
-        
-        {
+            const command_encoder = device.CreateCommandEncoder(&.{});
+            defer command_encoder.Release();
+            
+            {
 
-            const render_pass_desc = wgpu.RenderPass.Descriptor{
-                .colorAttachmentCount = 1,
-                .colorAttachments = &[1]wgpu.RenderPass.ColorAttachment{
-                    wgpu.RenderPass.ColorAttachment{
-                        .clearValue = .{ .r = 0, .g = 0, .b = 0, .a = 1},
-                        .loadOp = .Clear,
-                        .storeOp = .Store,
-                        .view = view._impl
+                const render_pass_desc = wgpu.RenderPass.Descriptor{
+                    .colorAttachmentCount = 1,
+                    .colorAttachments = &[1]wgpu.RenderPass.ColorAttachment{
+                        wgpu.RenderPass.ColorAttachment{
+                            .clearValue = .{ .r = 0, .g = 0, .b = 0, .a = 1},
+                            .loadOp = .Clear,
+                            .storeOp = .Store,
+                            .view = view._impl
+                        },
                     },
-                },
-            };
+                };
 
-            const rend_pass_enc = try command_encoder.BeginRenderPass(&render_pass_desc);
-            defer rend_pass_enc.Release();
+                const rend_pass_enc = try command_encoder.BeginRenderPass(&render_pass_desc);
+                defer rend_pass_enc.Release();
 
-            rend_pass_enc.SetPipeline(render_pipeline);
-            rend_pass_enc.setVertexBuffer(0, vertex_buffer, 0);
+                rend_pass_enc.SetPipeline(render_pipeline);
+                rend_pass_enc.setVertexBuffer(0, vertex_buffer, 0);
+                rend_pass_enc.setBindGroup(0, bind_group, &[_]u32{});
 
-            rend_pass_enc.Draw(6, 1, 0, 0);
-            rend_pass_enc.End();
+                rend_pass_enc.Draw(6, GRID_SIZE * GRID_SIZE, 0, 0);
+                rend_pass_enc.End();
+            }
+
+
+            const command_buffer = command_encoder.Finish(&.{});
+            defer command_buffer.Release();
+
+            queue.Submit(&[1]wgpu.CommandBuffer{ command_buffer });
+
+            surface.Present();
+            _ = device.Poll(false, null);
+
         }
-
-
-        const command_buffer = command_encoder.Finish(&.{});
-        defer command_buffer.Release();
-
-        queue.Submit(&[1]wgpu.CommandBuffer{ command_buffer });
-
-        surface.Present();
-        _ = device.Poll(false, null);
     }
 
 }
