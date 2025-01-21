@@ -28,7 +28,7 @@ pub const Usage = enum(wgpu.Flag) {
 pub const Descriptor = extern struct {
     nextInChain: ?*const ChainedStruct = null,
     label: wgpu.StringView = .{ .data = "", .length = 0 },
-    usage: wgpu.Flag = @intFromEnum(Usage.None),
+    usage: wgpu.Flag = @intFromEnum(Usage.None), // TODO: take a [2]Usage
     size: u64 = 0,
     mappedAtCreation: bool = false,
 };
