@@ -9,6 +9,7 @@ const DepthSlice = wgpu.DepthSlice;
 const RenderPipeline = wgpu.RenderPipeline;
 const RenderPipelineImpl = RenderPipeline.RenderPipelineImpl;
 const Buffer = wgpu.Buffer;
+const BindGroup = wgpu.BindGroup;
 
 
 pub const EncoderImpl = *opaque {};
@@ -72,6 +73,32 @@ pub const Encoder = struct {
     extern "c" fn wgpuRenderPassEncoderSetPipeline(renderPassEncoder: EncoderImpl, pipeline: RenderPipelineImpl) void;
     pub fn SetPipeline(renderPassEncoder: Encoder, pipeline: RenderPipeline) void {
         wgpuRenderPassEncoderSetPipeline(renderPassEncoder._impl, pipeline._impl);
+    }
+
+    
+    extern "c" fn wgpuRenderPassEncoderSetBindGroup(
+        renderPassEncoder: EncoderImpl, 
+        groupIndex: u32, 
+        group: ?*BindGroup, 
+        dynamicOffsetCount: usize,
+        dynamicOffsets: [*]const u32
+    ) void;
+
+    pub fn setBindGroup(
+        renderPassEncoder: Encoder, 
+        groupIndex: u32,
+        group: ?*BindGroup,
+        dynamicOffsets: []const u32
+    ) void {
+
+        wgpuRenderPassEncoderSetBindGroup(
+            renderPassEncoder._impl, 
+            groupIndex, 
+            group, 
+            dynamicOffsets.len, 
+            @ptrCast(dynamicOffsets)
+        );
+
     }
 
     extern "c" fn wgpuRenderPassEncoderDraw(renderPassEncoder: EncoderImpl, vertexCount: u32, instanceCount: u32, firstVertex: u32, firstInstance: u32) void;
