@@ -87,7 +87,7 @@ pub fn main() !void {
 
     var snake: [GRID_SIZE * GRID_SIZE]u32 = undefined;
     for (0..snake.len) |i| snake[i] = @intFromBool(false);
-    snake[0] = @intFromBool(true);
+    snake[0] = @intFromBool(true); // set head to active
 
     const snake_buffer = try device.CreateBuffer(&.{
         .label = wgpu.StringView.fromSlice("snake buffer"),
@@ -116,9 +116,10 @@ pub fn main() !void {
             .entryPoint = wgpu.StringView.fromSlice("vs_main"),
             .bufferCount = 1,
             .buffers = &[1]wgpu.VertexBufferLayout{
+                // grid?
                 wgpu.VertexBufferLayout{
                     .stepMode = .Vertex,
-                    .arrayStride = 0,
+                    .arrayStride = 2 * @sizeOf(f32),
                     .attributeCount = 1,
                     .attributes = &[1]wgpu.VertextAttribute{
                         wgpu.VertextAttribute{
@@ -127,7 +128,7 @@ pub fn main() !void {
                             .shaderLocation = 0
                         },
                     }
-                }
+                },
             }
         },
         .multisample = .{
@@ -172,12 +173,17 @@ pub fn main() !void {
     const bind_group = try device.CreateBindGroup(&.{
         .label = wgpu.StringView.fromSlice("bind group"),
         .layout = layout,
-        .entryCount = 1,
-        .entries = &[1]wgpu.BindGroup.Entry {
+        .entryCount = 2,
+        .entries = &[2]wgpu.BindGroup.Entry {
             wgpu.BindGroup.Entry{
                 .binding = 0,
                 .buffer = uniform_buffer._impl,
                 .size = uniform_buffer.GetSize()
+            },
+            wgpu.BindGroup.Entry{
+                .binding = 1,
+                .buffer = snake_buffer._impl,
+                .size = snake_buffer.GetSize()
             },
         }
     });
