@@ -189,8 +189,19 @@ pub fn main() !void {
     });
     defer bind_group.Release();
 
-    while (!window.ShouldClose()) {
+
+    var i: usize = 0;
+    while (!window.ShouldClose()) : (i += 1) {
         glfw.pollEvents();
+
+        { // update
+            
+            if (i == snake.len) i = 0;
+            snake[i] = @intFromBool(true);
+
+            queue.WriteBuffer(snake_buffer, 0, u32, snake[0..]);
+
+        }
 
         { // Render
             const texture = try surface.GetCurrentTexture();
