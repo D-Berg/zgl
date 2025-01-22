@@ -12,6 +12,9 @@ const GRID_SIZE = 32;
 
 const square_shader = @embedFile("shaders/square.wgsl");
 
+
+var previous_key_state = std.EnumMap(glfw.Key, glfw.KeyState).initFull(glfw.KeyState.Released);
+
 pub fn main() !void {
 
     try glfw.init();
@@ -191,16 +194,27 @@ pub fn main() !void {
 
 
     var i: usize = 0;
-    while (!window.ShouldClose()) : (i += 1) {
+    while (!window.ShouldClose()) {
         glfw.pollEvents();
 
         { // update
             
-            if (i == snake.len) i = 0;
+            if (i == snake.len) {
+                i = 0; // wouldnt wanna overflow right
+                @memset(&snake, 0);
+            }
             snake[i] = @intFromBool(true);
 
-            queue.WriteBuffer(snake_buffer, 0, u32, snake[0..]);
+            const just_pressed = glfw.GetKey(window, .D);
 
+            if (just_pressed == .Pressed and previous_key_state.get(.D).? != .Pressed) {
+                i += 1;
+            }
+
+            const prev = previous_key_state.getPtr(.D).?;
+            prev.* = just_pressed;
+
+            queue.WriteBuffer(snake_buffer, 0, u32, snake[0..]);
         }
 
         { // Render
