@@ -1,5 +1,6 @@
 const std = @import("std");
 const zgl = @import("zgl");
+const log = std.log;
 
 const glfw = zgl.glfw;
 const wgpu = zgl.wgpu;
@@ -14,6 +15,96 @@ const square_shader = @embedFile("shaders/square.wgsl");
 
 
 var previous_key_state = std.EnumMap(glfw.Key, glfw.KeyState).initFull(glfw.KeyState.Released);
+
+fn isKeyPressed(window: glfw.Window, key: glfw.Key) bool {
+    var isPressed: bool = false;
+
+    const just_pressed = glfw.GetKey(window, key);
+
+    if (just_pressed == .Pressed and previous_key_state.get(key).? != .Pressed) {
+        isPressed = true;
+    }
+
+    const prev = previous_key_state.getPtr(key).?;
+    prev.* = just_pressed;
+
+    return isPressed;
+
+}
+
+const Direction = enum {
+    Up,
+    Down,
+    Left,
+    Right
+};
+
+fn moveSnake(curr_pos_idx: *usize, snake: []u32, direction: Direction) void {
+
+    switch (direction) {
+
+        .Up => {
+            if (curr_pos_idx.* + GRID_SIZE < snake.len - 1) {
+                const next_pos = curr_pos_idx.* + GRID_SIZE;
+                snake[next_pos] = @intFromBool(true);
+                snake[curr_pos_idx.*]  = @intFromBool(false);
+
+                curr_pos_idx.* = next_pos;
+            } else {
+                const next_pos = curr_pos_idx.* - (GRID_SIZE - 1) * GRID_SIZE;
+                snake[next_pos] = @intFromBool(true);
+                snake[curr_pos_idx.*]  = @intFromBool(false);
+
+                curr_pos_idx.* = next_pos;
+
+            }
+        },
+        .Down => {
+
+            if (curr_pos_idx.* > GRID_SIZE - 1) {
+                const next_pos = curr_pos_idx.* - GRID_SIZE;
+                snake[next_pos] = @intFromBool(true);
+                snake[curr_pos_idx.*]  = @intFromBool(false);
+
+                curr_pos_idx.* = next_pos;
+            } else {
+                const next_pos = curr_pos_idx.* + (GRID_SIZE - 1) * GRID_SIZE;
+                snake[next_pos] = @intFromBool(true);
+                snake[curr_pos_idx.*]  = @intFromBool(false);
+
+                curr_pos_idx.* = next_pos;
+            }
+
+        },
+        .Left => {
+            const next_pos = if (curr_pos_idx.* % GRID_SIZE == 0) 
+                curr_pos_idx.* + GRID_SIZE - 1
+            else 
+                curr_pos_idx.* - 1;
+
+            snake[next_pos] = @intFromBool(true);
+            snake[curr_pos_idx.*] = @intFromBool(false);
+
+            curr_pos_idx.* = next_pos;
+
+        },
+        .Right => {
+            var next_pos = curr_pos_idx.* + 1;
+            if (next_pos % GRID_SIZE == 0) {
+                next_pos = curr_pos_idx.* + 1 - GRID_SIZE;
+            }
+            snake[next_pos] = @intFromBool(true);
+            snake[curr_pos_idx.*] = @intFromBool(false);
+
+            curr_pos_idx.* = next_pos;
+
+        }
+    }
+
+
+    log.debug("pos: {}", .{curr_pos_idx.*});
+
+}
 
 pub fn main() !void {
 
@@ -193,26 +284,27 @@ pub fn main() !void {
     defer bind_group.Release();
 
 
-    var i: usize = 0;
+    var curr_pos_idx: usize = 0;
     while (!window.ShouldClose()) {
         glfw.pollEvents();
 
         { // update
             
-            if (i == snake.len) {
-                i = 0; // wouldnt wanna overflow right
-                @memset(&snake, 0);
-            }
-            snake[i] = @intFromBool(true);
-
-            const just_pressed = glfw.GetKey(window, .D);
-
-            if (just_pressed == .Pressed and previous_key_state.get(.D).? != .Pressed) {
-                i += 1;
+            if (isKeyPressed(window, .D)) {
+                moveSnake(&curr_pos_idx, &snake, .Right);
             }
 
-            const prev = previous_key_state.getPtr(.D).?;
-            prev.* = just_pressed;
+            if (isKeyPressed(window, .A)) {
+                moveSnake(&curr_pos_idx, &snake, .Left);
+            }
+
+            if (isKeyPressed(window, .W)) {
+                moveSnake(&curr_pos_idx, &snake, .Up);
+            }
+
+            if (isKeyPressed(window, .S)) {
+                moveSnake(&curr_pos_idx, &snake, .Down);
+            }
 
             queue.WriteBuffer(snake_buffer, 0, u32, snake[0..]);
         }
