@@ -2,6 +2,8 @@ const std = @import("std");
 const zgl = @import("zgl");
 const log = std.log;
 
+const rand = std.crypto.random;
+
 const glfw = zgl.glfw;
 const wgpu = zgl.wgpu;
 
@@ -9,7 +11,7 @@ const RENDER_SIZE = 2;
 const WINDOW_WIDTH = 768 + 32;
 const WINDOW_HEIGHT = 768 + 32;
 
-const GRID_SIZE = 32;
+const GRID_SIZE = 16;
 
 const square_shader = @embedFile("shaders/square.wgsl");
 
@@ -181,7 +183,6 @@ pub fn main() !void {
 
     var snake: [GRID_SIZE * GRID_SIZE]u32 = undefined;
     for (0..snake.len) |i| snake[i] = @intFromBool(false);
-    snake[0] = @intFromBool(true); // set head to active
 
     const snake_buffer = try device.CreateBuffer(&.{
         .label = wgpu.StringView.fromSlice("snake buffer"),
@@ -284,28 +285,23 @@ pub fn main() !void {
     defer bind_group.Release();
 
 
-    var curr_pos_idx: usize = 0;
-    while (!window.ShouldClose()) {
+    var frame: usize = 0;
+    var curr_pos_idx: usize = rand.intRangeAtMost(usize, 0, GRID_SIZE * GRID_SIZE - 1);
+    var direction: Direction = .Right;
+    while (!window.ShouldClose()) : (frame += 1) {
         glfw.pollEvents();
 
         { // update
             
-            if (isKeyPressed(window, .D)) {
-                moveSnake(&curr_pos_idx, &snake, .Right);
-            }
+            if (isKeyPressed(window, .D) and direction != .Left) direction = .Right;
 
-            if (isKeyPressed(window, .A)) {
-                moveSnake(&curr_pos_idx, &snake, .Left);
-            }
+            if (isKeyPressed(window, .A) and direction != .Right) direction = .Left;
 
-            if (isKeyPressed(window, .W)) {
-                moveSnake(&curr_pos_idx, &snake, .Up);
-            }
+            if (isKeyPressed(window, .W) and direction != .Down) direction = .Up;
 
-            if (isKeyPressed(window, .S)) {
-                moveSnake(&curr_pos_idx, &snake, .Down);
-            }
+            if (isKeyPressed(window, .S) and direction != .Up) direction = .Down;
 
+            if (frame % 10 == 0) moveSnake(&curr_pos_idx, &snake, direction);
             queue.WriteBuffer(snake_buffer, 0, u32, snake[0..]);
         }
 
