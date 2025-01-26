@@ -18,7 +18,6 @@ pub fn init() GlfwError!void {
 
     if (status == 0) {
         log.err("Failed to init glfw", .{});
-        
 
         if (os_tag != .emscripten) { // glfwGetError doesnt work
             var description: [*:0]u8 = undefined;
@@ -35,7 +34,7 @@ pub fn terminate() void {
     glfwTerminate();
 }
 
-extern "c" fn glfwGetError(description: *[*]u8) u32;
+extern "c" fn glfwGetError(description: *[*:0]u8) u32;
 
 extern "c" fn glfwPollEvents() void;
 pub fn pollEvents() void {
@@ -420,7 +419,6 @@ pub const KeyState = enum(u32) {
 extern "c" fn glfwGetKey(window: *GLFWwindow, key: i32) u32;
 pub fn GetKey(window: Window, key: Key) KeyState {
     const result = glfwGetKey(window._impl, @intFromEnum(key));
-    log.debug("key = {}", .{result});
 
     switch (result) {
         @intFromEnum(KeyState.Released) => return .Released,

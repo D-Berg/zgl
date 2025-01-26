@@ -7,16 +7,45 @@ const rand = std.crypto.random;
 const glfw = zgl.glfw;
 const wgpu = zgl.wgpu;
 
-const RENDER_SIZE = 2;
-const WINDOW_WIDTH = 768 + 32;
-const WINDOW_HEIGHT = 768 + 32;
+const RENDER_SIZE = 1;
+const WINDOW_WIDTH = 800;
+const WINDOW_HEIGHT = 800;
 
 const GRID_SIZE = 16;
 
 const square_shader = @embedFile("shaders/square.wgsl");
 
+const Rectangle = struct {
+    position: Position = .{ .x = 0, .y = 0},
+    dimension: Dim = .{ .width = 400, .height = 400},
+    color: Color = .{ .r = 0, .g = 1, .b = 0, .a = 1 },
+};
+
+const Position = struct {
+    x: f32,
+    y: f32
+};
+
+const Dim = struct {
+    width: f32,
+    height: f32,
+};
+
+const Color = struct {
+    r: f32,
+    g: f32,
+    b: f32,
+    a: f32
+};
 
 var previous_key_state = std.EnumMap(glfw.Key, glfw.KeyState).initFull(glfw.KeyState.Released);
+
+const MAX_SNAKE_LEN = 10;
+
+const Snake = struct {
+    positions: [MAX_SNAKE_LEN][2]f32,
+    len: 1,
+};
 
 fn isKeyPressed(window: glfw.Window, key: glfw.Key) bool {
     var isPressed: bool = false;
@@ -149,52 +178,37 @@ pub fn main() !void {
     surface.Configure(&surface_conf);
     defer surface.Unconfigure();
 
-    const square_vertices = [12]f32 {
-        // X, Y
-        -0.8, -0.8, // Triangle 1 (Blue)
-        0.8, -0.8,
-        0.8,  0.8,
 
-        -0.8, -0.8, // Triangle 2 (Red)
-        0.8,  0.8,
-        -0.8,  0.8,
-    };
+    const window_array = [2]f32{ WINDOW_WIDTH, WINDOW_HEIGHT };
 
-    const vertex_buffer = try device.CreateBuffer(&.{
-        .label = wgpu.StringView.fromSlice("vertex_buffer"),
-        .usage = @intFromEnum(wgpu.Buffer.Usage.Vertex) |
-            @intFromEnum(wgpu.Buffer.Usage.CopyDst),
-        .size = @sizeOf(@TypeOf(square_vertices)) 
-    });
-    defer vertex_buffer.Release();
-
-    queue.WriteBuffer(vertex_buffer, 0, f32, square_vertices[0..]);
-
-    const uniform_array = [2]f32{ GRID_SIZE, GRID_SIZE };
-
-    const uniform_buffer = try device.CreateBuffer(&.{
+    const window_buffer = try device.CreateBuffer(&.{
         .label = wgpu.StringView.fromSlice("uniform buffer"),
         .usage = @intFromEnum(wgpu.Buffer.Usage.Uniform) | 
             @intFromEnum(wgpu.Buffer.Usage.CopyDst),
-        .size = @sizeOf(@TypeOf(uniform_array))
+        .size = @sizeOf(@TypeOf(window_array))
     });
-    defer uniform_buffer.Release();
+    defer window_buffer.Release();
+    queue.WriteBuffer(window_buffer,0, f32, window_array[0..]);
 
 
-    var snake: [GRID_SIZE * GRID_SIZE]u32 = undefined;
-    for (0..snake.len) |i| snake[i] = @intFromBool(false);
-
-    const snake_buffer = try device.CreateBuffer(&.{
-        .label = wgpu.StringView.fromSlice("snake buffer"),
+    var rectangles: [MAX_SNAKE_LEN]Rectangle = undefined;
+    for (0..rectangles.len) |i| rectangles[i] = Rectangle{};
+    rectangles[1] = Rectangle{
+        .position = .{ .x = 400, .y = 400},
+        .dimension = .{ .width = 200, .height = 300 },
+        .color = .{ .r = 1, .g = 0, .b = 0, .a = 1 },
+    };
+    const rectangles_buffer = try device.CreateBuffer(&.{
+        .label = wgpu.StringView.fromSlice("rectangles buffer"),
         .usage = @intFromEnum(wgpu.Buffer.Usage.Storage) | 
             @intFromEnum(wgpu.Buffer.Usage.CopyDst),
-        .size = @sizeOf(@TypeOf(snake)),
+        .size = @sizeOf(@TypeOf(rectangles)),
     });
-    defer snake_buffer.Release();
+    defer rectangles_buffer.Release();
+    queue.WriteBuffer(rectangles_buffer, 0, Rectangle, rectangles[0..]);
 
-    queue.WriteBuffer(uniform_buffer,0, f32, uniform_array[0..]);
-    queue.WriteBuffer(snake_buffer, 0, u32, snake[0..]);
 
+    log.debug("{}", .{@sizeOf(@TypeOf(rectangles))});
 
     const shader_code = wgpu.ShaderSourceWGSL{
         .code = wgpu.StringView.fromSlice(square_shader),
@@ -209,22 +223,22 @@ pub fn main() !void {
         .vertex = .{
             .module = shader._impl,
             .entryPoint = wgpu.StringView.fromSlice("vs_main"),
-            .bufferCount = 1,
-            .buffers = &[1]wgpu.VertexBufferLayout{
-                // grid?
-                wgpu.VertexBufferLayout{
-                    .stepMode = .Vertex,
-                    .arrayStride = 2 * @sizeOf(f32),
-                    .attributeCount = 1,
-                    .attributes = &[1]wgpu.VertextAttribute{
-                        wgpu.VertextAttribute{
-                            .format = .Float32x2,
-                            .offset = 0,
-                            .shaderLocation = 0
-                        },
-                    }
-                },
-            }
+            // .bufferCount = 1,
+            // .buffers = &[1]wgpu.VertexBufferLayout {
+            //     wgpu.VertexBufferLayout{
+            //         .stepMode = .Vertex,
+            //         .arrayStride = 2 * @sizeOf(f32),
+            //         .attributeCount = 1,
+            //         .attributes = &[1]wgpu.VertextAttribute{
+            //             wgpu.VertextAttribute{
+            //                 .format = .Float32x2,
+            //                 .offset = 0,
+            //                 .shaderLocation = 0
+            //             }
+            //         }
+            //     }
+            //
+            // }
         },
         .multisample = .{
             .mask = ~@as(u32, 0),
@@ -272,13 +286,13 @@ pub fn main() !void {
         .entries = &[2]wgpu.BindGroup.Entry {
             wgpu.BindGroup.Entry{
                 .binding = 0,
-                .buffer = uniform_buffer._impl,
-                .size = uniform_buffer.GetSize()
+                .buffer = window_buffer._impl,
+                .size = window_buffer.GetSize()
             },
             wgpu.BindGroup.Entry{
                 .binding = 1,
-                .buffer = snake_buffer._impl,
-                .size = snake_buffer.GetSize()
+                .buffer = rectangles_buffer._impl,
+                .size = rectangles_buffer.GetSize()
             },
         }
     });
@@ -286,23 +300,22 @@ pub fn main() !void {
 
 
     var frame: usize = 0;
-    var curr_pos_idx: usize = rand.intRangeAtMost(usize, 0, GRID_SIZE * GRID_SIZE - 1);
-    var direction: Direction = .Right;
+    // var curr_pos_idx: usize = rand.intRangeAtMost(usize, 0, GRID_SIZE * GRID_SIZE - 1);
+    // var direction: Direction = .Right;
     while (!window.ShouldClose()) : (frame += 1) {
         glfw.pollEvents();
 
         { // update
             
-            if (isKeyPressed(window, .D) and direction != .Left) direction = .Right;
-
-            if (isKeyPressed(window, .A) and direction != .Right) direction = .Left;
-
-            if (isKeyPressed(window, .W) and direction != .Down) direction = .Up;
-
-            if (isKeyPressed(window, .S) and direction != .Up) direction = .Down;
-
-            if (frame % 10 == 0) moveSnake(&curr_pos_idx, &snake, direction);
-            queue.WriteBuffer(snake_buffer, 0, u32, snake[0..]);
+            // if (isKeyPressed(window, .D) and direction != .Left) direction = .Right;
+            //
+            // if (isKeyPressed(window, .A) and direction != .Right) direction = .Left;
+            //
+            // if (isKeyPressed(window, .W) and direction != .Down) direction = .Up;
+            //
+            // if (isKeyPressed(window, .S) and direction != .Up) direction = .Down;
+            //
+            // if (frame % 10 == 0) moveSnake(&curr_pos_idx, &snake, direction);
         }
 
         { // Render
@@ -342,10 +355,9 @@ pub fn main() !void {
                 defer rend_pass_enc.Release();
 
                 rend_pass_enc.SetPipeline(render_pipeline);
-                rend_pass_enc.setVertexBuffer(0, vertex_buffer, 0);
+                // rend_pass_enc.setVertexBuffer(0, vertex_buffer, 0);
                 rend_pass_enc.setBindGroup(0, bind_group, &[_]u32{});
-
-                rend_pass_enc.Draw(6, GRID_SIZE * GRID_SIZE, 0, 0);
+                rend_pass_enc.Draw(6, 2, 0, 0);
                 rend_pass_enc.End();
             }
 
