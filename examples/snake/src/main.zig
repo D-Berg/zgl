@@ -12,7 +12,7 @@ const RENDER_SIZE = 3; // increases render resolution
 const WINDOW_WIDTH = 800;
 const WINDOW_HEIGHT = 800;
 
-const GRID_SIZE = 16;
+const GRID_SIZE = 32;
 const MAX_RGB_VAL = 255;
 
 const square_shader = @embedFile("shaders/square.wgsl");
@@ -315,25 +315,31 @@ pub fn main() !void {
             // draw ==========================================================
             var vertices = std.ArrayList(f32).init(arena_allocator);
 
-
             try drawRectangle(&vertices, Rectangle{
                 .position = .{ .x = 0, .y = 0 },
                 .dimension = .{ .width = 800, .height = 800 }
             });
 
-            try drawCircle(&vertices, Circle{
-                .center = .{ .x = 10, .y = 10 },
-                .color = .{ .r = 255, .g = 0, .b = 0, .a = 1},
-                .radius = 20,
-                .segments = 100
-            });
+            // grid brackround
+            for (0..GRID_SIZE) |i| {
 
-            try drawRectangle(&vertices, Rectangle{
-                .position = .{ .x = 20, .y = 20 },
-                .dimension = .{ .width = 100, .height = 100 },
-                .color = .{ .r = 0, .g = 0, .b = 255, .a = 1 }
-                
-            });
+                for (0..GRID_SIZE) |j| {
+                    const color = if ((i + j) % 2 == 0) 
+                        Color {.r = 85, .g = 85,.b = 85, .a = 1}
+                    else Color {.r = 64, .g = 64,.b = 64, .a = 1};
+
+                    try drawRectangle(&vertices, Rectangle{ 
+                        .position = .{ 
+                            .x = @as(f32, @floatFromInt(i * GRID_SIZE)), 
+                            .y = @as(f32, @floatFromInt(j * GRID_SIZE)) 
+                        },
+                        .dimension = .{ .width = GRID_SIZE, .height = GRID_SIZE },
+                        .color = color
+                        
+                    });
+                }
+            }
+
 
             std.debug.assert(vertices.items.len < device_limits.limits.maxBufferSize);
             queue.WriteBuffer(vertex_buffer, 0, f32, vertices.items);
