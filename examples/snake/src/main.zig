@@ -2,23 +2,32 @@ const std = @import("std");
 const zgl = @import("zgl");
 const log = std.log;
 
+const PI = std.math.pi;
 const rand = std.crypto.random;
 
 const glfw = zgl.glfw;
 const wgpu = zgl.wgpu;
 
-const RENDER_SIZE = 1;
+const RENDER_SIZE = 3; // increases render resolution
 const WINDOW_WIDTH = 800;
 const WINDOW_HEIGHT = 800;
 
 const GRID_SIZE = 16;
+const MAX_RGB_VAL = 255;
 
 const square_shader = @embedFile("shaders/square.wgsl");
 
 const Rectangle = struct {
     position: Position = .{ .x = 0, .y = 0},
     dimension: Dim = .{ .width = 400, .height = 400},
-    color: Color = .{ .r = 0, .g = 1, .b = 0, .a = 1 },
+    color: Color = .{ .r = 0, .g = 255, .b = 0, .a = 1 },
+};
+
+const Circle = struct {
+    center: Position,
+    radius: f32,
+    color: Color,
+    segments: usize
 };
 
 const Position = struct {
@@ -32,10 +41,27 @@ const Dim = struct {
 };
 
 const Color = struct {
-    r: f32,
-    g: f32,
-    b: f32,
-    a: f32
+    r: u8,
+    g: u8,
+    b: u8,
+    a: f32,
+
+    fn getArray(self: Color) [4]f32 {
+
+        var color_buffer: [4]f32 = undefined;
+        const color_fields = @typeInfo(@TypeOf(self)).@"struct".fields;
+        inline for (color_fields, 0..) |field, i| {
+            const col_val = @field(self, field.name);
+
+            color_buffer[i] = if (i != color_fields.len - 1) 
+                @as(f32, @floatFromInt(col_val)) / MAX_RGB_VAL
+            else 
+                col_val;
+        } 
+
+        return color_buffer;
+
+    }
 };
 
 var previous_key_state = std.EnumMap(glfw.Key, glfw.KeyState).initFull(glfw.KeyState.Released);
@@ -157,8 +183,13 @@ pub fn main() !void {
     const adapter = try instance.RequestAdapter(&.{.compatibleSurface = surface._inner});
     defer adapter.Release();
 
+    if (adapter.GetLimits()) |limits| limits.logLimits();
+
     const device = try adapter.RequestDevice(null);
     defer device.Release();
+
+    const device_limits = try device.GetLimits();
+    device_limits.logLimits();
 
     const queue = try device.GetQueue();
     defer queue.Release();
@@ -179,37 +210,6 @@ pub fn main() !void {
     defer surface.Unconfigure();
 
 
-    const window_array = [2]f32{ WINDOW_WIDTH, WINDOW_HEIGHT };
-
-    const window_buffer = try device.CreateBuffer(&.{
-        .label = wgpu.StringView.fromSlice("uniform buffer"),
-        .usage = @intFromEnum(wgpu.Buffer.Usage.Uniform) | 
-            @intFromEnum(wgpu.Buffer.Usage.CopyDst),
-        .size = @sizeOf(@TypeOf(window_array))
-    });
-    defer window_buffer.Release();
-    queue.WriteBuffer(window_buffer,0, f32, window_array[0..]);
-
-
-    var rectangles: [MAX_SNAKE_LEN]Rectangle = undefined;
-    for (0..rectangles.len) |i| rectangles[i] = Rectangle{};
-    rectangles[1] = Rectangle{
-        .position = .{ .x = 400, .y = 400},
-        .dimension = .{ .width = 200, .height = 300 },
-        .color = .{ .r = 1, .g = 0, .b = 0, .a = 1 },
-    };
-    const rectangles_buffer = try device.CreateBuffer(&.{
-        .label = wgpu.StringView.fromSlice("rectangles buffer"),
-        .usage = @intFromEnum(wgpu.Buffer.Usage.Storage) | 
-            @intFromEnum(wgpu.Buffer.Usage.CopyDst),
-        .size = @sizeOf(@TypeOf(rectangles)),
-    });
-    defer rectangles_buffer.Release();
-    queue.WriteBuffer(rectangles_buffer, 0, Rectangle, rectangles[0..]);
-
-
-    log.debug("{}", .{@sizeOf(@TypeOf(rectangles))});
-
     const shader_code = wgpu.ShaderSourceWGSL{
         .code = wgpu.StringView.fromSlice(square_shader),
         .chain = .{ .sType = .ShaderSourceWGSL }
@@ -223,22 +223,27 @@ pub fn main() !void {
         .vertex = .{
             .module = shader._impl,
             .entryPoint = wgpu.StringView.fromSlice("vs_main"),
-            // .bufferCount = 1,
-            // .buffers = &[1]wgpu.VertexBufferLayout {
-            //     wgpu.VertexBufferLayout{
-            //         .stepMode = .Vertex,
-            //         .arrayStride = 2 * @sizeOf(f32),
-            //         .attributeCount = 1,
-            //         .attributes = &[1]wgpu.VertextAttribute{
-            //             wgpu.VertextAttribute{
-            //                 .format = .Float32x2,
-            //                 .offset = 0,
-            //                 .shaderLocation = 0
-            //             }
-            //         }
-            //     }
-            //
-            // }
+            .bufferCount = 1,
+            .buffers = &[1]wgpu.VertexBufferLayout {
+                wgpu.VertexBufferLayout{
+                    .stepMode = .Vertex,
+                    .arrayStride = 6 * @sizeOf(f32), // 2 pos + 4 col
+                    .attributeCount = 2,
+                    .attributes = &[2]wgpu.VertextAttribute{
+                        wgpu.VertextAttribute { // position
+                            .format = .Float32x2,
+                            .offset = 0,
+                            .shaderLocation = 0
+                        },
+                        wgpu.VertextAttribute { // color
+                            .format = .Float32x4,
+                            .offset = 2 * @sizeOf(f32),
+                            .shaderLocation = 1
+                        }
+                    }
+                }
+
+            }
         },
         .multisample = .{
             .mask = ~@as(u32, 0),
@@ -275,34 +280,21 @@ pub fn main() !void {
     });
     defer render_pipeline.Release();
 
-
-    const layout = try render_pipeline.GetBindGroupLayout(0);
-    defer layout.Release();
-
-    const bind_group = try device.CreateBindGroup(&.{
-        .label = wgpu.StringView.fromSlice("bind group"),
-        .layout = layout,
-        .entryCount = 2,
-        .entries = &[2]wgpu.BindGroup.Entry {
-            wgpu.BindGroup.Entry{
-                .binding = 0,
-                .buffer = window_buffer._impl,
-                .size = window_buffer.GetSize()
-            },
-            wgpu.BindGroup.Entry{
-                .binding = 1,
-                .buffer = rectangles_buffer._impl,
-                .size = rectangles_buffer.GetSize()
-            },
-        }
+    const vertex_buffer = try device.CreateBuffer(&.{
+        .label = wgpu.StringView.fromSlice("vertex buffer"),
+        .size = device_limits.limits.maxBufferSize,
+        .usage = @intFromEnum(wgpu.Buffer.Usage.Vertex) | @intFromEnum(wgpu.Buffer.Usage.CopyDst),
     });
-    defer bind_group.Release();
+    defer vertex_buffer.Release();
 
+    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+    defer arena.deinit();
 
-    var frame: usize = 0;
+    const arena_allocator = arena.allocator();
+
     // var curr_pos_idx: usize = rand.intRangeAtMost(usize, 0, GRID_SIZE * GRID_SIZE - 1);
     // var direction: Direction = .Right;
-    while (!window.ShouldClose()) : (frame += 1) {
+    while (!window.ShouldClose()) : (_ = arena.reset( .retain_capacity)) {
         glfw.pollEvents();
 
         { // update
@@ -318,7 +310,36 @@ pub fn main() !void {
             // if (frame % 10 == 0) moveSnake(&curr_pos_idx, &snake, direction);
         }
 
-        { // Render
+        { // draw and render
+
+            // draw ==========================================================
+            var vertices = std.ArrayList(f32).init(arena_allocator);
+
+
+            try drawRectangle(&vertices, Rectangle{
+                .position = .{ .x = 0, .y = 0 },
+                .dimension = .{ .width = 800, .height = 800 }
+            });
+
+            try drawCircle(&vertices, Circle{
+                .center = .{ .x = 10, .y = 10 },
+                .color = .{ .r = 255, .g = 0, .b = 0, .a = 1},
+                .radius = 20,
+                .segments = 100
+            });
+
+            try drawRectangle(&vertices, Rectangle{
+                .position = .{ .x = 20, .y = 20 },
+                .dimension = .{ .width = 100, .height = 100 },
+                .color = .{ .r = 0, .g = 0, .b = 255, .a = 1 }
+                
+            });
+
+            std.debug.assert(vertices.items.len < device_limits.limits.maxBufferSize);
+            queue.WriteBuffer(vertex_buffer, 0, f32, vertices.items);
+            
+
+            // render ========================================================
             const texture = try surface.GetCurrentTexture();
             defer texture.Release();
 
@@ -355,9 +376,8 @@ pub fn main() !void {
                 defer rend_pass_enc.Release();
 
                 rend_pass_enc.SetPipeline(render_pipeline);
-                // rend_pass_enc.setVertexBuffer(0, vertex_buffer, 0);
-                rend_pass_enc.setBindGroup(0, bind_group, &[_]u32{});
-                rend_pass_enc.Draw(6, 2, 0, 0);
+                rend_pass_enc.setVertexBuffer(0, vertex_buffer, 0);
+                rend_pass_enc.Draw(@intCast(vertices.items.len), 1, 0, 0);
                 rend_pass_enc.End();
             }
 
@@ -372,5 +392,117 @@ pub fn main() !void {
 
         }
     }
+
+}
+
+
+fn drawRectangle(vertices: *std.ArrayList(f32), rec: Rectangle) !void {
+
+    const color_buffer = rec.color.getArray();
+
+    // TODO : have one buffer, size of all the data and appendSlice once
+
+    const w_width = WINDOW_WIDTH;
+    const w_height = WINDOW_HEIGHT;
+    const pos = [2]f32{
+        2 * (rec.position.x / w_width) - 1,
+        1 - 2 * (rec.position.y / w_height)
+    };
+
+    const dim = [2]f32{
+        2 * rec.dimension.width / w_width,
+        2 * rec.dimension.height / w_height
+    };
+
+    
+    // triangle 1
+    try vertices.appendSlice(&pos); // top left
+    try vertices.appendSlice(&color_buffer);
+
+
+    try vertices.appendSlice(&[_]f32{pos[0] + dim[0], pos[1]}); // top right
+    try vertices.appendSlice(&color_buffer);
+
+    try vertices.appendSlice(&[_]f32{pos[0] + dim[0], pos[1] - dim[1]}); //bot right
+    try vertices.appendSlice(&color_buffer);
+
+    // triangle 2
+    try vertices.appendSlice(&pos); // top left
+    try vertices.appendSlice(&color_buffer);
+
+
+    try vertices.appendSlice(&[_]f32{pos[0], pos[1] - dim[1]}); // bot left
+    try vertices.appendSlice(&color_buffer);
+
+    try vertices.appendSlice(&[_]f32{pos[0] + dim[0], pos[1] - dim[1]}); // bot right
+    try vertices.appendSlice(&color_buffer);
+
+}
+
+fn drawCircle(vertices: *std.ArrayList(f32), circle: Circle) !void {
+
+    const color_buffer = circle.color.getArray();
+
+    const step_size = 2 * PI / @as(f32, @floatFromInt(circle.segments));
+
+    const r = 2 * circle.radius / std.math.sqrt(
+        WINDOW_WIDTH * WINDOW_WIDTH + WINDOW_HEIGHT + WINDOW_HEIGHT
+    );
+
+    for (0..circle.segments + 1) |segment| {
+        const seg_f32 = @as(f32, @floatFromInt(segment));
+
+        const angles = [2]f32{
+            step_size * seg_f32, 
+            step_size * (seg_f32 + 1)
+        };
+        
+        // center
+        try vertices.appendSlice(&[_]f32{ 0, 0 });
+        try vertices.appendSlice(&color_buffer); 
+
+
+        try vertices.appendSlice(&[_]f32{ 
+            r * @cos(angles[0]), 
+            r * @sin(angles[0])
+        });
+        try vertices.appendSlice(&color_buffer);
+
+        
+        try vertices.appendSlice(&[_]f32{ 
+            r * @cos(angles[1]), 
+            r * @sin(angles[1])
+        });
+        try vertices.appendSlice(&color_buffer);
+
+
+
+    }
+
+    // try vertices.appendSlice(&[_]f32{ 0, 0});
+    // try vertices.appendSlice(&color_buffer);
+    //
+    // try vertices.appendSlice(&[_]f32{ 1, 0});
+    // try vertices.appendSlice(&color_buffer);
+    //
+    // try vertices.appendSlice(&[_]f32{ 0, 1});
+    // try vertices.appendSlice(&color_buffer);
+
+    // try vertices.appendSlice(&[_]f32{ -1, 0});
+    // try vertices.appendSlice(&color_buffer);
+    //
+    // try vertices.appendSlice(&[_]f32{ 0, -1});
+    // try vertices.appendSlice(&color_buffer);
+    //
+    // try vertices.appendSlice(&[_]f32{ 1, 0});
+    // try vertices.appendSlice(&color_buffer);
+
+
+// 0.0,  0.0,  // Center
+//     1.0,  0.0,  // Right
+//     0.0,  1.0,  // Top
+//    -1.0,  0.0,  // Left
+//     0.0, -1.0,  // Bottom
+//     1.0,  0.0,  // Close circle (repeat first vertex)
 
 }
