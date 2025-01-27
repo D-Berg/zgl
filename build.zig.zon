@@ -66,12 +66,13 @@
             .hash = "1220e79da2d5efd5e9dd8b6453f83a9ec79534e2e203b3331766b81e49171f3db474"
         },
         .wgpu_macos_aarch64_debug = .{ // TODO: temporary until its pulled in on wgpu-native
-            .url = "https://github.com/eliemichel/wgpu-native/releases/download/v23.0.0-gamma/wgpu-macos-aarch64-debug.zip",
-            .hash = "1220876cfb980c0f3461519a2f77ac88b768cc7cfee06deeb54b0e99288136c78e07"
+            .url = "https://github.com/ygdrasil-io/wgpu-native/releases/download/v24.0.0.2/wgpu-macos-aarch64-debug.zip",
+            .hash = "1220dbc89f806ce0777cdd121176afa29d1201174e5655e63f4a01ba9870f2fc5eaa"
         },
         .wgpu_macos_aarch64_release = .{
-            .url = "https://github.com/eliemichel/wgpu-native/releases/download/v23.0.0-gamma/wgpu-macos-aarch64-release.zip",
-            .hash = "1220fcfcf5a780135b505e281d5ba7be3b01a5c37c6dc90c56941e4c3a8f98003912",
+            .url = "https://github.com/ygdrasil-io/wgpu-native/releases/download/v24.0.0.2/wgpu-macos-aarch64-release.zip",
+            .hash = "122028f74199ae0ad16828c0cc1e5c4762d784821539031ca624a81882db0be013a1"
+
         },
         .wgpu_macos_x86_64_debug = .{ 
             .url = "https://github.com/gfx-rs/wgpu-native/releases/download/v22.1.0.5/wgpu-macos-x86_64-debug.zip", 
