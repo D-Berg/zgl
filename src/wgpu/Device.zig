@@ -90,10 +90,10 @@ pub const SupportedLimits = extern struct {
         const limits = slimits.limits;
 
         log.info("Device Limits:", .{});
-        log.info(" - maxTextureDimension1D: {}", .{limits.maxTextureDimension1D});
-        log.info(" - maxTextureDimension2D: {}", .{limits.maxTextureDimension2D});
-        log.info(" - maxTextureDimension3D: {}", .{limits.maxTextureDimension3D});
-        log.info(" - maxTextureArrayLayers: {}", .{limits.maxTextureArrayLayers});
+
+        inline for (@typeInfo(@TypeOf(limits)).@"struct".fields) |field| {
+            log.info(" - {s}: {}", .{field.name, @field(limits, field.name)});
+        }
 
     }
 };
