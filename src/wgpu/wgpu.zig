@@ -25,6 +25,21 @@ pub const Sampler = @import("Sampler.zig").Sampler;
 pub const ComputePass = @import("ComputePass.zig");
 
 
+pub const MapMode = enum(Flag) {
+    None = 0x0000000000000000,
+    Read = 0x0000000000000001,
+    Write = 0x0000000000000002,
+};
+
+pub const MapAsyncStatus =  enum(u32) {
+    Success = 0x00000001,
+    InstanceDropped = 0x00000002,
+    Error = 0x00000003,
+    Aborted = 0x00000004,
+    Unknown = 0x00000005,
+    Force32 = 0x7FFFFFFF
+};
+
 pub const Flag = u64;
 
 pub const WGPUError = error {
@@ -45,6 +60,12 @@ pub const WGPUError = error {
     FailedToGetBindGroupLayout,
     FailedToCreateComputePassEncoder,
     FailedToGetBufferMappedRange,
+
+    FailedToMapBufferBecauseOfError,
+    FailedToMapBufferBecauseOfAbort,
+    FailedToMapBufferBecauseOfDroppedInstance,
+    FailedToMapBufferBecauseOfUnknown,
+    FailedToMapBufferBecauseOfForce32,
     
 };
 
