@@ -251,6 +251,8 @@ fn buildNative(b: *std.Build, zgl: *Module, target: Target, optimize: OptimizeMo
             zgl.linkSystemLibrary("oleaut32", .{});
             zgl.linkSystemLibrary("opengl32", .{});
             zgl.linkSystemLibrary("d3dcompiler_47", .{});
+            zgl.linkSystemLibrary("propsys", .{});
+            zgl.linkSystemLibrary("api-ms-win-core-winrt-error-l1-1-0", .{});
             zgl.link_libcpp = true;
 
             glfw.addCSourceFiles(.{
