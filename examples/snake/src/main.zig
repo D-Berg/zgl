@@ -8,7 +8,7 @@ const rand = std.crypto.random;
 const glfw = zgl.glfw;
 const wgpu = zgl.wgpu;
 
-const RENDER_SIZE = 3; // increases render resolution
+const RENDER_SIZE = 1; // increases render resolution
 const WINDOW_WIDTH = 800;
 const WINDOW_HEIGHT = 800;
 
@@ -32,7 +32,17 @@ const Circle = struct {
 
 const Position = struct {
     x: f32,
-    y: f32
+    y: f32,
+
+    fn Random() Position {
+
+        const position = Position {
+            .x = @as(f32, @floatFromInt(rand.intRangeAtMost(u32, 0, 800 / GRID_SIZE - 1) * GRID_SIZE)),
+            .y = @as(f32, @floatFromInt(rand.intRangeAtMost(u32, 0, 800 / GRID_SIZE - 1) * GRID_SIZE))
+        };
+
+        return position;
+    }
 };
 
 const Dim = struct {
@@ -66,11 +76,69 @@ const Color = struct {
 
 var previous_key_state = std.EnumMap(glfw.Key, glfw.KeyState).initFull(glfw.KeyState.Released);
 
-const MAX_SNAKE_LEN = 10;
+const MAX_SNAKE_LEN = GRID_SIZE * GRID_SIZE;
 
 const Snake = struct {
-    positions: [MAX_SNAKE_LEN][2]f32,
-    len: 1,
+    positions: [MAX_SNAKE_LEN]Position = [1]Position{ .{ .x = 0, .y = 0 }} ** MAX_SNAKE_LEN,
+    old_positions: [MAX_SNAKE_LEN]Position = undefined,
+    len: usize = 10,
+    direction: Direction,
+    allow_move: bool = true,
+
+
+    fn move(snake: *Snake) void {
+        defer snake.allow_move = true;
+
+        @memcpy(snake.old_positions[0..snake.len], snake.positions[0..snake.len]);
+
+
+        switch (snake.direction) {
+            .Up => snake.positions[0].y -= GRID_SIZE,
+            .Down => snake.positions[0].y += GRID_SIZE,
+            .Left => snake.positions[0].x -= GRID_SIZE,
+            .Right => snake.positions[0].x += GRID_SIZE
+        }
+
+        if (snake.positions[0].y > WINDOW_HEIGHT) {
+            snake.positions[0].y = 0;
+        }
+
+        if (snake.positions[0].y < 0) {
+            snake.positions[0].y = WINDOW_HEIGHT - 32;
+        }
+
+        if (snake.positions[0].x > WINDOW_WIDTH) {
+            snake.positions[0].x = 0;
+        }
+
+        if (snake.positions[0].x < 0) {
+            snake.positions[0].x = WINDOW_WIDTH - 32;
+        }
+
+        std.debug.assert(snake.len > 0);
+        std.debug.assert(snake.len < MAX_SNAKE_LEN);
+        for (1..snake.len + 1) |i| {
+            // snake.positions[i].x += d_x;
+            snake.positions[i] = snake.old_positions[i - 1];
+        }
+
+    }
+};
+
+const Food = struct {
+    position: Position,
+
+    fn spawn() Food {
+        
+        const position = Position.Random();
+
+        log.debug("Food pos = {any}", .{position});
+    
+        return Food {
+            .position = position
+        };
+
+    }
 };
 
 fn isKeyPressed(window: glfw.Window, key: glfw.Key) bool {
@@ -85,83 +153,22 @@ fn isKeyPressed(window: glfw.Window, key: glfw.Key) bool {
     const prev = previous_key_state.getPtr(key).?;
     prev.* = just_pressed;
 
+    if (isPressed) log.debug("pressed {s}", .{@tagName(key)});
     return isPressed;
 
 }
 
-const Direction = enum {
+const Direction = enum(u2) {
     Up,
     Down,
     Left,
-    Right
+    Right,
+
+    fn Random() Direction {
+        return @enumFromInt(rand.int(u2));
+    }
 };
 
-fn moveSnake(curr_pos_idx: *usize, snake: []u32, direction: Direction) void {
-
-    switch (direction) {
-
-        .Up => {
-            if (curr_pos_idx.* + GRID_SIZE < snake.len - 1) {
-                const next_pos = curr_pos_idx.* + GRID_SIZE;
-                snake[next_pos] = @intFromBool(true);
-                snake[curr_pos_idx.*]  = @intFromBool(false);
-
-                curr_pos_idx.* = next_pos;
-            } else {
-                const next_pos = curr_pos_idx.* - (GRID_SIZE - 1) * GRID_SIZE;
-                snake[next_pos] = @intFromBool(true);
-                snake[curr_pos_idx.*]  = @intFromBool(false);
-
-                curr_pos_idx.* = next_pos;
-
-            }
-        },
-        .Down => {
-
-            if (curr_pos_idx.* > GRID_SIZE - 1) {
-                const next_pos = curr_pos_idx.* - GRID_SIZE;
-                snake[next_pos] = @intFromBool(true);
-                snake[curr_pos_idx.*]  = @intFromBool(false);
-
-                curr_pos_idx.* = next_pos;
-            } else {
-                const next_pos = curr_pos_idx.* + (GRID_SIZE - 1) * GRID_SIZE;
-                snake[next_pos] = @intFromBool(true);
-                snake[curr_pos_idx.*]  = @intFromBool(false);
-
-                curr_pos_idx.* = next_pos;
-            }
-
-        },
-        .Left => {
-            const next_pos = if (curr_pos_idx.* % GRID_SIZE == 0) 
-                curr_pos_idx.* + GRID_SIZE - 1
-            else 
-                curr_pos_idx.* - 1;
-
-            snake[next_pos] = @intFromBool(true);
-            snake[curr_pos_idx.*] = @intFromBool(false);
-
-            curr_pos_idx.* = next_pos;
-
-        },
-        .Right => {
-            var next_pos = curr_pos_idx.* + 1;
-            if (next_pos % GRID_SIZE == 0) {
-                next_pos = curr_pos_idx.* + 1 - GRID_SIZE;
-            }
-            snake[next_pos] = @intFromBool(true);
-            snake[curr_pos_idx.*] = @intFromBool(false);
-
-            curr_pos_idx.* = next_pos;
-
-        }
-    }
-
-
-    log.debug("pos: {}", .{curr_pos_idx.*});
-
-}
 
 pub fn main() !void {
 
@@ -283,7 +290,8 @@ pub fn main() !void {
     const vertex_buffer = try device.CreateBuffer(&.{
         .label = wgpu.StringView.fromSlice("vertex buffer"),
         .size = device_limits.limits.maxBufferSize,
-        .usage = @intFromEnum(wgpu.Buffer.Usage.Vertex) | @intFromEnum(wgpu.Buffer.Usage.CopyDst),
+        .usage = @intFromEnum(wgpu.Buffer.Usage.Vertex) | 
+            @intFromEnum(wgpu.Buffer.Usage.CopyDst)
     });
     defer vertex_buffer.Release();
 
@@ -292,35 +300,106 @@ pub fn main() !void {
 
     const arena_allocator = arena.allocator();
 
-    // var curr_pos_idx: usize = rand.intRangeAtMost(usize, 0, GRID_SIZE * GRID_SIZE - 1);
-    // var direction: Direction = .Right;
-    while (!window.ShouldClose()) : (_ = arena.reset( .retain_capacity)) {
+
+    // Game initilisation
+    var isPaused: bool = true;
+
+    const inital_direction = Direction.Random();
+    var snake = Snake{.direction = inital_direction};
+    std.debug.assert(snake.positions.len == MAX_SNAKE_LEN);
+    snake.len = 1;
+    snake.positions[0] = Position.Random();
+    
+    log.debug("inital_direction = {}", .{snake.direction});
+    log.debug("head pos = {}", .{snake.positions[0]});
+
+    // for (0..snake.len) |i| {
+    //     snake.positions[i].x += @floatFromInt(i * GRID_SIZE);
+    //     log.debug("snake pos ({}) = {}", .{i, snake.positions[i]});
+    // }
+
+
+    var frame: usize = 0;
+    var food = Food.spawn();
+
+    while (!window.ShouldClose()) : ({_ = arena.reset( .retain_capacity ); frame += 1;}) {
         glfw.pollEvents();
 
         { // update
+            if (!isPaused) {
+
+                if (isKeyPressed(window, .D) and snake.direction != .Left and snake.allow_move) {
+                    snake.direction = .Right;
+                    snake.allow_move = false;
+                }
+                if (isKeyPressed(window, .A) and snake.direction != .Right and snake.allow_move) {
+                    snake.direction = .Left;
+                    snake.allow_move = false;
+                }
+                if (isKeyPressed(window, .W) and snake.direction != .Down and snake.allow_move) {
+                    snake.direction = .Up;
+                    snake.allow_move = false;
+                }
+                if (isKeyPressed(window, .S) and snake.direction != .Up and snake.allow_move) {
+                    snake.direction = .Down;
+                    snake.allow_move = false;
+                }
+
+                if (frame % 10 == 0) snake.move();
+
+                const head_pos = snake.positions[0];
+                for (1..snake.len) |i| {
+                    const body_pos = snake.positions[i];
+                    if (head_pos.x == body_pos.x and head_pos.y == body_pos.y) {
+                        isPaused = true;
+                    }
+                }
+
+
+                if (head_pos.x == food.position.x and head_pos.y == food.position.y) {
+                    snake.len += 1;
+                    food = Food.spawn();
+                }
+
+                if (isKeyPressed(window, .P)) {
+                    log.debug("pausing the game", .{});
+                    isPaused = true;
+                }
+
+            } 
+
+            if (isPaused) {
+                if (isKeyPressed(window, .P)) {
+                    isPaused = false;
+                    log.debug("isPaused = {}", .{isPaused});
+                }
+                
+                // reset 
+                if (isKeyPressed(window, .R)) {
+                    log.debug("resetting game", .{});
+                    isPaused = false;
+                    snake.len = 1;
+                    food = Food.spawn();
+                    snake.positions[0] = Position.Random();
+                    snake.direction = Direction.Random();
+
+                    
+                    // reset vertex data to 0
+                    const zeros = try arena_allocator.alloc(f32, vertex_buffer.GetSize()/@sizeOf(f32));
+                    @memset(zeros, 0);
+                    queue.WriteBuffer(vertex_buffer, 0, f32, zeros);
+                }
+            }
             
-            // if (isKeyPressed(window, .D) and direction != .Left) direction = .Right;
-            //
-            // if (isKeyPressed(window, .A) and direction != .Right) direction = .Left;
-            //
-            // if (isKeyPressed(window, .W) and direction != .Down) direction = .Up;
-            //
-            // if (isKeyPressed(window, .S) and direction != .Up) direction = .Down;
-            //
-            // if (frame % 10 == 0) moveSnake(&curr_pos_idx, &snake, direction);
         }
 
         { // draw and render
 
             // draw ==========================================================
             var vertices = std.ArrayList(f32).init(arena_allocator);
+            std.debug.assert(vertices.items.len == 0);
 
-            try drawRectangle(&vertices, Rectangle{
-                .position = .{ .x = 0, .y = 0 },
-                .dimension = .{ .width = 800, .height = 800 }
-            });
-
-            // grid brackround
+            // draw grid brackround
             for (0..GRID_SIZE) |i| {
 
                 for (0..GRID_SIZE) |j| {
@@ -335,11 +414,33 @@ pub fn main() !void {
                         },
                         .dimension = .{ .width = GRID_SIZE, .height = GRID_SIZE },
                         .color = color
-                        
+
                     });
                 }
             }
 
+            // draw head
+            try drawRectangle(&vertices, Rectangle{
+                .position = snake.positions[0],
+                .dimension = .{ .width = GRID_SIZE, .height = GRID_SIZE },
+                .color = .{ .r = 0, .g = 0, .b = 255, .a = 1},
+            });
+
+            // draw body
+            for (1..snake.len) |i| {
+                try drawRectangle(&vertices, Rectangle{
+                    .position = snake.positions[i],
+                    .dimension = .{ .width = GRID_SIZE, .height = GRID_SIZE }, 
+                    .color = .{ .r = 255, .g = 0, .b = 0, .a = 1},
+                });
+            }
+            
+            // draw food
+            try drawRectangle(&vertices, Rectangle{
+                .position = food.position,
+                .dimension = .{ .width = GRID_SIZE, .height = GRID_SIZE },
+                .color = .{ .r = 0, .g = 255, .b = 0, .a = 1 }
+            });
 
             std.debug.assert(vertices.items.len < device_limits.limits.maxBufferSize);
             queue.WriteBuffer(vertex_buffer, 0, f32, vertices.items);
