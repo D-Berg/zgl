@@ -342,21 +342,20 @@ pub const BlendState = extern struct {
 };
 
 
-pub const ColorWriteMask = enum(u32) {
+pub const ColorWriteMask = enum(Flag) {
     const NONE = 0x00000000;
     const RED = 0x00000001;
     const GREEN = 0x00000002;
     const BLUE = 0x00000004;
     const ALPHA = 0x00000008;
-    const MASK = 0x000000000000000F;
+    const ALL = 0x000000000000000F;
 
-    None = 0x00000000,
-    Red = RED,
-    Green = GREEN,
-    Blue = BLUE,
-    Alpha = ALPHA,
-    All = MASK | RED | GREEN | BLUE | ALPHA,
-    Force32 = 0x7FFFFFFF
+    None = 0x0000000000000000,
+    Red = 0x0000000000000001,
+    Green = 0x0000000000000002,
+    Blue = 0x0000000000000004,
+    Alpha = 0x0000000000000008,
+    All = 0x000000000000000F,
 }; 
 
 pub const ColorTargetState = extern struct {
