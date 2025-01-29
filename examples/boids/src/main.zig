@@ -47,7 +47,7 @@ pub fn main() !void {
 
 
     const adapter = try instance.RequestAdapter(null);
-    defer adapter.Release();
+    defer adapter.release();
 
     const adapter_features = adapter.GetFeatures();
     defer adapter_features.deinit();

@@ -7,10 +7,11 @@ pub fn main() !void {
     defer instance.Release();
 
     const adapter = try instance.RequestAdapter(&.{});
-    defer adapter.Release();
+    defer adapter.release();
 
     const info = adapter.GetInfo();
-    info.logInfo();
+
+    std.debug.print("{}", .{info});
 
 }
 

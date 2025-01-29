@@ -45,7 +45,7 @@ pub fn main() !void {
     defer surface.Release();
 
     const adapter = try instance.RequestAdapter(&.{.compatibleSurface = surface._inner});
-    defer adapter.Release();
+    defer adapter.release();
 
     const surface_capabilities = surface.GetCapabilities(adapter);
     defer surface_capabilities.FreeMembers();

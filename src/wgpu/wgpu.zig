@@ -4,7 +4,7 @@ const log = std.log.scoped(.@"wgpu");
 const Allocator = std.mem.Allocator;
 
 pub const Instance = @import("Instance.zig");
-pub const Adapter = @import("Adapter.zig");
+pub const Adapter = @import("Adapter.zig").Adapter;
 pub const Device = @import("Device.zig");
 pub const Queue = @import("Queue.zig").Queue;
 pub const Surface = @import("Surface.zig");
@@ -24,6 +24,38 @@ pub const BindGroup = @import("BindGroup.zig").BindGroup;
 pub const Sampler = @import("Sampler.zig").Sampler;
 pub const ComputePass = @import("ComputePass.zig");
 
+test "api coverage" {
+
+    std.testing.log_level = .debug;
+
+    inline for (@typeInfo(@This()).@"struct".decls) |decl| {
+        // log.info("decl = {s}", .{decl.name});
+        const t = @field(@This(), decl.name);
+
+        // log.info("t = {}", .{t});
+        // log.info("t is a type = {}", .{@typeInfo(t) == .@"struct"});
+        const t_info = @typeInfo(t);
+        if (t_info == .@"struct") {
+
+            log.debug("parent t = {s}", .{decl.name});
+
+            inline for (t_info.@"struct".decls) |inner_decl| {
+                const inner_t = @field(t, inner_decl.name);
+
+                if (@TypeOf(inner_t) != type) {
+                    continue;
+                }
+                
+                log.debug("{s} is a {s}", .{
+                    inner_decl.name, @tagName(@typeInfo(inner_t))
+                });
+
+            }
+        }
+
+    }
+
+}
 
 pub const MapMode = enum(Flag) {
     None = 0x0000000000000000,

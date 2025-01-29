@@ -4,7 +4,6 @@ const log = std.log.scoped(.@"wgpu/surface");
 const wgpu = @import("wgpu.zig");
 const WGPUError = wgpu.WGPUError;
 const Adapter = wgpu.Adapter;
-const AdapterImpl = Adapter.AdapterImpl;
 const ChainedStruct = wgpu.ChainedStruct;
 const ChainedStructOut = wgpu.ChainedStructOut;
 const TextureUsage = wgpu.TextureUsage;
@@ -157,7 +156,7 @@ pub const Capabilities = struct {
 
 extern "c" fn wgpuSurfaceGetCapabilities(
     surface: SurfaceImpl, 
-    adapter: AdapterImpl, 
+    adapter: Adapter, 
     capabilities: *anyopaque
 ) void;
 /// Surface Members need to be freed by calling FreeMembers.
@@ -167,7 +166,7 @@ pub fn GetCapabilities(surface: Surface, adapter: Adapter) Capabilities {
     // usages we need two different one.
     if (builtin.target.os.tag == .emscripten) {
         var web_cap = Capabilities.Web{};
-        wgpuSurfaceGetCapabilities(surface._inner, adapter._inner, &web_cap);
+        wgpuSurfaceGetCapabilities(surface._inner, adapter, &web_cap);
 
         return Capabilities{
             .nextInChain = web_cap.nextInChain,
@@ -179,7 +178,7 @@ pub fn GetCapabilities(surface: Surface, adapter: Adapter) Capabilities {
     } else {
         var native_cap = Capabilities.Native{};
         
-        wgpuSurfaceGetCapabilities(surface._inner, adapter._inner, &native_cap);
+        wgpuSurfaceGetCapabilities(surface._inner, adapter, &native_cap);
 
         var usage_idx: usize = 0;
         inline for (@typeInfo(TextureUsage).@"enum".fields) |field| {

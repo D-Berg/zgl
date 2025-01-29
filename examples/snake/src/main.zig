@@ -188,7 +188,7 @@ pub fn main() !void {
     defer surface.Release();
 
     const adapter = try instance.RequestAdapter(&.{.compatibleSurface = surface._inner});
-    defer adapter.Release();
+    defer adapter.release();
 
     if (adapter.GetLimits()) |limits| limits.logLimits();
 

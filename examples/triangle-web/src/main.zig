@@ -136,7 +136,7 @@ const App = struct {
         defer self.window.destroy();
         defer self.instance.Release();
         defer self.surface.Release();
-        defer self.adapter.Release();
+        defer self.adapter.release();
         defer self.device.Release();
         defer self.queue.Release();
         defer self.shader_module.Release();

@@ -6,7 +6,6 @@ const wgpu = @import("wgpu.zig");
 const Allocator = std.mem.Allocator;
 const WGPUError = wgpu.WGPUError;
 const Adapter = wgpu.Adapter;
-const AdapterImpl = Adapter.AdapterImpl;
 const Surface = wgpu.Surface;
 const SurfaceImpl = Surface.SurfaceImpl;
 const ChainedStruct = wgpu.ChainedStruct;
@@ -47,6 +46,12 @@ pub const Descriptor = extern struct {
     timedWaitAnyMaxCount: usize = 0
 };
 
+
+const AdapterUserData = struct {
+    adapter: ?Adapter  = null,
+    requestEnded: bool = false,
+};
+
 extern "c" fn wgpuInstanceRequestAdapter(
     instance: InstanceImpl, 
     options: ?*const RequestAdapterOptions, 
@@ -55,7 +60,7 @@ extern "c" fn wgpuInstanceRequestAdapter(
 pub fn RequestAdapter(instance: Instance, options: ?*const RequestAdapterOptions) WGPUError!Adapter {
 
     log.info("Requesting adapter...", .{});
-    var user_data = Adapter.UserData{};
+    var user_data = AdapterUserData{};
 
     // async
     _ = wgpuInstanceRequestAdapter(instance._inner, options, .{
@@ -75,9 +80,9 @@ pub fn RequestAdapter(instance: Instance, options: ?*const RequestAdapterOptions
 
     log.info("Request adapter ended", .{});
 
-    if (user_data.adapterImpl) |adapter_impl| {
-        log.info("Got adapter: {}", .{adapter_impl});
-        return Adapter{ ._inner = adapter_impl };
+    if (user_data.adapter) |adapter| {
+        log.info("Got adapter: {}", .{adapter});
+        return adapter;
     } else {
         log.err("adapter was null", .{});
         return error.FailedToRequestAdapter;
@@ -88,7 +93,7 @@ pub fn RequestAdapter(instance: Instance, options: ?*const RequestAdapterOptions
 
 pub const RequestAdapterCallback = fn (
     status: wgpu.RequestAdapterStatus, 
-    adapterImpl: ?AdapterImpl, 
+    adapterImpl: ?Adapter, 
     message: wgpu.StringView,
     userdata1: ?*anyopaque,
     userdata2: ?*anyopaque,
@@ -98,7 +103,7 @@ pub const RequestAdapterCallback = fn (
 /// User implemention of RequestAdapterCallback
 fn onAdapterRequestEnded(
     status: wgpu.RequestAdapterStatus, 
-    adapterImpl: ?AdapterImpl, 
+    adapter: ?Adapter, 
     message: wgpu.StringView,
     userdata1: ?*anyopaque,
     userdata2: ?*anyopaque,
@@ -106,11 +111,11 @@ fn onAdapterRequestEnded(
 
     _ = userdata2;
 
-    var user_data = @as(*Adapter.UserData, @alignCast(@ptrCast(userdata1)));
+    var user_data = @as(*AdapterUserData, @alignCast(@ptrCast(userdata1)));
 
     switch (status) {
         .Success => {
-            user_data.adapterImpl = adapterImpl;
+            user_data.adapter = adapter;
         },
         inline else => |status_val| {
 
@@ -144,7 +149,7 @@ pub const EnumerateAdapterOptions = extern struct {
 extern "c" fn wgpuInstanceEnumerateAdapters(
     instance: InstanceImpl, 
     options: ?*const EnumerateAdapterOptions, 
-    adapters: ?[*]AdapterImpl
+    adapters: ?[*]Adapter
 ) usize;
 
 /// Result must be freed by caller.
@@ -152,16 +157,9 @@ pub fn EnumerateAdapters(instance: Instance, allocator: Allocator) ![]const Adap
 
     const adapter_count = wgpuInstanceEnumerateAdapters(instance._inner, null, null);
 
-    const adapters_impl = try allocator.alloc(AdapterImpl, adapter_count);
-    defer allocator.free(adapters_impl);
-
-    _ = wgpuInstanceEnumerateAdapters(instance._inner, null, adapters_impl.ptr);
-
     const adapters = try allocator.alloc(Adapter, adapter_count);
 
-    for (adapters_impl, 0..) |impl, i| {
-        adapters[i] = Adapter { ._inner = impl };
-    }
+    _ = wgpuInstanceEnumerateAdapters(instance._inner, null, adapters.ptr);
 
     return adapters;
 }
