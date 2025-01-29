@@ -963,3 +963,28 @@ pub const Color = extern struct {
     a: f64,
 };
 
+
+/// https://gpuweb.github.io/gpuweb/#buffer-usage
+pub const BufferUsage = enum(Flag) {
+    None = 0x0000000000000000,
+    /// The buffer can be mapped for reading. May only be combined with CopyDst.
+    MapRead = 0x0000000000000001,
+    /// The buffer can be mapped for writing. May only be combined with CopySrc.
+    MapWrite = 0x0000000000000002,
+    /// The buffer can be used as the source of a copy operation.
+    CopySrc = 0x0000000000000004,
+    /// The buffer can be used as the destination of a copy or write operation. 
+    CopyDst = 0x0000000000000008,
+    /// The buffer can be used as an index buffer. 
+    Index = 0x0000000000000010,
+    /// The buffer can be used as a vertex buffer.
+    Vertex = 0x0000000000000020,
+    /// The buffer can be used as a uniform buffer.
+    Uniform = 0x0000000000000040,
+    /// The buffer can be used as a storage buffer.
+    Storage = 0x0000000000000080,
+    /// The buffer can be used as to store indirect command arguments. 
+    Indirect = 0x0000000000000100,
+    /// The buffer can be used to capture query results.
+    QueryResolve = 0x0000000000000200,
+};
