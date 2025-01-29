@@ -699,8 +699,8 @@ pub const ChainedStructOut = extern struct {
 };
 
 pub const StringView = extern struct {
-    data: [*:0]const u8,
-    length: usize,
+    data: ?[*:0]const u8 = null,
+    length: usize = 0,
 
     pub fn toSlice(stringView: StringView) []const u8 {
         var slice: []const u8 = undefined;
