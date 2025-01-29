@@ -37,26 +37,47 @@ test "api coverage" {
         // log.info("decl = {s}", .{decl.name});
         const t = @field(@This(), decl.name);
 
+        if (@TypeOf(t) != type) {
+            log.info("{s} is not a type", .{decl.name});
+            continue;
+        }
+
         // log.info("t = {}", .{t});
         // log.info("t is a type = {}", .{@typeInfo(t) == .@"struct"});
         const t_info = @typeInfo(t);
-        if (t_info == .@"struct") {
+        switch (t_info) {
 
-            log.debug("parent t = {s}", .{decl.name});
+            .@"struct" => {
+                log.debug("{s} has declarations:", .{decl.name});
 
-            inline for (t_info.@"struct".decls) |inner_decl| {
-                const inner_t = @field(t, inner_decl.name);
+                inline for (t_info.@"struct".decls) |inner_decl| {
+                    // const inner_t = @field(t, inner_decl.name);
+                    //
+                    // if (@TypeOf(inner_t) != type) {
+                    //     continue;
+                    // }
 
-                if (@TypeOf(inner_t) != type) {
-                    continue;
+                    std.debug.print("    - {s}\n", .{inner_decl.name});
                 }
-                
-                log.debug("{s} is a {s}", .{
-                    inner_decl.name, @tagName(@typeInfo(inner_t))
-                });
 
-            }
+            },
+            .pointer => {
+                log.debug("{s} has declarations:", .{decl.name});
+
+                const t_child = @typeInfo(t_info.pointer.child);
+
+                if (t_child == .@"opaque") {
+
+                    inline for (t_child.@"opaque".decls) |inner_decl| {
+                        std.debug.print("    - {s}\n", .{inner_decl.name});
+                    }
+
+                }
+
+            },
+            else => {}
         }
+
 
     }
 
