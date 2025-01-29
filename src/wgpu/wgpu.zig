@@ -7,7 +7,7 @@ const WGPUBool = u32;
 
 // wgpu objects
 pub const Adapter = @import("Adapter.zig").Adapter;
-pub const BindGroup = @import("BindGroup.zig").BindGroup;
+pub const BindGroup = @import("BindGroup.zig").BindGroup; // complete
 pub const BindGroupLayout = @import("BindGroupLayout.zig").BindGroupLayout;
 pub const Buffer = @import("Buffer.zig");
 pub const CommandBuffer = @import("CommandBuffer.zig");
