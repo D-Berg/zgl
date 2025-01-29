@@ -107,11 +107,10 @@ pub const Encoder = struct {
         wgpuRenderPassEncoderDraw(renderPassEncoder._impl, vertexCount, instanceCount, firstVertex, firstInstance);
     }
 
-    extern "c" fn wgpuRenderPassEncoderSetVertexBuffer(renderPassEncoder: EncoderImpl, slot: u32, buffer: ?Buffer.BufferImpl, offset: u64, size: u64) void;
+    extern "c" fn wgpuRenderPassEncoderSetVertexBuffer(renderPassEncoder: EncoderImpl, slot: u32, buffer: ?Buffer, offset: u64, size: u64) void;
     pub fn setVertexBuffer(renderPassEncoder: Encoder, slot: u32, buffer: ?Buffer, offset: u64) void {
-        const buffer_impl: ?Buffer.BufferImpl = if (buffer) |b| b._impl else null;
         const size: u64 = if (buffer) |b| b.GetSize() else 0;
-        wgpuRenderPassEncoderSetVertexBuffer(renderPassEncoder._impl, slot, buffer_impl, offset, size);
+        wgpuRenderPassEncoderSetVertexBuffer(renderPassEncoder._impl, slot, buffer, offset, size);
     }
 };
 

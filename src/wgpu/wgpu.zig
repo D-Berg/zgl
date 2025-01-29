@@ -9,7 +9,7 @@ const WGPUBool = u32;
 pub const Adapter = @import("Adapter.zig").Adapter;
 pub const BindGroup = @import("BindGroup.zig").BindGroup; // complete
 pub const BindGroupLayout = @import("BindGroupLayout.zig").BindGroupLayout;
-pub const Buffer = @import("Buffer.zig");
+pub const Buffer = @import("Buffer.zig").Buffer;
 pub const CommandBuffer = @import("CommandBuffer.zig");
 pub const CommandEncoder = @import("CommandEncoder.zig");
 pub const ComputePass = @import("ComputePass.zig");
@@ -60,11 +60,22 @@ test "api coverage" {
 
 }
 
+// Descriptors ================================================================
+// TODO: Convert to from and to extern and better zig structs with slices and bools
+pub const BufferDescriptor = extern struct {
+    nextInChain: ?*const ChainedStruct = null,
+    label: StringView = .{},
+    usage: Flag = @intFromEnum(BufferUsage.None), // TODO: take a [2]Usage
+    size: u64 = 0,
+    mappedAtCreation: bool = false,
+};
+
 pub const InstanceDescriptor = extern struct {
     nextInChain: ?*const ChainedStruct = null,
-    timedWaitAnyEnable: bool = false,
+    timedWaitAnyEnable: WGPUBool = @intCast(@intFromBool(false)),
     timedWaitAnyMaxCount: usize = 0
 };
+//=============================================================================
 
 extern "c" fn wgpuCreateInstance(desc: ?*const InstanceDescriptor) ?Instance;
 pub fn CreateInstance(descriptor: ?*const InstanceDescriptor) WGPUError!Instance {
@@ -936,11 +947,10 @@ pub const StoreOp = enum(u32) {
     Force32 = 0x7FFFFFFF
 };
 
-
 pub const BindGroupEntry = extern struct {
     nextInChain: ?*const ChainedStruct = null,
     binding: u32,
-    buffer: ?Buffer.BufferImpl = null,
+    buffer: ?Buffer = null,
     offset: u64 = 0,
     size: u64 = 0,
     sampler: ?Sampler = null,

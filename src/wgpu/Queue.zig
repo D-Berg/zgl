@@ -7,7 +7,6 @@ const RequestAdapterStatus = wgpu.RequestAdapterStatus;
 const CommandBuffer = wgpu.CommandBuffer;
 const CommandBufferImpl = CommandBuffer.CommandBufferImpl;
 const Buffer = wgpu.Buffer;
-const BufferImpl = Buffer.BufferImpl;
 
 pub const Queue = opaque {
     pub const Descriptor = struct {
@@ -68,7 +67,7 @@ pub const Queue = opaque {
     // WGPU_EXPORT void wgpuQueueWriteBuffer(WGPUQueue queue, WGPUBuffer buffer, uint64_t bufferOffset, void const * data, size_t size) WGPU_FUNCTION_ATTRIBUTE;
     extern "c" fn wgpuQueueWriteBuffer(
         queue: *Queue, 
-        buffer: BufferImpl, 
+        buffer: Buffer, 
         bufferOffet: u64, 
         data: *const anyopaque, 
         size: usize
@@ -84,7 +83,7 @@ pub const Queue = opaque {
     ) void{
         wgpuQueueWriteBuffer(
             queue, 
-            buffer._impl, 
+            buffer, 
             buffer_offset, 
             data.ptr, 
             data.len * @sizeOf(T)

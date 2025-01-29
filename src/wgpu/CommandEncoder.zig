@@ -7,7 +7,6 @@ const CommandBuffer = wgpu.CommandBuffer;
 const CommandBufferImpl = CommandBuffer.CommandBufferImpl;
 const RenderPass = wgpu.RenderPass;
 const Buffer = wgpu.Buffer;
-const BufferImpl = Buffer.BufferImpl;
 const ComputePass = wgpu.ComputePass;
 
 const CommandEncoder = @This();
@@ -79,9 +78,9 @@ pub fn BeginComputePass(
 
 extern "c" fn wgpuCommandEncoderCopyBufferToBuffer(
     encoder: CommandEncoderImpl,
-    source: BufferImpl,
+    source: Buffer,
     sourceOffset: u64,
-    destination: BufferImpl,
+    destination: Buffer,
     destinationOffset: u64,
     size: usize
 ) void;
@@ -96,9 +95,9 @@ pub fn CopyBufferToBuffer(
 ) void {
     wgpuCommandEncoderCopyBufferToBuffer(
         encoder._inner,
-        source._impl, 
+        source, 
         source_offset,
-        destination._impl,
+        destination,
         destination_offset,
         size
     );  

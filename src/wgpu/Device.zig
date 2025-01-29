@@ -18,7 +18,7 @@ const ShaderModuleImpl = ShaderModule.ShaderModuleImpl;
 const RenderPipeline = wgpu.RenderPipeline;
 const RenderPipelineImpl = RenderPipeline.RenderPipelineImpl;
 const Buffer = wgpu.Buffer;
-const BufferImpl = Buffer.BufferImpl;
+const BufferDescriptor = wgpu.BufferDescriptor;
 const ComputePipeline = wgpu.ComputePipeline;
 const BindGroup = wgpu.BindGroup;
 
@@ -188,18 +188,18 @@ pub fn CreateComputePipeline(
 extern "c" fn wgpuDeviceCreateBuffer(
     device: DeviceImpl, 
     descriptor: *const Buffer.Descriptor
-) ?BufferImpl;
+) ?Buffer;
 
 pub fn CreateBuffer(
     device: Device, 
-    descriptor: *const Buffer.Descriptor
+    descriptor: *const BufferDescriptor
 ) WGPUError!Buffer {
 
-    const maybe_impl = wgpuDeviceCreateBuffer(device._inner, descriptor);
+    const maybe_buffer = wgpuDeviceCreateBuffer(device._inner, descriptor);
 
-    if (maybe_impl) |impl| {
+    if (maybe_buffer) |buffer| {
         log.info("Created Buffer {s}", .{descriptor.label.toSlice()});
-        return Buffer { ._impl = impl };
+        return buffer;
     } else {
         return WGPUError.FailedToCreateBuffer;
     }
