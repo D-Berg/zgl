@@ -1,5 +1,3 @@
 
-const QuerySet = @This();
-pub const QuerySetImpl = *opaque {};
+pub const QuerySet = *opaque {};
 
-_impl: QuerySetImpl,
