@@ -6,6 +6,7 @@ const Allocator = std.mem.Allocator;
 const WGPUBool = u32;
 
 // wgpu objects
+// https://webgpu-native.github.io/webgpu-headers/group__Objects.html
 pub const Adapter = @import("Adapter.zig").Adapter;
 pub const BindGroup = @import("BindGroup.zig").BindGroup; // complete
 pub const BindGroupLayout = @import("BindGroupLayout.zig").BindGroupLayout;
