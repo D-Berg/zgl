@@ -3,8 +3,8 @@ const wgpu = @import("zgl").wgpu;
 
 pub fn main() !void {
 
-    const instance = try wgpu.Instance.Create(&.{});
-    defer instance.Release();
+    const instance = try wgpu.CreateInstance(&.{});
+    defer instance.release();
 
     const adapter = try instance.RequestAdapter(&.{});
     defer adapter.release();

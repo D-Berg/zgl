@@ -3,7 +3,7 @@ const std = @import("std");
 const log = std.log.scoped(.@"wgpu");
 const Allocator = std.mem.Allocator;
 
-pub const Instance = @import("Instance.zig");
+pub const Instance = @import("Instance.zig").Instance;
 pub const Adapter = @import("Adapter.zig").Adapter;
 pub const Device = @import("Device.zig");
 pub const Queue = @import("Queue.zig").Queue;
@@ -56,6 +56,30 @@ test "api coverage" {
     }
 
 }
+
+pub const InstanceDescriptor = extern struct {
+    nextInChain: ?*const ChainedStruct = null,
+    timedWaitAnyEnable: bool = false,
+    timedWaitAnyMaxCount: usize = 0
+};
+
+extern "c" fn wgpuCreateInstance(desc: ?*const InstanceDescriptor) ?Instance;
+pub fn CreateInstance(descriptor: ?*const InstanceDescriptor) WGPUError!Instance {
+    
+    log.info("Creating instance...", .{});
+    
+    const maybe_instance = wgpuCreateInstance(descriptor);
+
+    if (maybe_instance) |instance| {
+        log.info("Got instance: {}", .{instance});
+        return instance;
+    } else {
+        log.err("Failed to Create Instance", .{});
+        return error.FailedToCreateInstance;
+    }
+}
+
+
 
 pub const MapMode = enum(Flag) {
     None = 0x0000000000000000,
