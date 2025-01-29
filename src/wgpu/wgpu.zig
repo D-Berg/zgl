@@ -3,26 +3,29 @@ const std = @import("std");
 const log = std.log.scoped(.@"wgpu");
 const Allocator = std.mem.Allocator;
 
-pub const Instance = @import("Instance.zig").Instance;
+const WGPUBool = u32;
+
+// wgpu objects
 pub const Adapter = @import("Adapter.zig").Adapter;
-pub const Device = @import("Device.zig");
-pub const Queue = @import("Queue.zig").Queue;
-pub const Surface = @import("Surface.zig");
-const SurfaceImpl = Surface.SurfaceImpl;
-pub const CommandEncoder = @import("CommandEncoder.zig");
-pub const CommandBuffer = @import("CommandBuffer.zig");
-pub const Texture = @import("Texture.zig");
-pub const RenderPass = @import("RenderPass.zig");
-pub const QuerySet = @import("QuerySet.zig");
-pub const ShaderModule = @import("ShaderModule.zig");
-pub const ShaderModuleImpl = ShaderModule.ShaderModuleImpl;
-pub const PipelineLayout = @import("PipelineLayout.zig");
-pub const RenderPipeline = @import("RenderPipeline.zig");
-pub const Buffer = @import("Buffer.zig");
-pub const ComputePipeline = @import("ComputePipeline.zig").ComputePipeline;
 pub const BindGroup = @import("BindGroup.zig").BindGroup;
-pub const Sampler = @import("Sampler.zig").Sampler;
+pub const BindGroupLayout = @import("BindGroupLayout.zig").BindGroupLayout;
+pub const Buffer = @import("Buffer.zig");
+pub const CommandBuffer = @import("CommandBuffer.zig");
+pub const CommandEncoder = @import("CommandEncoder.zig");
 pub const ComputePass = @import("ComputePass.zig");
+pub const ComputePipeline = @import("ComputePipeline.zig").ComputePipeline;
+pub const Device = @import("Device.zig");
+pub const Instance = @import("Instance.zig").Instance;
+pub const PipelineLayout = @import("PipelineLayout.zig");
+pub const QuerySet = @import("QuerySet.zig");
+pub const Queue = @import("Queue.zig").Queue;
+pub const RenderPass = @import("RenderPass.zig");
+pub const RenderPipeline = @import("RenderPipeline.zig");
+pub const Sampler = @import("Sampler.zig").Sampler;
+pub const ShaderModule = @import("ShaderModule.zig");
+pub const Surface = @import("Surface.zig");
+pub const Texture = @import("Texture.zig");
+pub const TextureView = @import("TextureView.zig");
 
 test "api coverage" {
 
@@ -200,7 +203,7 @@ pub const VertexBufferLayout = extern struct {
 
 pub const VertexState = extern struct {
     nextInChain: ?*const ChainedStruct = null,
-    module: ShaderModuleImpl,
+    module: ShaderModule,
     entryPoint: StringView = .{ .data = "", .length = 0 },
     constantCount: usize = 0,
     constants: ?[*]const ConstantEntry = null,
@@ -210,7 +213,7 @@ pub const VertexState = extern struct {
 
 pub const ProgrammableStageDescriptor = extern struct {
     nextInChain: ?*const ChainedStruct = null,
-    module: ShaderModuleImpl,
+    module: ShaderModule,
     entryPoint: StringView = .{ .data = "", .length = 0 },
     constantCount: usize = 0,
     constants: ?[*]const ConstantEntry = null,
@@ -429,7 +432,7 @@ pub const ShaderSourceWGSL = extern struct {
 
 pub const FragmentState = extern struct {
     nextInChain: ?*const ChainedStruct = null,
-    module: ShaderModuleImpl,
+    module: ShaderModule,
     entryPoint: StringView = .{ .data = "", .length = 0 },
     constantCount: usize = 0,
     constants: ?[*]const ConstantEntry = null,
@@ -761,7 +764,7 @@ pub const RequestAdapterOptions = extern struct {
 
     /// If set, requires the adapter to be able to output to a particular surface.
     /// If this is not possible, the request returns null.
-    compatibleSurface: ?SurfaceImpl = null,
+    compatibleSurface: ?Surface = null,
 
 };
 
@@ -933,6 +936,25 @@ pub const StoreOp = enum(u32) {
     Force32 = 0x7FFFFFFF
 };
 
+
+pub const BindGroupEntry = extern struct {
+    nextInChain: ?*const ChainedStruct = null,
+    binding: u32,
+    buffer: ?Buffer.BufferImpl = null,
+    offset: u64 = 0,
+    size: u64 = 0,
+    sampler: ?Sampler = null,
+    textureView: ?TextureView = null,
+};
+
+// TODO: have an external and a zig one
+pub const BindGroupDescriptor = extern struct {
+    nextInChain: ?*const ChainedStruct = null,
+    label: StringView = .{},
+    layout: ?BindGroupLayout = null, 
+    entryCount: usize = 0,
+    entries: ?[*]const BindGroupLayout = null
+};
 
 pub const Color = extern struct { 
     r: f64,
