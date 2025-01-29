@@ -4,14 +4,13 @@ const testing = std.testing;
 const log = std.log.scoped(.@"main");
 const zgl = @import("zgl");
 const wgpu = zgl.wgpu;
-const Surface = wgpu.Surface;
 const glfw = zgl.glfw;
 
 const WINDOW_WIDTH = 800;
 const WINDOW_HEIGHT = 600;
 const triange_shader = @embedFile("shaders/triangle.wgsl");
 
-fn onDeviceLost(reason: wgpu.Device.LostReason, message: [*c]const u8, user_data: ?*anyopaque) callconv(.C) void {
+fn onDeviceLost(reason: wgpu.DeviceLostReason, message: [*c]const u8, user_data: ?*anyopaque) callconv(.C) void {
     _ = user_data;
     log.err("lost device. reason: {}, message: {s}", .{reason, message});
 }
@@ -42,9 +41,9 @@ pub fn main() !void {
     defer instance.release();
 
     const surface = try glfw.GetWGPUSurface(window, instance);
-    defer surface.Release();
+    defer surface.release();
 
-    const adapter = try instance.RequestAdapter(&.{.compatibleSurface = surface._inner});
+    const adapter = try instance.RequestAdapter(&.{.compatibleSurface = surface});
     defer adapter.release();
 
     const surface_capabilities = surface.GetCapabilities(adapter);
@@ -53,7 +52,9 @@ pub fn main() !void {
     surface_capabilities.logCapabilites();
 
     if (adapter.GetLimits()) |limits| {
-        limits.logLimits();
+
+        log.info("Adapter Limits:\n{}", .{limits});
+
     }
 
     const adapter_features = adapter.GetFeatures();
@@ -81,10 +82,11 @@ pub fn main() !void {
     log.info("device deatures:{}\n", .{device_features});
 
     const device_limits = try device.GetLimits();
-    device_limits.logLimits();
+    log.info("Device Limits:\n{}", .{device_limits});
+
 
     const queue = try device.GetQueue();
-    defer queue.Release();
+    defer queue.release();
 
     // TODO: fix this function call
     // _ = queue.OnSubmittedWorkDone(.{
@@ -93,9 +95,9 @@ pub fn main() !void {
     //     .userdata2 = null
     // });
 
-    var surface_config = Surface.Configuration{
+    var surface_config = wgpu.SurfaceConfiguration{
         .nextInChain = null,
-        .device = device._inner,
+        .device = device,
         .format = surface_capabilities.formats[0],
         .usage = .RenderAttachment,
         .width = WINDOW_WIDTH,
@@ -105,8 +107,8 @@ pub fn main() !void {
     };
 
 
-    surface.Configure(&surface_config);
-    defer surface.Unconfigure();
+    surface.configure(&surface_config);
+    defer surface.unconfigure();
 
     const wgsl_code = wgpu.ShaderSourceWGSL {
         .code = wgpu.StringView.fromSlice(triange_shader),
@@ -115,7 +117,7 @@ pub fn main() !void {
     const shader_module = try device.CreateShaderModule(&.{
         .nextInChain = &wgsl_code.chain
     });
-    defer shader_module.Release();
+    defer shader_module.release();
 
     const blend_state = wgpu.BlendState{
         .color = .{ 
@@ -139,7 +141,7 @@ pub fn main() !void {
     
     const render_pipeline = try device.CreateRenderPipeline(&wgpu.RenderPipeline.Descriptor{
         .vertex = .{
-            .module = shader_module._impl,
+            .module = shader_module,
             .entryPoint = wgpu.StringView.fromSlice("vs_main"),
         },
         .primitive = .{
@@ -150,7 +152,7 @@ pub fn main() !void {
             .unclippedDepth = false
         },
         .fragment = &wgpu.FragmentState{
-            .module = shader_module._impl,    
+            .module = shader_module,    
             .entryPoint = wgpu.StringView.fromSlice("fs_main"),
             .targetCount = 1,
             .targets = &[1]wgpu.ColorTargetState{ color_target }
@@ -176,7 +178,7 @@ pub fn main() !void {
                 surface_config.width = size.width;
                 surface_config.height = size.height;
 
-                surface.Configure(&surface_config);
+                surface.configure(&surface_config);
 
                 continue;
 
@@ -186,9 +188,9 @@ pub fn main() !void {
             }
 
         };
-        defer texture.Release();
+        defer texture.release();
 
-        const view = try texture.CreateView(&wgpu.Texture.View.Descriptor{
+        const view = try texture.CreateView(&wgpu.TextureViewDescriptor{
             .label = wgpu.StringView.fromSlice("Surface texture view"),
             .format = texture.GetFormat(),
             .dimension = .@"2D",
@@ -199,14 +201,14 @@ pub fn main() !void {
             .aspect = .All,
             .usage = surface_config.usage
         });
-        defer view.Release();
+        defer view.release();
 
         const command_encoder = device.CreateCommandEncoder(&.{ 
             .label = wgpu.StringView.fromSlice("My command Encoder")
         });
 
         const render_pass_color_attachement = wgpu.RenderPass.ColorAttachment {
-            .view = view._impl,
+            .view = view,
             .resolveTarget = null,
             .loadOp = .Clear,
             .storeOp = .Store,
@@ -236,9 +238,9 @@ pub fn main() !void {
         queue.Submit(&.{command_buffer});
         command_buffer.Release();
 
-        surface.Present();
+        surface.present();
 
-        _ = device.Poll(false, null);  
+        _ = device.poll(false, null);  
     }
     
 }

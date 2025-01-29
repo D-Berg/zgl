@@ -8,26 +8,22 @@ const CommandBuffer = wgpu.CommandBuffer;
 const CommandBufferImpl = CommandBuffer.CommandBufferImpl;
 const Buffer = wgpu.Buffer;
 
-pub const Queue = opaque {
-    pub const Descriptor = struct {
-        nextInChain: ?ChainedStruct = null,
-        label: wgpu.StringView = .{ .data = "", .length = 0}
-    };
+pub const Queue = *opaque {
 
-    extern "c" fn wgpuQueueRelease(queue: *Queue) void;
-    pub fn Release(queue: *Queue) void {
+    extern "c" fn wgpuQueueRelease(queue: Queue) void;
+    pub fn release(queue: Queue) void {
         wgpuQueueRelease(queue);
         log.info("released queue", .{});
 
     }
 
     extern "c" fn wgpuQueueOnSubmittedWorkDone(
-        queue: *Queue, 
+        queue: Queue, 
         callbackInfo: WorkDoneCallbackInfo, 
     ) wgpu.Future;
     /// set up a function to be called back once the queues work is done. Takes a pointet to a user defined func 
     /// wich need to match OnSubmittedWorkDoneCallback
-    pub fn OnSubmittedWorkDone(queue: *Queue, callbackInfo: WorkDoneCallbackInfo) wgpu.Future {
+    pub fn OnSubmittedWorkDone(queue: Queue, callbackInfo: WorkDoneCallbackInfo) wgpu.Future {
         return wgpuQueueOnSubmittedWorkDone(queue, callbackInfo);
     }
     pub const WorkDoneCallback = *const fn(
@@ -53,8 +49,8 @@ pub const Queue = opaque {
     };
 
 
-    extern "c" fn wgpuQueueSubmit(queue: *Queue, commandCount: usize, commands: [*]const CommandBufferImpl) void;
-    pub fn Submit(queue: *Queue, commands: []const CommandBuffer) void {
+    extern "c" fn wgpuQueueSubmit(queue: Queue, commandCount: usize, commands: [*]const CommandBufferImpl) void;
+    pub fn Submit(queue: Queue, commands: []const CommandBuffer) void {
         // log.info("Submitting commands...", .{});
         const commandCount = commands.len;
 
@@ -66,7 +62,7 @@ pub const Queue = opaque {
 
     // WGPU_EXPORT void wgpuQueueWriteBuffer(WGPUQueue queue, WGPUBuffer buffer, uint64_t bufferOffset, void const * data, size_t size) WGPU_FUNCTION_ATTRIBUTE;
     extern "c" fn wgpuQueueWriteBuffer(
-        queue: *Queue, 
+        queue: Queue, 
         buffer: Buffer, 
         bufferOffet: u64, 
         data: *const anyopaque, 
@@ -75,7 +71,7 @@ pub const Queue = opaque {
 
     // TODO: rename to writeBuffer
     pub fn WriteBuffer(
-        queue: *Queue, 
+        queue: Queue, 
         buffer: Buffer, 
         buffer_offset: u64, 
         comptime T: type, 

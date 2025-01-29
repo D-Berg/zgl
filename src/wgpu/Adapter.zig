@@ -8,7 +8,7 @@ const emscripten = std.os.emscripten;
 const wgpu = @import("wgpu.zig");
 const WGPUError = wgpu.WGPUError;
 const Device = wgpu.Device;
-const DeviceImpl = Device.DeviceImpl;
+const DeviceDescriptor = wgpu.DeviceDescriptor;
 const FeatureName = wgpu.FeatureName;
 const BackendType = wgpu.BackendType;
 const ChainedStruct = wgpu.ChainedStruct;
@@ -24,11 +24,16 @@ pub const Adapter = *opaque {
         log.info("Released adapter", .{});
     }
 
+    pub const DeviceUserData = struct {
+        device: ?Device = null,
+        requestEnded: bool = false,        
+    };
+
     
     // TODO: move to wgpu
     const RequestDeviceCallback = fn(
         status: RequestDeviceStatus,
-        deviceImpl: ?DeviceImpl,
+        device: ?Device,
         message: wgpu.StringView,
         userdata1: ?*anyopaque,
         userdata2: ?*anyopaque,
@@ -36,14 +41,14 @@ pub const Adapter = *opaque {
 
     extern "c" fn wgpuAdapterRequestDevice(
         adapter: Adapter, 
-        descriptor: ?*const Device.Descriptor, 
+        descriptor: ?*const DeviceDescriptor, 
         callbackInfo: RequestDeviceCallbackInfo
     ) wgpu.Future;
-    pub fn RequestDevice(adapter: Adapter, descriptor: ?*const Device.Descriptor) WGPUError!Device {
+    pub fn RequestDevice(adapter: Adapter, descriptor: ?*const DeviceDescriptor) WGPUError!Device {
         
         log.info("Requesting device...", .{});
 
-        var userdata = Device.UserData{};
+        var userdata = DeviceUserData{};
 
         _ = wgpuAdapterRequestDevice(adapter, descriptor, RequestDeviceCallbackInfo{
             .nextInChain = null,
@@ -59,9 +64,9 @@ pub const Adapter = *opaque {
             if (!userdata.requestEnded) return error.FailedToRequestDevice;
         }
 
-        if (userdata.deviceImpl) |dev_impl| {
-            log.info("Got device: {}", .{dev_impl});
-            return Device{ ._inner = dev_impl };
+        if (userdata.device) |device| {
+            log.info("Got device: {}", .{device});
+            return device;
         } else {
             log.err("device was null", .{});
             return error.FailedToRequestDevice;
@@ -83,7 +88,7 @@ pub const Adapter = *opaque {
     /// My user implementation of RequestDeviceCallback, not part of webgpu.h
     fn onDeviceRequestEnded(
         status: RequestDeviceStatus, 
-        deviceImpl: ?DeviceImpl, 
+        device: ?Device, 
         message: wgpu.StringView,
         userdata1: ?*anyopaque,
         userdata2: ?*anyopaque
@@ -91,11 +96,11 @@ pub const Adapter = *opaque {
 
         _ = userdata2;
 
-        var user_data = @as(*Device.UserData, @alignCast(@ptrCast(userdata1)));
+        var user_data = @as(*DeviceUserData, @alignCast(@ptrCast(userdata1)));
 
         switch (status) {
             .Success => {
-                user_data.deviceImpl = deviceImpl;
+                user_data.device = device;
             }, 
 
             inline else => |case| {
@@ -108,11 +113,11 @@ pub const Adapter = *opaque {
 
     }
 
-    extern fn wgpuAdapterGetLimits(adapter: Adapter, limits: *SupportedLimits) wgpu.Status;
+    extern fn wgpuAdapterGetLimits(adapter: Adapter, limits: *Limits) wgpu.Status;
     /// Get the Supported Limits of the Adapter
-    pub fn GetLimits(adapter: Adapter) ?SupportedLimits {
+    pub fn GetLimits(adapter: Adapter) ?Limits {
 
-        var limits = SupportedLimits{ .limits = .{} };
+        var limits: Limits = .{};
         
         const status = wgpuAdapterGetLimits(adapter, &limits);
 
@@ -212,14 +217,11 @@ pub const Adapter = *opaque {
     
     // FIX:
     pub const SupportedLimits = extern struct {
-        nextInChain: ?*const ChainedStructOut = null,
         limits: Limits,
 
-        pub fn logLimits(slimits: *const SupportedLimits) void {
+        pub fn logLimits(slimits: *const Limits) void {
 
             const limits = slimits.limits;
-
-            log.info("Adapter Limits:", .{});
 
             inline for (@typeInfo(@TypeOf(limits)).@"struct".fields) |field|{
                 log.info(" - {s}: {}", .{field.name, @field(limits, field.name)});

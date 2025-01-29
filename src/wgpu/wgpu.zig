@@ -12,20 +12,20 @@ pub const BindGroupLayout = @import("BindGroupLayout.zig").BindGroupLayout;
 pub const Buffer = @import("Buffer.zig").Buffer;
 pub const CommandBuffer = @import("CommandBuffer.zig");
 pub const CommandEncoder = @import("CommandEncoder.zig");
-pub const ComputePass = @import("ComputePass.zig");
+pub const ComputePass = @import("ComputePassEncoder.zig");
 pub const ComputePipeline = @import("ComputePipeline.zig").ComputePipeline;
-pub const Device = @import("Device.zig");
+pub const Device = @import("Device.zig").Device;
 pub const Instance = @import("Instance.zig").Instance;
 pub const PipelineLayout = @import("PipelineLayout.zig");
 pub const QuerySet = @import("QuerySet.zig");
 pub const Queue = @import("Queue.zig").Queue;
-pub const RenderPass = @import("RenderPass.zig");
+pub const RenderPass = @import("RenderPassEncoder.zig");
 pub const RenderPipeline = @import("RenderPipeline.zig");
 pub const Sampler = @import("Sampler.zig").Sampler;
-pub const ShaderModule = @import("ShaderModule.zig");
-pub const Surface = @import("Surface.zig");
-pub const Texture = @import("Texture.zig");
-pub const TextureView = @import("TextureView.zig");
+pub const ShaderModule = @import("ShaderModule.zig").ShaderModule;
+pub const Surface = @import("Surface.zig").Surface;
+pub const Texture = @import("Texture.zig").Texture;
+pub const TextureView = @import("TextureView.zig").TextureView;
 
 test "api coverage" {
 
@@ -62,6 +62,15 @@ test "api coverage" {
 
 // Descriptors ================================================================
 // TODO: Convert to from and to extern and better zig structs with slices and bools
+
+pub const BindGroupDescriptor = extern struct {
+    nextInChain: ?*const ChainedStruct = null,
+    label: StringView = .{},
+    layout: ?BindGroupLayout = null, 
+    entryCount: usize = 0,
+    entries: ?[*]const BindGroupLayout = null
+};
+
 pub const BufferDescriptor = extern struct {
     nextInChain: ?*const ChainedStruct = null,
     label: StringView = .{},
@@ -70,11 +79,56 @@ pub const BufferDescriptor = extern struct {
     mappedAtCreation: bool = false,
 };
 
+pub const DeviceDescriptor = struct {
+    nextInChain: ?*const ChainedStruct = null,
+    label: StringView = .{},
+    requiredFeatureCount: usize = 0,
+    requiredFeatures: ?[*]const FeatureName = null,
+    requiredLimits: ?*const RequiredLimits = null,
+    defaultQueue: QueueDescriptor = .{
+        .label = .{ .data = "", .length = 0},
+        .nextInChain = null
+    },
+    deviceLostCallback: ?*const DeviceLostCallback = null,
+    deviceLostUserdata: ?*anyopaque = null,
+    uncapturedErrorCallbackInfo: ?UncapturedErrorCallbackInfo = null
+};
+
 pub const InstanceDescriptor = extern struct {
     nextInChain: ?*const ChainedStruct = null,
     timedWaitAnyEnable: WGPUBool = @intCast(@intFromBool(false)),
     timedWaitAnyMaxCount: usize = 0
 };
+
+pub const QueueDescriptor = struct {
+    nextInChain: ?ChainedStruct = null,
+    label: StringView = .{}
+};
+
+
+pub const ShaderModuleDescriptor = extern struct {
+    nextInChain: ?*const ChainedStruct = null,
+    label: StringView = .{},
+};
+
+pub const SurfaceDescriptor = extern struct {
+    nextInChain: ?*const ChainedStruct = null,
+    label: StringView = .{}
+};
+
+pub const TextureViewDescriptor = extern struct {
+    nextInChain: ?*const ChainedStruct = null,
+    label: StringView = .{},
+    format: TextureFormat,
+    dimension: TextureViewDimension,
+    baseMipLevel: u32,
+    mipLevelCount: u32,
+    baseArrayLayer: u32,
+    arrayLayerCount: u32,
+    aspect: TextureAspect,
+    usage: TextureUsage,
+};
+
 //=============================================================================
 
 extern "c" fn wgpuCreateInstance(desc: ?*const InstanceDescriptor) ?Instance;
@@ -508,7 +562,7 @@ pub const SurfaceGetCurrentTextureStatus = enum(u32) {
 
     /// The surface is not configured, or there was an @ref OutStructChainError.
     Error = 0x00000008,
-    WGPUSurfaceGetCurrentTextureStatus_Force32 = 0x7FFFFFFF
+    Force32 = 0x7FFFFFFF
 };
 
 
@@ -562,7 +616,7 @@ pub const PresentMode = enum(u32) {
 
 
 
-pub const TexureViewDimension = enum(u32) {
+pub const TextureViewDimension = enum(u32) {
     Undefined = 0x00000000,
     @"1D" = 0x00000001,
     @"2D" = 0x00000002,
@@ -717,9 +771,9 @@ pub const StringView = extern struct {
     length: usize = 0,
 
     pub fn toSlice(stringView: StringView) []const u8 {
-        var slice: []const u8 = undefined;
+        var slice: []const u8 = "";
 
-        slice.ptr = stringView.data;
+        if (stringView.data) |data| slice.ptr = data;
         slice.len = stringView.length;
 
         return slice;
@@ -889,6 +943,7 @@ pub const FeatureName = enum(u32) {
 };
 
 pub const Limits = extern struct {
+    nextInChain: ?*const ChainedStructOut = null,
     maxTextureDimension1D: u32 = 0,
     maxTextureDimension2D: u32 = 0,
     maxTextureDimension3D: u32 = 0,
@@ -921,6 +976,19 @@ pub const Limits = extern struct {
     maxComputeWorkgroupSizeY: u32 = 0,
     maxComputeWorkgroupSizeZ: u32 = 0,
     maxComputeWorkgroupsPerDimension: u32 = 0,
+
+    
+    pub fn format(limits: *const Limits, comptime fmt: []const u8, _: std.fmt.FormatOptions, writer: anytype) !void {
+        if (fmt.len != 0) {
+            std.fmt.invalidFmtError(fmt, limits);
+        }
+
+        inline for (@typeInfo(@TypeOf(limits.*)).@"struct".fields, 0..) |field, i| {
+            if (i == 0) continue; // skip printing nextInChain
+            try writer.print(" - {s}: {}\n", .{field.name, @field(limits, field.name)});
+        }
+
+    }
 };
 
 
@@ -957,14 +1025,6 @@ pub const BindGroupEntry = extern struct {
     textureView: ?TextureView = null,
 };
 
-// TODO: have an external and a zig one
-pub const BindGroupDescriptor = extern struct {
-    nextInChain: ?*const ChainedStruct = null,
-    label: StringView = .{},
-    layout: ?BindGroupLayout = null, 
-    entryCount: usize = 0,
-    entries: ?[*]const BindGroupLayout = null
-};
 
 pub const Color = extern struct { 
     r: f64,
@@ -973,6 +1033,17 @@ pub const Color = extern struct {
     a: f64,
 };
 
+pub const DeviceLostCallback = fn(
+    reason: DeviceLostReason, 
+    message: [*c]const u8,
+    userdata: ?*anyopaque
+) callconv(.C) void;
+
+pub const DeviceLostReason = enum(u32) {
+    Unknown = 0x00000001,
+    Destroyed = 0x00000002,
+    Force32 = 0x7FFFFFFF
+};
 
 /// https://gpuweb.github.io/gpuweb/#buffer-usage
 pub const BufferUsage = enum(Flag) {
@@ -998,3 +1069,51 @@ pub const BufferUsage = enum(Flag) {
     /// The buffer can be used to capture query results.
     QueryResolve = 0x0000000000000200,
 };
+
+
+// Surface structs ============================================================
+pub const SurfaceSourceFromMetalLayer = extern struct {
+    chain: ChainedStruct,
+    layer: *anyopaque
+};
+
+pub const SurfaceSourceFromWindowsHWND = extern struct {
+    chain: ChainedStruct,
+    hinstance: *anyopaque,
+    hwnd: *anyopaque,
+
+};
+
+pub const SurfaceSourceFromXlibWindow = extern struct {
+    chain: ChainedStruct,
+    display: *anyopaque,
+    window: u64,
+};
+
+pub const SurfaceSourceFromWaylandSurface = extern struct {
+    chain: ChainedStruct,
+    display: *anyopaque,
+    surface: *anyopaque
+};
+
+
+/// https://webgpu-native.github.io/webgpu-headers/structWGPUSurfaceConfiguration.html
+pub const SurfaceConfiguration = extern struct {
+    nextInChain: ?*const ChainedStruct = null,
+    device: ?Device = null,
+    format: TextureFormat = .Undefined,
+    usage: TextureUsage = .RenderAttachment,
+    width: u32 = 0,
+    height: u32 = 0,
+    viewFormatCount: usize = 0,
+    viewFormats: ?[*]const TextureFormat = null,
+    alphaMode: CompositeAlphaMode = .Auto,
+    presentMode: PresentMode = .Undefined,
+};
+
+pub const SurfaceTexture = extern struct {
+    nextInChain: ?*const ChainedStructOut = null,
+    texture: ?Texture = null,
+    status: SurfaceGetCurrentTextureStatus = .DeviceLost
+};
+//=============================================================================

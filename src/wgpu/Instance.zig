@@ -7,7 +7,7 @@ const Allocator = std.mem.Allocator;
 const WGPUError = wgpu.WGPUError;
 const Adapter = wgpu.Adapter;
 const Surface = wgpu.Surface;
-const SurfaceImpl = Surface.SurfaceImpl;
+const SurfaceDescriptor = wgpu.SurfaceDescriptor;
 const ChainedStruct = wgpu.ChainedStruct;
 const RequestAdapterOptions = wgpu.RequestAdapterOptions;
 
@@ -140,14 +140,14 @@ pub const Instance = *opaque {
     }
 
     
-    extern "c" fn wgpuInstanceCreateSurface(instance: Instance, descriptor: *const Surface.Descriptor) ?SurfaceImpl;
-    pub fn CreateSurface(instance: Instance, descriptor: *const Surface.Descriptor) WGPUError!Surface {
+    extern "c" fn wgpuInstanceCreateSurface(instance: Instance, descriptor: *const SurfaceDescriptor) ?Surface;
+    pub fn CreateSurface(instance: Instance, descriptor: *const SurfaceDescriptor) WGPUError!Surface {
 
-        const maybe_inner = wgpuInstanceCreateSurface(instance, descriptor);
+        const maybe_surface = wgpuInstanceCreateSurface(instance, descriptor);
 
-        if (maybe_inner) |inner| {
-            log.info("Got surface: {}", .{inner} );
-            return Surface { ._inner = inner };
+        if (maybe_surface) |surface| {
+            log.info("Got surface: {}", .{surface} );
+            return surface;
         } else {
             return error.FailedToCreateSurface;
         }

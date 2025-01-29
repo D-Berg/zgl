@@ -175,7 +175,7 @@ fn GetWGPUWindowsSurface(window: Window, instance: Instance) wgpu.WGPUError!Surf
     log.debug("hinstance = {any}", .{hinstance});
     log.debug("hwnd = {any}", .{hwnd});
 
-    const fromWindowsHWND = Surface.DescriptorFromWindowsHWND{
+    const fromWindowsHWND = Surface.SourceFromWindowsHWND{
         .hwnd = hwnd,
         .hinstance = hinstance,
         .chain = .{ .sType = .SurfaceSourceWindowsHWND }
@@ -197,12 +197,12 @@ fn GetWGPUX11Surface(window: Window, instance: Instance) wgpu.WGPUError!Surface 
     const x11_display = glfwGetX11Display();
     const x11_window = glfwGetX11Window(window._impl);
 
-    const fromX11 = Surface.DescriptorFromXlibWindow{
+    const fromX11 = wgpu.SurfaceSourceFromXlibWindow{
         .window = @intFromPtr(x11_window),
         .display = x11_display,
         .chain = .{ .sType = .SurfaceSourceXlibWindow }
     };
-    const surface_desc = Surface.Descriptor {
+    const surface_desc = wgpu.SurfaceDescriptor {
         .nextInChain = &fromX11.chain,
     };
 
@@ -221,13 +221,13 @@ fn GetWGPUWaylandSurface(window: Window, instance: Instance) wgpu.WGPUError!Surf
     const wl_surface = glfwGetWaylandWindow(window._impl) orelse 
         return wgpu.WGPUError.FailedToCreateSurface;
 
-    const fromWaland = Surface.DescriptorFromWaylandSurface{
+    const fromWaland = wgpu.SurfaceSourceFromWaylandSurface{
         .chain = .{ .sType = .SurfaceSourceWaylandSurface },
         .display = wl_display,
         .surface = wl_surface
     };
 
-    const surface_desc = Surface.Descriptor{
+    const surface_desc = wgpu.SurfaceDescriptor{
         .nextInChain = &fromWaland.chain
     };
 
@@ -252,12 +252,12 @@ fn GetWGPUMetalSurface(window: Window, instance: Instance) wgpu.WGPUError!Surfac
     log.debug("ns_window: {any}", .{ns_window});
     log.debug("metal_layer: {any}", .{metal_layer});
 
-    const fromMetalLayer = Surface.DescriptorFromMetalLayer {
+    const fromMetalLayer = wgpu.SurfaceSourceFromMetalLayer {
         .chain = .{ .next = null, .sType = .SurfaceSourceMetalLayer },
         .layer = metal_layer
     };
 
-    const surfaceDesc = Surface.Descriptor {
+    const surfaceDesc = wgpu.SurfaceDescriptor {
         .nextInChain = &fromMetalLayer.chain
     };
 
@@ -265,20 +265,21 @@ fn GetWGPUMetalSurface(window: Window, instance: Instance) wgpu.WGPUError!Surfac
     return try instance.CreateSurface(&surfaceDesc);
 }
 
+// FIX:
 fn GetWGPUCanvasSurface(instance: Instance) wgpu.WGPUError!Surface {
 
-    const fromCanvasHTMLSelector = Surface.DescriptorFromCanvasHTMLSelector {
+    const fromCanvasHTMLSelector = wgpu.SurfaceSourceFromCanvasHTMLSelector {
         .chain = .{ .sType = .DescriptorFromCanvasHTMLSelector },
         .selector = "canvas"
     };
 
-    const surfaceDesc = Surface.Descriptor {
+    const surfaceDesc = wgpu.SurfaceDescriptor {
         .nextInChain = &fromCanvasHTMLSelector.chain
     };
 
     log.info("Getting Canvas HTML Surface", .{});
 
-    return try Instance.CreateSurface(instance, &surfaceDesc);
+    return try instance.CreateSurface(&surfaceDesc);
 }
 
 

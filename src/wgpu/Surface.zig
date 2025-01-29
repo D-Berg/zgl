@@ -10,57 +10,134 @@ const TextureUsage = wgpu.TextureUsage;
 const TextureFormat = wgpu.TextureFormat;
 const PresentMode = wgpu.PresentMode;
 const CompositeAlphaMode = wgpu.CompositeAlphaMode;
-const DeviceImpl = wgpu.Device.DeviceImpl;
 const SurfaceGetCurrentTextureStatus = wgpu.SurfaceGetCurrentTextureStatus;
+const SurfaceConfiguration = wgpu.SurfaceConfiguration;
+const SurfaceTexture = wgpu.SurfaceTexture;
+const Texture = wgpu.Texture;
 
 const builtin = @import("builtin");
 
-const Surface = @This();
-pub const SurfaceImpl = *opaque {};
+pub const Surface = *opaque {
 
-_inner: SurfaceImpl,
+    extern "c" fn wgpuSurfaceConfigure(surface: Surface, config: *const SurfaceConfiguration) void;
+    pub fn configure(surface: Surface, config: *const SurfaceConfiguration) void {
+        wgpuSurfaceConfigure(surface, config);
+        log.debug("Configured", .{});
+    }   
 
-pub const Descriptor = extern struct {
-    nextInChain: ?*const ChainedStruct = null,
-    label: wgpu.StringView = .{.data = "", .length = 0}
-};
-
-pub const DescriptorFromMetalLayer = extern struct {
-    chain: ChainedStruct,
-    layer: *anyopaque
-};
-
-pub const DescriptorFromWindowsHWND = extern struct {
-    chain: ChainedStruct,
-    hinstance: *anyopaque,
-    hwnd: *anyopaque,
-
-};
-
-pub const DescriptorFromXlibWindow = extern struct {
-    chain: ChainedStruct,
-    display: *anyopaque,
-    window: u64,
-};
-
-pub const DescriptorFromWaylandSurface = extern struct {
-    chain: ChainedStruct,
-    display: *anyopaque,
-    surface: *anyopaque
-};
-
-pub const DescriptorFromCanvasHTMLSelector = extern struct {
-    chain: ChainedStruct,
-    selector: [*]const u8,
-};
-
-extern "c" fn wgpuSurfaceRelease(surface: SurfaceImpl) void;
-pub fn Release(surface: Surface) void {
     
-    wgpuSurfaceRelease(surface._inner);
-    log.info("released surface", .{});
+    extern "c" fn wgpuSurfaceGetCapabilities(
+        surface: Surface, 
+        adapter: Adapter, 
+        capabilities: *anyopaque
+    ) void;
+    /// Surface Members need to be freed by calling FreeMembers.
+    pub fn GetCapabilities(surface: Surface, adapter: Adapter) Capabilities {
 
-}
+        // Since emscripten SurfaceCapabilities doesnt (as of yet) have
+        // usages we need two different one.
+        if (builtin.target.os.tag == .emscripten) {
+            var web_cap = Capabilities.Web{};
+            wgpuSurfaceGetCapabilities(surface, adapter, &web_cap);
+
+            return Capabilities{
+                .nextInChain = web_cap.nextInChain,
+                .formats = web_cap.formats[0..web_cap.formatCount],
+                .presentModes = web_cap.presentModes[0..web_cap.presentModeCount],
+                .alphaModes = web_cap.alphaModes[0..web_cap.alphaModeCount],
+                ._inner = .{ .web = web_cap }
+            };
+        } else {
+            var native_cap = Capabilities.Native{};
+            
+            wgpuSurfaceGetCapabilities(surface, adapter, &native_cap);
+
+            var usage_idx: usize = 0;
+            inline for (@typeInfo(TextureUsage).@"enum".fields) |field| {
+
+                const bit_is_set: bool = blk: {
+                    if (field.value == 0) {
+                        if (native_cap.usages == 0) {
+                            break :blk true;
+                        } else {
+                            break :blk false;
+                        }
+                    } else {
+                        break :blk native_cap.usages & field.value == field.value;
+                    }
+                };
+
+                if (bit_is_set) {
+                    usages_buffer[usage_idx] = @as(TextureUsage, @enumFromInt(field.value));
+                    usage_idx += 1;
+                }
+            }
+
+            return Capabilities {
+                .nextInChain = native_cap.nextInChain,
+                .usages = usages_buffer[0..usage_idx],
+                .formats = native_cap.formats[0..native_cap.formatCount],
+                .presentModes = native_cap.presentModes[0..native_cap.presentModeCount],
+                .alphaModes = native_cap.alphaModes[0..native_cap.alphaModeCount],
+                ._inner = .{ .native = native_cap }
+            };
+
+        }
+
+    }
+
+
+    extern "c" fn wgpuSurfaceGetCurrentTexture(surface: Surface, surfaceTexture: *SurfaceTexture) void;
+    pub fn GetCurrentTexture(surface: Surface) GetSurfaceTextureError!Texture {
+
+        var surface_texture = SurfaceTexture{};
+
+        wgpuSurfaceGetCurrentTexture(surface, &surface_texture);
+
+        switch (surface_texture.status) {
+            .SuccessOptimal, .SuccessSuboptimal => {
+
+                if (surface_texture.texture) |texture| {
+                    return texture;
+                } else {
+                    log.err("surface_texture.texture was null", .{});
+                    return GetSurfaceTextureError.NullTexture;
+                }
+
+            }, 
+            .Timeout, .Outdated, .DeviceLost => {
+                return GetSurfaceTextureError.RecoverableTexture;
+            },
+            inline else => |status| {
+                log.err("Failed to get current texture with status: {s}", .{@tagName(status)});
+                return GetSurfaceTextureError.UnrecoverableTexture;
+            } 
+        }
+
+
+    }
+
+    extern "c" fn wgpuSurfacePresent(surface: Surface) void;
+    pub fn present(surface: Surface) void {
+        wgpuSurfacePresent(surface);
+    }
+
+    extern "c" fn wgpuSurfaceUnconfigure(surface: Surface) void;
+    pub fn unconfigure(surface: Surface) void {
+        wgpuSurfaceUnconfigure(surface);
+        log.debug("Unconfigured", .{});
+    }
+
+    extern "c" fn wgpuSurfaceRelease(surface: Surface) void;
+    pub fn release(surface: Surface) void {
+        wgpuSurfaceRelease(surface);
+        log.info("Released surface", .{});
+    }
+};
+
+
+
+
 
 /// Not official webgpu api, but nice to have.
 /// ensures that we don't accidently index out of range if formatCount is 0.
@@ -154,96 +231,6 @@ pub const Capabilities = struct {
     
 };
 
-extern "c" fn wgpuSurfaceGetCapabilities(
-    surface: SurfaceImpl, 
-    adapter: Adapter, 
-    capabilities: *anyopaque
-) void;
-/// Surface Members need to be freed by calling FreeMembers.
-pub fn GetCapabilities(surface: Surface, adapter: Adapter) Capabilities {
-
-    // Since emscripten SurfaceCapabilities doesnt (as of yet) have
-    // usages we need two different one.
-    if (builtin.target.os.tag == .emscripten) {
-        var web_cap = Capabilities.Web{};
-        wgpuSurfaceGetCapabilities(surface._inner, adapter, &web_cap);
-
-        return Capabilities{
-            .nextInChain = web_cap.nextInChain,
-            .formats = web_cap.formats[0..web_cap.formatCount],
-            .presentModes = web_cap.presentModes[0..web_cap.presentModeCount],
-            .alphaModes = web_cap.alphaModes[0..web_cap.alphaModeCount],
-            ._inner = .{ .web = web_cap }
-        };
-    } else {
-        var native_cap = Capabilities.Native{};
-        
-        wgpuSurfaceGetCapabilities(surface._inner, adapter, &native_cap);
-
-        var usage_idx: usize = 0;
-        inline for (@typeInfo(TextureUsage).@"enum".fields) |field| {
-
-            const bit_is_set: bool = blk: {
-                if (field.value == 0) {
-                    if (native_cap.usages == 0) {
-                        break :blk true;
-                    } else {
-                        break :blk false;
-                    }
-                } else {
-                    break :blk native_cap.usages & field.value == field.value;
-                }
-            };
-
-            if (bit_is_set) {
-                usages_buffer[usage_idx] = @as(TextureUsage, @enumFromInt(field.value));
-                usage_idx += 1;
-            }
-        }
-
-        return Capabilities {
-            .nextInChain = native_cap.nextInChain,
-            .usages = usages_buffer[0..usage_idx],
-            .formats = native_cap.formats[0..native_cap.formatCount],
-            .presentModes = native_cap.presentModes[0..native_cap.presentModeCount],
-            .alphaModes = native_cap.alphaModes[0..native_cap.alphaModeCount],
-            ._inner = .{ .native = native_cap }
-        };
-
-    }
-
-}
-
-/// https://webgpu-native.github.io/webgpu-headers/structWGPUSurfaceConfiguration.html
-pub const Configuration = extern struct {
-    nextInChain: ?*const ChainedStruct = null,
-    device: ?DeviceImpl = null,
-    format: TextureFormat = .Undefined,
-    usage: TextureUsage = .RenderAttachment,
-    width: u32 = 0,
-    height: u32 = 0,
-    viewFormatCount: usize = 0,
-    viewFormats: ?[*]const TextureFormat = null,
-    alphaMode: CompositeAlphaMode = .Auto,
-    presentMode: PresentMode = .Undefined,
-};
-
-
-extern "c" fn wgpuSurfaceConfigure(surface: SurfaceImpl, config: *const Surface.Configuration) void;
-pub fn Configure(surface: Surface, config: *const Surface.Configuration) void {
-
-    wgpuSurfaceConfigure(surface._inner, config);
-    log.debug("Configured", .{});
-
-}
-
-extern "c" fn wgpuSurfaceUnconfigure(surface: SurfaceImpl) void;
-pub fn Unconfigure(surface: Surface) void {
-    wgpuSurfaceUnconfigure(surface._inner);
-    log.debug("Unconfigured", .{});
-}
-
-
 const GetSurfaceTextureError = error {
     NullTexture,
     RecoverableTexture,
@@ -251,43 +238,5 @@ const GetSurfaceTextureError = error {
 };
 
 
-extern "c" fn wgpuSurfaceGetCurrentTexture(surface: SurfaceImpl, surfaceTexture: *Texture) void;
-pub fn GetCurrentTexture(surface: Surface) GetSurfaceTextureError!wgpu.Texture {
-
-    var surface_texture = Texture{};
-
-    wgpuSurfaceGetCurrentTexture(surface._inner, &surface_texture);
-
-    switch (surface_texture.status) {
-        .SuccessOptimal, .SuccessSuboptimal => {
-
-            if (surface_texture.texture) |texture| {
-                return wgpu.Texture { ._impl = texture };
-            } else {
-                log.err("surface_texture.texture was null", .{});
-                return GetSurfaceTextureError.NullTexture;
-            }
-
-        }, 
-        .Timeout, .Outdated, .DeviceLost => {
-            return GetSurfaceTextureError.RecoverableTexture;
-        },
-        inline else => |status| {
-            log.err("Failed to get current texture with status: {s}", .{@tagName(status)});
-            return GetSurfaceTextureError.UnrecoverableTexture;
-        } 
-    }
 
 
-}
-
-pub const Texture = extern struct {
-    nextInChain: ?*const ChainedStructOut = null,
-    texture: ?wgpu.Texture.TextureImpl = null,
-    status: wgpu.SurfaceGetCurrentTextureStatus = .DeviceLost
-};
-
-extern "c" fn wgpuSurfacePresent(surface: SurfaceImpl) void;
-pub fn Present(surface: Surface) void {
-    wgpuSurfacePresent(surface._inner);
-}

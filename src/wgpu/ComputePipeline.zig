@@ -8,7 +8,7 @@ const PipeLineLayoutImpl = PipeLineLayout.PipelineLayoutImpl;
 const ProgrammableStageDescriptor = wgpu.ProgrammableStageDescriptor;
 const Bindgroup = wgpu.BindGroup;
 
-pub const ComputePipeline = opaque {
+pub const ComputePipeline = *opaque {
     pub const Descriptor = extern struct {
         nextInChain: ?*const ChainedStruct = null,
         label: wgpu.StringView = .{ .data = "", .length = 0 },

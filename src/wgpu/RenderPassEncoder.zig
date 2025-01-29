@@ -1,5 +1,4 @@
 const wgpu = @import("wgpu.zig");
-const ViewImpl = wgpu.Texture.ViewImpl;
 const ChainedStruct = wgpu.ChainedStruct;
 const LoadOp = wgpu.LoadOp;
 const StoreOp = wgpu.StoreOp;
@@ -10,15 +9,16 @@ const RenderPipeline = wgpu.RenderPipeline;
 const RenderPipelineImpl = RenderPipeline.RenderPipelineImpl;
 const Buffer = wgpu.Buffer;
 const BindGroup = wgpu.BindGroup;
+const TextureView = wgpu.TextureView;
 
 
 pub const EncoderImpl = *opaque {};
 
 pub const ColorAttachment = extern struct {
     nextInChain: ?*const ChainedStruct = null,
-    view: ?ViewImpl = null,
+    view: ?TextureView = null,
     depthSlice: DepthSlice = .Undefined,
-    resolveTarget: ?ViewImpl = null,
+    resolveTarget: ?TextureView = null,
     loadOp: LoadOp,
     storeOp: StoreOp,
     clearValue: Color
@@ -27,7 +27,7 @@ pub const ColorAttachment = extern struct {
 
 
 pub const DepthStencilAttachment = extern struct {
-    view: ViewImpl,
+    view: TextureView,
     depthLoadOp: LoadOp,
     depthStoreOp: StoreOp,
     depthClearValue: f32,
@@ -47,7 +47,7 @@ pub const TimestampWrites = extern struct {
 
 pub const Descriptor = extern struct {
     nextInChain: ?*const ChainedStruct = null,
-    label: wgpu.StringView = .{ .data = "", .length = 0 },
+    label: wgpu.StringView = .{},
     colorAttachmentCount: usize = 0,
     colorAttachments: ?[*]const ColorAttachment = null,
     depthStencilAttachment: ?*const DepthStencilAttachment = null,
