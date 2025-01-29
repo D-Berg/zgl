@@ -13,7 +13,6 @@ const RequestAdapterOptions = wgpu.RequestAdapterOptions;
 
 pub const Instance = *opaque {
     
-
     extern "c" fn wgpuInstanceRelease(instance: Instance) void;
     pub fn release(instance: Instance) void {
         wgpuInstanceRelease(instance);

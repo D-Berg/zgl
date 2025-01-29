@@ -262,7 +262,7 @@ fn GetWGPUMetalSurface(window: Window, instance: Instance) wgpu.WGPUError!Surfac
     };
 
     log.info("Getting Cocoa Surface", .{});
-    return try Instance.CreateSurface(instance, &surfaceDesc);
+    return try instance.CreateSurface(&surfaceDesc);
 }
 
 fn GetWGPUCanvasSurface(instance: Instance) wgpu.WGPUError!Surface {
@@ -279,9 +279,6 @@ fn GetWGPUCanvasSurface(instance: Instance) wgpu.WGPUError!Surface {
     log.info("Getting Canvas HTML Surface", .{});
 
     return try Instance.CreateSurface(instance, &surfaceDesc);
-
-
-
 }
 
 

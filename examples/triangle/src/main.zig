@@ -38,8 +38,8 @@ pub fn main() !void {
     // TODO: fix crash when supplying instance descriptor
     // thread '<unnamed>' panicked at src/lib.rs:655:17
     // Unsupported timed WaitAny features specified
-    const instance = try wgpu.Instance.Create(null);     
-    defer instance.Release();
+    const instance = try wgpu.CreateInstance(null);     
+    defer instance.release();
 
     const surface = try glfw.GetWGPUSurface(window, instance);
     defer surface.Release();
