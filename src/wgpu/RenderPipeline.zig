@@ -9,7 +9,7 @@ const PrimitiveState = wgpu.PrimitiveState;
 const DepthStencilState = wgpu.DepthStencilState;
 const MultiSampleState = wgpu.MultiSampleState;
 const FragmentState = wgpu.FragmentState;
-const BindGroup = wgpu.BindGroup;
+const BindGroupLayout = wgpu.BindGroupLayout;
 
 const RenderPipeline = @This();
 pub const RenderPipelineImpl = *opaque {};
@@ -34,8 +34,8 @@ pub fn Release(renderPipeline: RenderPipeline) void {
 }
 
 
-extern "c" fn wgpuRenderPipelineGetBindGroupLayout(renderPipeline: RenderPipelineImpl, groupIndex: u32) ?*BindGroup.Layout;
-pub fn GetBindGroupLayout(renderPipeline: RenderPipeline, groupIndex: u32) WGPUError!*BindGroup.Layout {
+extern "c" fn wgpuRenderPipelineGetBindGroupLayout(renderPipeline: RenderPipelineImpl, groupIndex: u32) ?BindGroupLayout;
+pub fn GetBindGroupLayout(renderPipeline: RenderPipeline, groupIndex: u32) WGPUError!BindGroupLayout {
     const maybe_layout = wgpuRenderPipelineGetBindGroupLayout(renderPipeline._impl, groupIndex);
 
     if (maybe_layout) |layout| {

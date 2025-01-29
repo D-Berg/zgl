@@ -5,9 +5,9 @@ const WGPUError = wgpu.WGPUError;
 const ChainedStruct = wgpu.ChainedStruct;
 const CommandBuffer = wgpu.CommandBuffer;
 const CommandBufferImpl = CommandBuffer.CommandBufferImpl;
-const RenderPass = wgpu.RenderPass;
+const RenderPassEncoder = wgpu.RenderPassEncoder;
 const Buffer = wgpu.Buffer;
-const ComputePass = wgpu.ComputePass;
+const ComputePassEncoder = wgpu.ComputePassEncoder;
 
 const CommandEncoder = @This();
 pub const CommandEncoderImpl = *opaque {};
@@ -44,23 +44,23 @@ pub fn Finish(commandEncoder: CommandEncoder, descriptor: ?*const CommandBuffer.
 
 
 
-extern "c" fn wgpuCommandEncoderBeginRenderPass(commandEncoder: CommandEncoderImpl, descriptor: *const RenderPass.Descriptor) ?RenderPass.EncoderImpl;
-pub fn BeginRenderPass(commandEncoder: CommandEncoder, descriptor: *const RenderPass.Descriptor) WGPUError!RenderPass.Encoder {
+extern "c" fn wgpuCommandEncoderBeginRenderPass(commandEncoder: CommandEncoderImpl, descriptor: *const RenderPassEncoder.Descriptor) ?RenderPassEncoder.EncoderImpl;
+pub fn BeginRenderPass(commandEncoder: CommandEncoder, descriptor: *const RenderPassEncoder.Descriptor) WGPUError!RenderPassEncoder.Encoder {
     const maybe_impl = wgpuCommandEncoderBeginRenderPass(commandEncoder._inner, descriptor);
 
-    if (maybe_impl) |impl| return RenderPass.Encoder{ ._impl = impl } else return error.FailedToBeginRenderPass;
+    if (maybe_impl) |impl| return RenderPassEncoder.Encoder{ ._impl = impl } else return error.FailedToBeginRenderPass;
 }
 
 
 extern "c" fn wgpuCommandEncoderBeginComputePass(
     commandEncoder: CommandEncoderImpl, 
-    descriptor: ?*const ComputePass.Descriptor
-) ?*ComputePass.Encoder;
+    descriptor: ?*const ComputePassEncoder.Descriptor
+) ?*ComputePassEncoder.Encoder;
 
 pub fn BeginComputePass(
     commandEncoder: CommandEncoder, 
-    descriptor: ?*const ComputePass.Descriptor
-) WGPUError!*ComputePass.Encoder {
+    descriptor: ?*const ComputePassEncoder.Descriptor
+) WGPUError!*ComputePassEncoder.Encoder {
 
     const maybe_compute_pass_encoder = wgpuCommandEncoderBeginComputePass(
         commandEncoder._inner, 

@@ -3,7 +3,7 @@ const ChainedStruct = wgpu.ChainedStruct;
 const LoadOp = wgpu.LoadOp;
 const StoreOp = wgpu.StoreOp;
 const Color = wgpu.Color;
-const QuerySetImpl = wgpu.QuerySet.QuerySetImpl;
+const QuerySet = wgpu.QuerySet;
 const DepthSlice = wgpu.DepthSlice;
 const RenderPipeline = wgpu.RenderPipeline;
 const RenderPipelineImpl = RenderPipeline.RenderPipelineImpl;
@@ -40,7 +40,7 @@ pub const DepthStencilAttachment = extern struct {
 
 
 pub const TimestampWrites = extern struct {
-    querySet: QuerySetImpl,
+    querySet: QuerySet,
     beginningOfPassWriteIndex: u32,
     endOfPassWriteIndex: u32
 };
@@ -51,7 +51,7 @@ pub const Descriptor = extern struct {
     colorAttachmentCount: usize = 0,
     colorAttachments: ?[*]const ColorAttachment = null,
     depthStencilAttachment: ?*const DepthStencilAttachment = null,
-    occlusionQuerySet: ?QuerySetImpl = null,
+    occlusionQuerySet: ?QuerySet = null,
     timestampWrites: ?*const TimestampWrites = null
 };
 

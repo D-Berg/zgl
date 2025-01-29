@@ -6,7 +6,7 @@ const ComputePipeline = wgpu.ComputePipeline;
 const BindGroup = wgpu.BindGroup;
 
 pub const TimeStampWrites = extern struct {
-    querySet: QuerySet.QuerySetImpl, 
+    querySet: QuerySet, 
     beginningOfPassWriteIndex: u32 = 0,
     endOfPassWriteIndex: u32 = 0
 };
