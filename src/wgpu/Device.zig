@@ -25,7 +25,7 @@ const SupportedFeatures = wgpu.SupportedFeatures;
 
 pub const Device= *opaque {
     extern "c" fn wgpuDeviceRelease(device: Device) void;
-    pub fn Release(device: Device) void {
+    pub fn release(device: Device) void {
         wgpuDeviceRelease(device);
         log.info("Released device", .{});
     }

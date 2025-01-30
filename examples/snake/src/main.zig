@@ -181,30 +181,30 @@ pub fn main() !void {
     defer window.destroy();
 
 
-    const instance = try wgpu.Instance.Create(null);
-    defer instance.Release();
+    const instance = try wgpu.CreateInstance(null);
+    defer instance.release();
 
     const surface = try glfw.GetWGPUSurface(window, instance);
-    defer surface.Release();
+    defer surface.release();
 
-    const adapter = try instance.RequestAdapter(&.{.compatibleSurface = surface._inner});
+    const adapter = try instance.RequestAdapter(&.{ .compatibleSurface = surface });
     defer adapter.release();
 
-    if (adapter.GetLimits()) |limits| limits.logLimits();
+    if (adapter.GetLimits()) |limits| log.info("Adapter Limits:\n{}", .{limits});
 
     const device = try adapter.RequestDevice(null);
-    defer device.Release();
+    defer device.release();
 
     const device_limits = try device.GetLimits();
-    device_limits.logLimits();
+    log.info("Device Limits:\n{}", .{device_limits});
 
     const queue = try device.GetQueue();
-    defer queue.Release();
+    defer queue.release();
 
     const surface_pref_format = surface.GetPreferredFormat(adapter);
 
-    const surface_conf = wgpu.Surface.Configuration{
-        .device = device._inner,
+    const surface_conf = wgpu.SurfaceConfiguration{
+        .device = device,
         .format = surface_pref_format,
         .width = RENDER_SIZE * WINDOW_WIDTH,
         .height = RENDER_SIZE * WINDOW_HEIGHT,
@@ -213,8 +213,8 @@ pub fn main() !void {
         .usage = .RenderAttachment,
     };
 
-    surface.Configure(&surface_conf);
-    defer surface.Unconfigure();
+    surface.configure(&surface_conf);
+    defer surface.unconfigure();
 
 
     const shader_code = wgpu.ShaderSourceWGSL{
@@ -223,12 +223,12 @@ pub fn main() !void {
     };
 
     const shader = try device.CreateShaderModule(&.{ .nextInChain = &shader_code.chain });
-    defer shader.Release();
+    defer shader.release();
 
     const render_pipeline = try device.CreateRenderPipeline(&wgpu.RenderPipeline.Descriptor{
         .label = wgpu.StringView.fromSlice("render pipe"),
         .vertex = .{
-            .module = shader._impl,
+            .module = shader,
             .entryPoint = wgpu.StringView.fromSlice("vs_main"),
             .bufferCount = 1,
             .buffers = &[1]wgpu.VertexBufferLayout {
@@ -258,7 +258,7 @@ pub fn main() !void {
             .alphaToCoverageEnabled = false,
         },
         .fragment = &wgpu.FragmentState{
-            .module = shader._impl,
+            .module = shader,
             .entryPoint = wgpu.StringView.fromSlice("fs_main"),
             .targetCount = 1,
             .targets = &[1]wgpu.ColorTargetState{ 
@@ -289,11 +289,11 @@ pub fn main() !void {
 
     const vertex_buffer = try device.CreateBuffer(&.{
         .label = wgpu.StringView.fromSlice("vertex buffer"),
-        .size = device_limits.limits.maxBufferSize,
-        .usage = @intFromEnum(wgpu.Buffer.Usage.Vertex) | 
-            @intFromEnum(wgpu.Buffer.Usage.CopyDst)
+        .size = device_limits.maxBufferSize,
+        .usage = @intFromEnum(wgpu.BufferUsage.Vertex) | 
+            @intFromEnum(wgpu.BufferUsage.CopyDst)
     });
-    defer vertex_buffer.Release();
+    defer vertex_buffer.release();
 
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     defer arena.deinit();
@@ -385,7 +385,7 @@ pub fn main() !void {
 
                     
                     // reset vertex data to 0
-                    const zeros = try arena_allocator.alloc(f32, vertex_buffer.GetSize()/@sizeOf(f32));
+                    const zeros = try arena_allocator.alloc(f32, vertex_buffer.getSize()/@sizeOf(f32));
                     @memset(zeros, 0);
                     queue.WriteBuffer(vertex_buffer, 0, f32, zeros);
                 }
@@ -442,13 +442,13 @@ pub fn main() !void {
                 .color = .{ .r = 0, .g = 255, .b = 0, .a = 1 }
             });
 
-            std.debug.assert(vertices.items.len < device_limits.limits.maxBufferSize);
+            std.debug.assert(vertices.items.len < device_limits.maxBufferSize);
             queue.WriteBuffer(vertex_buffer, 0, f32, vertices.items);
             
 
             // render ========================================================
             const texture = try surface.GetCurrentTexture();
-            defer texture.Release();
+            defer texture.release();
 
             const view = try texture.CreateView(&.{
                 .format = surface_pref_format,
@@ -460,21 +460,21 @@ pub fn main() !void {
                 .usage = surface_conf.usage,
                 .aspect = .All,
             });
-            defer view.Release();
+            defer view.release();
 
             const command_encoder = device.CreateCommandEncoder(&.{});
             defer command_encoder.Release();
             
             {
 
-                const render_pass_desc = wgpu.RenderPass.Descriptor{
+                const render_pass_desc = wgpu.RenderPassEncoder.Descriptor{
                     .colorAttachmentCount = 1,
-                    .colorAttachments = &[1]wgpu.RenderPass.ColorAttachment{
-                        wgpu.RenderPass.ColorAttachment{
+                    .colorAttachments = &[1]wgpu.RenderPassEncoder.ColorAttachment{
+                        wgpu.RenderPassEncoder.ColorAttachment{
                             .clearValue = .{ .r = 0, .g = 0, .b = 0, .a = 1},
                             .loadOp = .Clear,
                             .storeOp = .Store,
-                            .view = view._impl
+                            .view = view
                         },
                     },
                 };
@@ -492,10 +492,10 @@ pub fn main() !void {
             const command_buffer = command_encoder.Finish(&.{});
             defer command_buffer.Release();
 
-            queue.Submit(&[1]wgpu.CommandBuffer{ command_buffer });
+            queue.submit(&[1]wgpu.CommandBuffer{ command_buffer });
 
-            surface.Present();
-            _ = device.Poll(false, null);
+            surface.present();
+            _ = device.poll(false, null);
 
         }
     }
@@ -585,31 +585,4 @@ fn drawCircle(vertices: *std.ArrayList(f32), circle: Circle) !void {
 
 
     }
-
-    // try vertices.appendSlice(&[_]f32{ 0, 0});
-    // try vertices.appendSlice(&color_buffer);
-    //
-    // try vertices.appendSlice(&[_]f32{ 1, 0});
-    // try vertices.appendSlice(&color_buffer);
-    //
-    // try vertices.appendSlice(&[_]f32{ 0, 1});
-    // try vertices.appendSlice(&color_buffer);
-
-    // try vertices.appendSlice(&[_]f32{ -1, 0});
-    // try vertices.appendSlice(&color_buffer);
-    //
-    // try vertices.appendSlice(&[_]f32{ 0, -1});
-    // try vertices.appendSlice(&color_buffer);
-    //
-    // try vertices.appendSlice(&[_]f32{ 1, 0});
-    // try vertices.appendSlice(&color_buffer);
-
-
-// 0.0,  0.0,  // Center
-//     1.0,  0.0,  // Right
-//     0.0,  1.0,  // Top
-//    -1.0,  0.0,  // Left
-//     0.0, -1.0,  // Bottom
-//     1.0,  0.0,  // Close circle (repeat first vertex)
-
 }

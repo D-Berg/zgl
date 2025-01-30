@@ -50,7 +50,7 @@ pub const Queue = *opaque {
 
 
     extern "c" fn wgpuQueueSubmit(queue: Queue, commandCount: usize, commands: [*]const CommandBufferImpl) void;
-    pub fn Submit(queue: Queue, commands: []const CommandBuffer) void {
+    pub fn submit(queue: Queue, commands: []const CommandBuffer) void {
         // log.info("Submitting commands...", .{});
         const commandCount = commands.len;
 

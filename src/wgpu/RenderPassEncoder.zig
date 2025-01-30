@@ -109,7 +109,7 @@ pub const Encoder = struct {
 
     extern "c" fn wgpuRenderPassEncoderSetVertexBuffer(renderPassEncoder: EncoderImpl, slot: u32, buffer: ?Buffer, offset: u64, size: u64) void;
     pub fn setVertexBuffer(renderPassEncoder: Encoder, slot: u32, buffer: ?Buffer, offset: u64) void {
-        const size: u64 = if (buffer) |b| b.GetSize() else 0;
+        const size: u64 = if (buffer) |b| b.getSize() else 0;
         wgpuRenderPassEncoderSetVertexBuffer(renderPassEncoder._impl, slot, buffer, offset, size);
     }
 };

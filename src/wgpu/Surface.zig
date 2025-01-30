@@ -133,25 +133,27 @@ pub const Surface = *opaque {
         wgpuSurfaceRelease(surface);
         log.info("Released surface", .{});
     }
+
+
+    /// Not official webgpu api, but nice to have.
+    /// ensures that we don't accidently index out of range if formatCount is 0.
+    pub fn GetPreferredFormat(surface: Surface, adapter: Adapter) TextureFormat {
+
+        const capabilities = surface.GetCapabilities(adapter);
+        defer capabilities.FreeMembers();
+
+        if (capabilities.formats.len > 0) {
+            return capabilities.formats[0];
+        } else {
+            return TextureFormat.Undefined;
+        }
+    }
 };
 
 
 
 
 
-/// Not official webgpu api, but nice to have.
-/// ensures that we don't accidently index out of range if formatCount is 0.
-pub fn GetPreferredFormat(surface: Surface, adapter: Adapter) TextureFormat {
-
-    const capabilities = surface.GetCapabilities(adapter);
-    defer capabilities.FreeMembers();
-
-    if (capabilities.formats.len > 0) {
-        return capabilities.formats[0];
-    } else {
-        return TextureFormat.Undefined;
-    }
-}
 
 
 const MAX_USAGES = @typeInfo(TextureUsage).@"enum".fields.len;
