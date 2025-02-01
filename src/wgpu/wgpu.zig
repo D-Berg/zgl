@@ -3,6 +3,9 @@ const std = @import("std");
 const log = std.log.scoped(.@"wgpu");
 const Allocator = std.mem.Allocator;
 
+
+const c = @import("../zgl.zig").c;
+
 const WGPUBool = u32;
 
 // wgpu objects

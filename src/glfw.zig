@@ -5,6 +5,7 @@ const Instance = wgpu.Instance;
 const Surface = wgpu.Surface;
 const display_server = @import("zgl_options").DisplayServer;
 const os_tag = @import("builtin").os.tag;
+const c = @import("zgl.zig").c;
 
 pub const GlfwError = error {
     GLFWFailedInit,

@@ -392,6 +392,18 @@ fn buildNative(b: *std.Build, zgl: *Module, target: Target, optimize: OptimizeMo
         // .weak = true
     });
 
+    const translate_c = b.addTranslateC(.{
+        .root_source_file = b.path("include/c.h"),
+        .target = target,
+        .optimize = optimize,
+    });
+
+    const translate_c_mod = translate_c.createModule();
+    translate_c.addIncludePath(glfw_dep.path("include"));
+    translate_c.addIncludePath(wgpu_native.path("include"));
+
+    zgl.addImport("c", translate_c_mod);
+
     zgl.linkLibrary(glfw);
 
     const mod_unit_tests = b.addTest(.{
@@ -400,6 +412,7 @@ fn buildNative(b: *std.Build, zgl: *Module, target: Target, optimize: OptimizeMo
         .optimize = optimize,
         .link_libc = true
     });
+    mod_unit_tests.root_module.addImport("c", translate_c_mod);
     mod_unit_tests.addLibraryPath(wgpu_native.path("lib/"));
     mod_unit_tests.linkSystemLibrary("wgpu_native");
 
