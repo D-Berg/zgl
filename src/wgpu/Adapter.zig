@@ -15,8 +15,9 @@ const ChainedStruct = wgpu.ChainedStruct;
 const ChainedStructOut = wgpu.ChainedStructOut;
 const Limits = wgpu.Limits;
 
-pub const Adapter = *opaque {
 
+pub const Adapter = *AdapterImpl;
+const AdapterImpl = opaque {
 
     extern "c" fn wgpuAdapterRelease(adapter: Adapter) void;
     pub fn release(adapter: Adapter) void {
@@ -24,7 +25,7 @@ pub const Adapter = *opaque {
         log.info("Released adapter", .{});
     }
 
-    pub const DeviceUserData = struct {
+    const DeviceUserData = struct {
         device: ?Device = null,
         requestEnded: bool = false,        
     };
