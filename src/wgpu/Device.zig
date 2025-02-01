@@ -1,6 +1,9 @@
 const std = @import("std");
 const log = std.log.scoped(.@"wgpu/device");
 const wgpu = @import("wgpu.zig");
+
+const c = @import("../zgl.zig").c;
+
 const Allocator = std.mem.Allocator;
 
 const WGPUError = wgpu.WGPUError;
@@ -22,6 +25,7 @@ const BufferDescriptor = wgpu.BufferDescriptor;
 const ComputePipeline = wgpu.ComputePipeline;
 const BindGroup = wgpu.BindGroup;
 const SupportedFeatures = wgpu.SupportedFeatures;
+const RenderPipelineDescriptor = wgpu.RenderPipelineDescriptor;
 
 pub const Device= *opaque {
     extern "c" fn wgpuDeviceRelease(device: Device) void;
@@ -100,14 +104,14 @@ pub const Device= *opaque {
     }
 
     
-    extern "c" fn wgpuDeviceCreateRenderPipeline(device: Device, descriptor: *const RenderPipeline.Descriptor) ?RenderPipelineImpl;
-    pub fn CreateRenderPipeline(device: Device, descriptor: *const RenderPipeline.Descriptor) WGPUError!RenderPipeline {
+    // extern "c" fn wgpuDeviceCreateRenderPipeline(device: Device, descriptor: *const RenderPipeline.Descriptor) ?RenderPipelineImpl;
+    pub fn CreateRenderPipeline(device: Device, descriptor: *const RenderPipelineDescriptor) WGPUError!RenderPipeline {
 
-        const maybe_impl = wgpuDeviceCreateRenderPipeline(device, descriptor);
+        const maybe_render_pipeline = c.wgpuDeviceCreateRenderPipeline(@ptrCast(device), &descriptor.ToExtern());
 
-        if (maybe_impl) |impl| {
-            log.info("Created RenderPipeline {}", .{impl});
-            return RenderPipeline{ ._impl = impl };
+        if (maybe_render_pipeline) |render_pipeline| {
+            log.info("Created RenderPipeline {}", .{render_pipeline});
+            return @ptrCast(render_pipeline);
         } else {
             log.err("Failed to create RenderPipeline: got null", .{});
             return error.FailedToCreateRenderPipeline;

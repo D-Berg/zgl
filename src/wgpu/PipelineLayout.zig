@@ -1,4 +1,2 @@
-const PipelineLayout = @This();
-pub const PipelineLayoutImpl = *opaque {};
+pub const PipelineLayout = *opaque {};
 
-_impl: PipelineLayoutImpl,

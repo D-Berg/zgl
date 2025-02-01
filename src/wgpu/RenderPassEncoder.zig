@@ -6,7 +6,6 @@ const Color = wgpu.Color;
 const QuerySet = wgpu.QuerySet;
 const DepthSlice = wgpu.DepthSlice;
 const RenderPipeline = wgpu.RenderPipeline;
-const RenderPipelineImpl = RenderPipeline.RenderPipelineImpl;
 const Buffer = wgpu.Buffer;
 const BindGroup = wgpu.BindGroup;
 const TextureView = wgpu.TextureView;
@@ -70,9 +69,9 @@ pub const Encoder = struct {
     }
 
     // TODO: start lowercase
-    extern "c" fn wgpuRenderPassEncoderSetPipeline(renderPassEncoder: EncoderImpl, pipeline: RenderPipelineImpl) void;
+    extern "c" fn wgpuRenderPassEncoderSetPipeline(renderPassEncoder: EncoderImpl, pipeline: RenderPipeline) void;
     pub fn SetPipeline(renderPassEncoder: Encoder, pipeline: RenderPipeline) void {
-        wgpuRenderPassEncoderSetPipeline(renderPassEncoder._impl, pipeline._impl);
+        wgpuRenderPassEncoderSetPipeline(renderPassEncoder._impl, pipeline);
     }
 
     

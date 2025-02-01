@@ -225,13 +225,12 @@ pub fn main() !void {
     const shader = try device.CreateShaderModule(&.{ .nextInChain = &shader_code.chain });
     defer shader.release();
 
-    const render_pipeline = try device.CreateRenderPipeline(&wgpu.RenderPipeline.Descriptor{
-        .label = wgpu.StringView.fromSlice("render pipe"),
-        .vertex = .{
+    const render_pipeline = try device.CreateRenderPipeline(&wgpu.RenderPipelineDescriptor{
+        .label = "render pipe",
+        .vertex = wgpu.VertexState{
             .module = shader,
-            .entryPoint = wgpu.StringView.fromSlice("vs_main"),
-            .bufferCount = 1,
-            .buffers = &[1]wgpu.VertexBufferLayout {
+            .entryPoint = "vs_main",
+            .buffers = &[_]wgpu.VertexBufferLayout {
                 wgpu.VertexBufferLayout{
                     .stepMode = .Vertex,
                     .arrayStride = 6 * @sizeOf(f32), // 2 pos + 4 col

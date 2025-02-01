@@ -3,7 +3,7 @@ const log = std.log.scoped(.@"wgpu/RenderPipeline");
 const wgpu = @import("wgpu.zig");
 const WGPUError = wgpu.WGPUError;
 const ChainedStruct = wgpu.ChainedStruct;
-const PipelineLayoutImpl = wgpu.PipelineLayout.PipelineLayoutImpl;
+const PipelineLayout = wgpu.PipelineLayout;
 const VertexState = wgpu.VertexState;
 const PrimitiveState = wgpu.PrimitiveState;
 const DepthStencilState = wgpu.DepthStencilState;
@@ -11,40 +11,48 @@ const MultiSampleState = wgpu.MultiSampleState;
 const FragmentState = wgpu.FragmentState;
 const BindGroupLayout = wgpu.BindGroupLayout;
 
-const RenderPipeline = @This();
-pub const RenderPipelineImpl = *opaque {};
+const c = @import("../zgl.zig").c;
 
-_impl: RenderPipelineImpl,
+pub const RenderPipeline = *RenderPipelineImpl;
+const RenderPipelineImpl = opaque {
 
-pub const Descriptor = extern struct {
-    nextInChain: ?*const ChainedStruct = null,
-    label: wgpu.StringView = .{ .data = "", .length = 0 },
-    layout: ?PipelineLayoutImpl = null,
-    vertex: VertexState,
-    primitive: PrimitiveState,
-    depthStencil: ?*const DepthStencilState = null,
-    multisample: MultiSampleState,
-    fragment: ?*const FragmentState = null,
-};
-
-extern "c" fn wgpuRenderPipelineRelease(renderPipeline: RenderPipelineImpl) void;
-pub fn Release(renderPipeline: RenderPipeline) void {
-    wgpuRenderPipelineRelease(renderPipeline._impl);
-    log.info("Released RenderPipeline", .{});
-}
-
-
-extern "c" fn wgpuRenderPipelineGetBindGroupLayout(renderPipeline: RenderPipelineImpl, groupIndex: u32) ?BindGroupLayout;
-pub fn GetBindGroupLayout(renderPipeline: RenderPipeline, groupIndex: u32) WGPUError!BindGroupLayout {
-    const maybe_layout = wgpuRenderPipelineGetBindGroupLayout(renderPipeline._impl, groupIndex);
-
-    if (maybe_layout) |layout| {
-        return layout;
-    } else {
-        return WGPUError.FailedToGetBindGroupLayout;
+    extern "c" fn wgpuRenderPipelineRelease(renderPipeline: RenderPipeline) void;
+    pub fn Release(renderPipeline: RenderPipeline) void {
+        wgpuRenderPipelineRelease(renderPipeline);
+        log.info("Released RenderPipeline", .{});
     }
 
-}
+
+    extern "c" fn wgpuRenderPipelineGetBindGroupLayout(renderPipeline: RenderPipeline, groupIndex: u32) ?BindGroupLayout;
+    pub fn GetBindGroupLayout(renderPipeline: RenderPipeline, groupIndex: u32) WGPUError!BindGroupLayout {
+        const maybe_layout = wgpuRenderPipelineGetBindGroupLayout(renderPipeline, groupIndex);
+
+        if (maybe_layout) |layout| {
+            return layout;
+        } else {
+            return WGPUError.FailedToGetBindGroupLayout;
+        }
+
+    }
+
+};
+
+
+
+// const RenderPipelineDescriptor = struct {
+//     nextInChain: ?*const ChainedStruct = null,
+//     label: []const u8 = "",
+//     layout: ?PipelineLayoutImpl = null,
+//     vertex: VertexState,
+//     primitive: PrimitiveState,
+//     depthStencil: ?*const DepthStencilState = null,
+//     multisample: MultiSampleState,
+//     fragment: ?*const FragmentState = null,
+// };
+//
+
+
+
 
 // WGPUChainedStruct const * nextInChain;
 // WGPU_NULLABLE char const * label;

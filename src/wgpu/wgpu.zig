@@ -20,13 +20,13 @@ pub const ComputePassEncoder = @import("ComputePassEncoder.zig");
 pub const ComputePipeline = @import("ComputePipeline.zig").ComputePipeline;
 pub const Device = @import("Device.zig").Device;
 pub const Instance = @import("Instance.zig").Instance;
-pub const PipelineLayout = @import("PipelineLayout.zig");
+pub const PipelineLayout = @import("PipelineLayout.zig").PipelineLayout;
 pub const QuerySet = @import("QuerySet.zig").QuerySet;
 pub const Queue = @import("Queue.zig").Queue;
 pub const RenderBundle = @import("RenderBundle.zig").RenderBundle;
 pub const RenderBundleEncoder = @import("RenderBundleEncoder.zig").RenderBundleEncoder;
 pub const RenderPassEncoder = @import("RenderPassEncoder.zig");
-pub const RenderPipeline = @import("RenderPipeline.zig");
+pub const RenderPipeline = @import("RenderPipeline.zig").RenderPipeline;
 pub const Sampler = @import("Sampler.zig").Sampler;
 pub const ShaderModule = @import("ShaderModule.zig").ShaderModule;
 pub const Surface = @import("Surface.zig").Surface;
@@ -35,14 +35,14 @@ pub const TextureView = @import("TextureView.zig").TextureView;
 
 test "api coverage" {
 
-    std.testing.log_level = .debug;
+    // std.testing.log_level = .debug;
 
     inline for (@typeInfo(@This()).@"struct".decls) |decl| {
         // log.info("decl = {s}", .{decl.name});
         const t = @field(@This(), decl.name);
 
         if (@TypeOf(t) != type) {
-            log.info("{s} is not a type", .{decl.name});
+            log.debug("{s} is not a type", .{decl.name});
             continue;
         }
 
@@ -61,7 +61,7 @@ test "api coverage" {
                     //     continue;
                     // }
 
-                    std.debug.print("    - {s}\n", .{inner_decl.name});
+                    log.debug("    - {s}", .{inner_decl.name});
                 }
 
             },
@@ -73,12 +73,13 @@ test "api coverage" {
                 if (t_child == .@"opaque") {
 
                     inline for (t_child.@"opaque".decls) |inner_decl| {
-                        std.debug.print("    - {s}\n", .{inner_decl.name});
+                        log.debug("    - {s}", .{inner_decl.name});
                     }
 
                 }
 
             },
+
             else => {}
         }
 
@@ -125,6 +126,43 @@ pub const InstanceDescriptor = extern struct {
     nextInChain: ?*const ChainedStruct = null,
     timedWaitAnyEnable: WGPUBool = @intCast(@intFromBool(false)),
     timedWaitAnyMaxCount: usize = 0
+};
+
+
+pub const RenderPipelineDescriptor = struct {
+    nextInChain: ?*const ChainedStruct = null,
+    label: []const u8 = "",
+    layout: ?PipelineLayout = null,
+    vertex: VertexState,
+    primitive: PrimitiveState,
+    depthStencil: ?*const DepthStencilState = null,
+    multisample: MultiSampleState,
+    fragment: ?*const FragmentState = null,
+
+    pub fn ToExtern(self: RenderPipelineDescriptor) c.WGPURenderPipelineDescriptor {
+        return c.WGPURenderPipelineDescriptor {
+            .nextInChain = @ptrCast(self.nextInChain),
+            .vertex = self.vertex.ToExtern(),
+            .layout = @ptrCast(self.layout),
+            .label = c.WGPUStringView{.data = self.label.ptr, .length = self.label.len },
+            .fragment = @ptrCast(self.fragment),
+            .primitive = c.WGPUPrimitiveState{
+                .nextInChain = @ptrCast(self.primitive.nextInChain),
+                .topology = @intFromEnum(self.primitive.topology),
+                .cullMode = @intFromEnum(self.primitive.cullMode),
+                .frontFace = @intFromEnum(self.primitive.frontFace),  
+                .unclippedDepth = @intCast(@intFromBool(self.primitive.unclippedDepth)),
+                .stripIndexFormat = @intFromEnum(self.primitive.stripIndexFormat)
+            },
+            .multisample = c.WGPUMultisampleState{
+                .nextInChain = @ptrCast(self.multisample.nextInChain),
+                .mask = self.multisample.mask,
+                .alphaToCoverageEnabled = @intFromBool(self.multisample.alphaToCoverageEnabled),
+                .count = self.multisample.count
+            },
+            .depthStencil = null
+        };
+    }
 };
 
 pub const QueueDescriptor = struct {
@@ -293,14 +331,37 @@ pub const VertexBufferLayout = extern struct {
     attributes: [*]const VertextAttribute
 };
 
-pub const VertexState = extern struct {
+// const ExternalVertexState = extern struct {
+//     nextInChain: ?*const ChainedStruct = null,
+//     module: ShaderModule,
+//     entryPoint: StringView = .{},
+//     constantCount: usize = 0,
+//     constants: ?[*]const ConstantEntry = null,
+//     bufferCount: usize = 0,
+//     buffers: ?[*]const VertexBufferLayout = null,
+// };
+
+pub const VertexState = struct {
     nextInChain: ?*const ChainedStruct = null,
     module: ShaderModule,
-    entryPoint: StringView = .{ .data = "", .length = 0 },
-    constantCount: usize = 0,
-    constants: ?[*]const ConstantEntry = null,
-    bufferCount: usize = 0,
-    buffers: ?[*]const VertexBufferLayout = null,
+    entryPoint: []const u8 = "", 
+    constants: ?[]const ConstantEntry = null,
+    buffers: ?[]const VertexBufferLayout = null,
+
+    pub fn ToExtern(self: VertexState) c.WGPUVertexState {
+
+        return c.WGPUVertexState {
+            .nextInChain = @ptrCast(self.nextInChain),
+            .module = @ptrCast(self.module),
+            .entryPoint = c.WGPUStringView{ .data = self.entryPoint.ptr, .length = self.entryPoint.len },
+            .constantCount = if (self.constants) |cts| cts.len else 0,
+            .constants = if (self.constants) |cts| @ptrCast(cts.ptr) else null,
+            .bufferCount = if (self.buffers) |bfs| bfs.len else 0,
+            .buffers = @ptrCast(self.buffers)
+
+        };
+
+    }
 };
 
 pub const ProgrammableStageDescriptor = extern struct {
@@ -1144,3 +1205,115 @@ pub const SurfaceTexture = extern struct {
     status: SurfaceGetCurrentTextureStatus = .DeviceLost
 };
 //=============================================================================
+
+/// Convert wgpu type to those defined in webgpu.h and wgpu.h translated by zig
+inline fn ToExternalType(ExternalType: type, from: anytype) ExternalType {
+    std.debug.print("\n", .{});
+
+    // rules c_type <- zig type
+    // 
+    // - WGPUBool(u32) <- @intFromBool(bool)
+    // - ... <- slice.ptr
+    // - ...Count <- slice.len
+    // - enum(c_int) <- @intFromEnum(enum)
+    //
+    // wgpu don't have slice instead they have a manyitem poiner field 
+    // and a length field. For example 
+    //  buffers: [*c]const Buffer
+    //  bufferCount: u64
+    // they follow the same naming.
+    //  
+
+    const external_info = @typeInfo(ExternalType);
+    const from_typeinfo = @typeInfo(@TypeOf(from));
+
+    const exernal_name = @typeName(ExternalType);
+    switch (external_info) {
+
+        .@"struct" => {
+            
+            var out = ExternalType{};
+
+            // check if field contains count
+            // std.mem.indexOf(comptime T: type, haystack: []const T, needle: []const T)
+
+            log.debug("converting {s} to {s}", .{ @typeName(@TypeOf(from)), exernal_name });
+
+            inline for (external_info.@"struct".fields) |field| {
+
+                const native_val = @field(from, field.name);
+
+                log.debug("setting field {s} which is a {} to {any}", .{field.name, field.type, native_val});
+
+
+                @field(out, field.name) = ToExternalType(field.type, native_val);
+
+            }
+
+            
+            return out;
+
+        },
+
+        .pointer => |ptr| {
+
+            log.debug("got a ptr of kind: {}", .{ptr.child});
+            log.debug("native = {any}", .{from});
+
+
+            log.debug("fromType is of type {any}", .{@TypeOf(from)});
+            std.debug.assert(from_typeinfo == .pointer or from_typeinfo == .optional);
+
+            return @ptrCast(from);
+
+        },
+
+        .int => {
+
+            switch (from_typeinfo) {
+                .bool => return @intFromBool(from),
+                .int => return @intCast(from),
+                inline else => {
+                    @panic("unsupported conversion to int");
+                }
+                
+
+            }
+
+        },
+
+        inline else => |kind| {
+            log.debug("{} isnt yet implemened", .{kind});
+        }
+        
+
+    }
+
+    @panic("not implemented");
+
+
+}
+
+
+test "native zig type to wgpu c type" {
+    std.testing.log_level = .debug;
+
+    const native = BufferDescriptor{
+        .label = StringView.fromSlice("hi"),
+        .size = 15,
+        .usage = @intFromEnum(BufferUsage.Vertex),
+        .mappedAtCreation = true
+    };
+
+    const ext = ToExternalType(c.WGPUBufferDescriptor, &native);
+
+    try std.testing.expectEqual(@TypeOf(ext), c.WGPUBufferDescriptor);
+    try std.testing.expectEqual(ext.label.data, native.label.data.?);
+    try std.testing.expectEqual(ext.size, native.size);
+    try std.testing.expectEqual(ext.mappedAtCreation, @intFromBool(native.mappedAtCreation));
+    // try std.testing.expectEqual(ext.nextInChain, native.nextInChain)
+
+
+
+
+}
