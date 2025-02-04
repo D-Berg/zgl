@@ -176,13 +176,13 @@ fn GetWGPUWindowsSurface(window: Window, instance: Instance) wgpu.WGPUError!Surf
     log.debug("hinstance = {any}", .{hinstance});
     log.debug("hwnd = {any}", .{hwnd});
 
-    const fromWindowsHWND = Surface.SourceFromWindowsHWND{
+    const fromWindowsHWND = wgpu.SurfaceSourceFromWindowsHWND{
         .hwnd = hwnd,
         .hinstance = hinstance,
         .chain = .{ .sType = .SurfaceSourceWindowsHWND }
     };
 
-    const surface_desc = Surface.Descriptor{
+    const surface_desc = wgpu.SurfaceDescriptor{
         .nextInChain = &fromWindowsHWND.chain,
     };
 
