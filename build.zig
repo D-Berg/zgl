@@ -175,17 +175,9 @@ fn buildNative(b: *std.Build, zgl: *Module, target: Target, optimize: OptimizeMo
     switch (target.result.os.tag) {
         .macos => {
             zgl.linkFramework("Cocoa", .{});
-            zgl.linkFramework("Metal", .{});
             zgl.linkFramework("QuartzCore", .{});
 
-            glfw.linkSystemLibrary("objc");
             glfw.linkFramework("IOKit");
-            glfw.linkFramework("CoreFoundation");
-            glfw.linkFramework("Metal");
-            glfw.linkFramework("AppKit");
-            glfw.linkFramework("CoreServices");
-            glfw.linkFramework("CoreGraphics");
-            glfw.linkFramework("Foundation");
 
             glfw.addCSourceFiles(.{
                 .root = glfw_dep.path("src"),
@@ -235,6 +227,8 @@ fn buildNative(b: *std.Build, zgl: *Module, target: Target, optimize: OptimizeMo
             metal_layer.addIncludePath(glfw_dep.path("include/GLFW"));
             zgl.linkLibrary(metal_layer);
 
+
+            zgl.linkFramework("Metal", .{}); // needed by wgpu
         },
         .windows => {
 
