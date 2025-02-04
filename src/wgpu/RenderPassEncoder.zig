@@ -9,6 +9,7 @@ const RenderPipeline = wgpu.RenderPipeline;
 const Buffer = wgpu.Buffer;
 const BindGroup = wgpu.BindGroup;
 const TextureView = wgpu.TextureView;
+const IndexFormat = wgpu.IndexFormat;
 
 
 pub const RenderPassEncoder = *RenderPassEncoderImpl;
@@ -84,6 +85,23 @@ const RenderPassEncoderImpl = opaque {
         const size: u64 = if (buffer) |b| b.getSize() else 0;
         wgpuRenderPassEncoderSetVertexBuffer(renderPassEncoder, slot, buffer, offset, size);
     }
+
+    extern "c" fn wgpuRenderPassEncoderSetIndexBuffer(
+        renderPassEncoder: RenderPassEncoder,
+        buffer: Buffer,
+        format: IndexFormat,
+        offset: u64,
+        size: u64
+    ) void;
+    
+    pub fn setIndexBuffer(renderPassEncoder: RenderPassEncoder, buffer: Buffer, format: IndexFormat, offset: u64) void {
+
+        const size = buffer.getSize();
+
+        wgpuRenderPassEncoderSetIndexBuffer(renderPassEncoder, buffer, format, offset, size);
+
+    }
+    
 
 };
 
