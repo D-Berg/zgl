@@ -39,11 +39,11 @@ pub fn main() !void {
     const window = try glfw.Window.Create(WIDTH, HEIGHT, "Compute Boids");
     defer window.destroy();
 
-    const instance = try wgpu.Instance.Create(null);
-    defer instance.Release();
+    const instance = try wgpu.CreateInstance(null);
+    defer instance.release();
 
     const surface = try glfw.GetWGPUSurface(window, instance);
-    defer surface.Release();
+    defer surface.release();
 
 
     const adapter = try instance.RequestAdapter(null);
@@ -68,14 +68,14 @@ pub fn main() !void {
     surface_capabilities.logCapabilites();
 
     const device = try adapter.RequestDevice(null);
-    defer device.Release();
+    defer device.release();
 
     const queue = try device.GetQueue();
-    defer queue.Release();
+    defer queue.release();
 
     const prefered_format = surface_capabilities.formats[0];
-    const surface_config = wgpu.Surface.Configuration{
-        .device = device._inner,
+    const surface_config = wgpu.SurfaceConfiguration{
+        .device = device,
         .format = prefered_format,
         .width = RENDER_SCALE * WIDTH,
         .height = RENDER_SCALE * HEIGHT,
@@ -83,7 +83,8 @@ pub fn main() !void {
         .alphaMode = .Auto,
         .presentMode = .Fifo
     };
-    surface.Configure(&surface_config);
+    surface.configure(&surface_config);
+    defer surface.unconfigure();
 
     
     // Render Pipeline =======================================================
@@ -95,7 +96,7 @@ pub fn main() !void {
     const sprite_shader_module = try device.CreateShaderModule(&.{
         .nextInChain = &sprite_wgsl.chain
     });
-    defer sprite_shader_module.Release();
+    defer sprite_shader_module.release();
 
     const blend_state = wgpu.BlendState{
         .color = .{ 
@@ -117,11 +118,10 @@ pub fn main() !void {
         .writeMask = .All
     };
 
-    const render_pipeline = try device.CreateRenderPipeline(&wgpu.RenderPipeline.Descriptor{
+    const render_pipeline = try device.CreateRenderPipeline(&wgpu.RenderPipelineDescriptor{
         .vertex = .{
-            .module = sprite_shader_module._impl,
-            .entryPoint = StringView.fromSlice("vs_main"),
-            .bufferCount = 2,
+            .module = sprite_shader_module,
+            .entryPoint = "vs_main",
             .buffers = &[2]wgpu.VertexBufferLayout{
                 // instanced particles buffer
                 wgpu.VertexBufferLayout {
@@ -165,7 +165,7 @@ pub fn main() !void {
             .alphaToCoverageEnabled = false
         },
         .fragment = &.{
-            .module = sprite_shader_module._impl,    
+            .module = sprite_shader_module,    
             .entryPoint = StringView.fromSlice("fs_main"),
             .targetCount = 1,
             .targets = &[1]wgpu.ColorTargetState{ color_target }
@@ -185,15 +185,15 @@ pub fn main() !void {
     const update_sprite_shader_module = try device.CreateShaderModule(&.{
         .nextInChain = &update_sprite_wgsl_desc.chain
     });
-    defer update_sprite_shader_module.Release();
+    defer update_sprite_shader_module.release();
     //
     const compute_pipeline = try device.CreateComputePipeline(&.{
         .compute = .{
-            .module = update_sprite_shader_module._impl,
+            .module = update_sprite_shader_module,
             .entryPoint = StringView.fromSlice("main")
         }
     });
-    defer compute_pipeline.Release();
+    defer compute_pipeline.release();
     // =======================================================================
 
 
@@ -212,13 +212,13 @@ pub fn main() !void {
 
     const sprite_vertex_buffer = try device.CreateBuffer(&.{
         .label = StringView.fromSlice("sprite buff"),
-        .usage = @intFromEnum(wgpu.Buffer.Usage.Vertex),
+        .usage = @intFromEnum(wgpu.BufferUsage.Vertex),
         .size = @sizeOf(@TypeOf(vertex_buffer_data)),
         .mappedAtCreation = true
     });
-    defer sprite_vertex_buffer.Release();
+    defer sprite_vertex_buffer.release();
 
-    const sprite_range = try sprite_vertex_buffer.GetMappedRange(f32);
+    const sprite_range = try sprite_vertex_buffer.getMappedRange(f32, 0, @sizeOf(@TypeOf(vertex_buffer_data)));
     assert(sprite_range.len == vertex_buffer_data.len);
     for (0..sprite_range.len) |i| {
         sprite_range[i] = vertex_buffer_data[i];
@@ -229,10 +229,10 @@ pub fn main() !void {
     const sim_param_buffer = try device.CreateBuffer(&.{
         .label = StringView.fromSlice("sim params"),
         .size = @sizeOf(SimParams),
-        .usage = @intFromEnum(wgpu.Buffer.Usage.Uniform) | 
-            @intFromEnum(wgpu.Buffer.Usage.CopyDst)
+        .usage = @intFromEnum(wgpu.BufferUsage.Uniform) | 
+            @intFromEnum(wgpu.BufferUsage.CopyDst)
     });
-    defer sim_param_buffer.Release();
+    defer sim_param_buffer.release();
 
     const sim_params = SimParams{};
     queue.WriteBuffer(
@@ -264,14 +264,20 @@ pub fn main() !void {
 
     for (0..particle_buffers.len) |i| {
         particle_buffers[i] = try device.CreateBuffer(&.{
+            .label = StringView.fromSlice("particle_buffer"),
             .size = @sizeOf(@TypeOf(initial_particle_data)),
-            .usage = @intFromEnum(wgpu.Buffer.Usage.Vertex) | 
-                @intFromEnum(wgpu.Buffer.Usage.Storage),
+            .usage = @intFromEnum(wgpu.BufferUsage.Vertex) | 
+                @intFromEnum(wgpu.BufferUsage.Storage),
             .mappedAtCreation = true
         });
+        log.debug("created particle buffer {}", .{i});
 
-        const range = try particle_buffers[i].GetMappedRange(f32);
+        const range = try particle_buffers[i].getMappedRange(f32, 0, @sizeOf(@TypeOf(initial_particle_data)));
+        log.debug("got range for particle buffer {}", .{i});
+
         assert(range.len == initial_particle_data.len);
+
+        log.debug("setting values of particle buffer {}...", .{i});
         for (0..range.len) |r_idx| {
             range[r_idx] = initial_particle_data[r_idx];
         }
@@ -279,39 +285,40 @@ pub fn main() !void {
         particle_buffers[i].unmap();
     }
 
-    defer for (particle_buffers) |buffer| buffer.Release();
+    defer for (particle_buffers) |buffer| buffer.release();
 
+    log.debug("getting BindGroupLayout", .{});
     const layout = try compute_pipeline.GetBindGroupLayout(0);
-    defer layout.Release();
+    defer layout.release();
 
 
-    var bind_groups: [2]*wgpu.BindGroup = undefined;
+    var bind_groups: [2]wgpu.BindGroup = undefined;
     for (0..bind_groups.len) |i| {
         bind_groups[i] = try device.CreateBindGroup(&.{
             .layout = layout,
             .entryCount = 3,
-            .entries = &[3]wgpu.BindGroup.Entry{
-                wgpu.BindGroup.Entry{
+            .entries = &[3]wgpu.BindGroupEntry{
+                wgpu.BindGroupEntry{
                     .binding = 0,
-                    .buffer = sim_param_buffer._impl,
-                    .size = sim_param_buffer.GetSize()
+                    .buffer = sim_param_buffer,
+                    .size = sim_param_buffer.getSize()
                 },
-                wgpu.BindGroup.Entry{
+                wgpu.BindGroupEntry{
                     .binding = 1,
-                    .buffer = particle_buffers[i]._impl,
+                    .buffer = particle_buffers[i],
                     .offset = 0,
-                    .size = particle_buffers[i].GetSize(),
+                    .size = particle_buffers[i].getSize(),
                 },
-                wgpu.BindGroup.Entry{
+                wgpu.BindGroupEntry{
                     .binding = 2,
-                    .buffer = particle_buffers[(i + 1) % 2]._impl,
+                    .buffer = particle_buffers[(i + 1) % 2],
                     .offset = 0,
-                    .size = particle_buffers[(i + 2) % 2].GetSize()
+                    .size = particle_buffers[(i + 2) % 2].getSize()
                 }
             },
         });
     }
-    defer for (bind_groups) |bind_group| bind_group.Release();
+    defer for (bind_groups) |bind_group| bind_group.release();
 
     var t: usize = 0;
     // var timer = try  std.time.Timer.start();
@@ -322,6 +329,7 @@ pub fn main() !void {
     // const thread = try std.Thread.spawn(.{}, printFPS, .{&fps, &running});
     // defer thread.join();
     //
+    log.debug("Beginning loop", .{});
     while (!window.ShouldClose()) : (t += 1) {
         // const dt = timer.lap();
         // const dt_s = @as(f64, @floatFromInt(dt)) / 
@@ -334,7 +342,7 @@ pub fn main() !void {
         glfw.pollEvents();
 
         const texture = try surface.GetCurrentTexture();
-        defer texture.Release();
+        defer texture.release();
 
         const view = try texture.CreateView(&.{
             .format = texture.GetFormat(),
@@ -346,15 +354,15 @@ pub fn main() !void {
             .aspect = .All,
             .usage = surface_config.usage,
         });
-        defer view.Release();
+        defer view.release();
 
 
-        const command_encoder = device.CreateCommandEncoder(&.{});
-        defer command_encoder.Release();
+        const command_encoder = try device.CreateCommandEncoder(&.{});
+        defer command_encoder.release();
         
         {
-            const comp_pass_enc = try command_encoder.BeginComputePass(&.{});
-            defer comp_pass_enc.Release();
+            const comp_pass_enc = try command_encoder.beginComputePass(&.{});
+            defer comp_pass_enc.release();
 
             comp_pass_enc.setPipeline(compute_pipeline);
             comp_pass_enc.setBindGroup(0, bind_groups[t % 2]);
@@ -364,36 +372,36 @@ pub fn main() !void {
 
         {
 
-            const render_pass_desc = wgpu.RenderPass.Descriptor{
+            const render_pass_desc = wgpu.RenderPassDescriptor{
                 .colorAttachmentCount = 1,
-                .colorAttachments = &[1]wgpu.RenderPass.ColorAttachment{
-                    wgpu.RenderPass.ColorAttachment{
+                .colorAttachments = &[1]wgpu.RenderPassColorAttachment {
+                    wgpu.RenderPassColorAttachment {
                         .clearValue = .{ .r = 0, .g = 0, .b = 0, .a = 1},
                         .loadOp = .Clear,
                         .storeOp = .Store,
-                        .view = view._impl
+                        .view = view
                     },
                 },
             };
 
-            const rend_pass_enc = try command_encoder.BeginRenderPass(&render_pass_desc);
-            defer rend_pass_enc.Release();
+            const rend_pass_enc = try command_encoder.beginRenderPass(&render_pass_desc);
+            defer rend_pass_enc.release();
 
-            rend_pass_enc.SetPipeline(render_pipeline);
+            rend_pass_enc.setPipeline(render_pipeline);
             rend_pass_enc.setVertexBuffer(0, particle_buffers[(t + 1) % 2], 0);
             rend_pass_enc.setVertexBuffer(1, sprite_vertex_buffer, 0);
-            rend_pass_enc.Draw(3, NUM_PARTICLES, 0, 0);
-            rend_pass_enc.End();
+            rend_pass_enc.draw(3, NUM_PARTICLES, 0, 0);
+            rend_pass_enc.end();
         }
 
 
-        const command_buffer = command_encoder.Finish(&.{});
-        defer command_buffer.Release();
+        const command_buffer = try command_encoder.finish(&.{});
+        defer command_buffer.release();
 
-        queue.Submit(&[1]wgpu.CommandBuffer{command_buffer});
+        queue.submit(&.{ command_buffer });
 
-        surface.Present();
-        _ = device.Poll(false, null);
+        surface.present();
+        _ = device.poll(false, null);
 
         // std.Thread.sleep(8 * std.time.ns_per_ms);
     }
