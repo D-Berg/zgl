@@ -1,4 +1,5 @@
 const std = @import("std");
+const log = std.log.scoped(.@"build");
 
 const OptimizeMode = std.builtin.OptimizeMode;
 const Target = std.Build.ResolvedTarget;
@@ -16,6 +17,13 @@ const Compile = std.Build.Step.Compile;
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
+
+    log.debug("target = {s}-{s}-{s}", .{
+        @tagName(target.result.cpu.arch),
+        @tagName(target.result.os.tag),
+        @tagName(target.result.abi)
+        
+    });
 
     const zgl = b.addModule("zgl", .{
         .root_source_file = b.path("src/zgl.zig"),
