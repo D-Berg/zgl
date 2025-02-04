@@ -53,7 +53,7 @@ const CommandEncoderImpl = opaque {
         descriptor: *const RenderPassDescriptor
     ) ?RenderPassEncoder;
 
-    pub fn beginRenderPass(
+    pub fn BeginRenderPass(
         commandEncoder: CommandEncoder, 
         descriptor: *const RenderPassDescriptor
     ) WGPUError!RenderPassEncoder {

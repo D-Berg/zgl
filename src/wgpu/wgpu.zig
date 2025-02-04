@@ -896,7 +896,6 @@ pub const StringView = extern struct {
     length: usize = 0,
 
     pub fn toSlice(stringView: StringView) []const u8 {
-        log.debug("converting stringview to slice", .{});
         var slice: []const u8 = "";
 
         if (stringView.data) |data| slice.ptr = data;
