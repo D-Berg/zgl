@@ -1,10 +1,11 @@
 
 
-pub const TextureView = *opaque {
+pub const TextureView = *TextureViewImpl;
+const TextureViewImpl = opaque {
 
-    extern "c" fn wgpuTextureViewRelease(texture_view: TextureView) void;
-    pub fn release(texture_view: TextureView) void {
-        wgpuTextureViewRelease(texture_view);
+    extern "c" fn wgpuTextureViewRelease(textureView: TextureView) void;
+    pub fn release(textureView: TextureView) void {
+        wgpuTextureViewRelease(textureView);
     }
 
 };

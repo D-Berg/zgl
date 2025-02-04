@@ -11,7 +11,8 @@ const SurfaceDescriptor = wgpu.SurfaceDescriptor;
 const ChainedStruct = wgpu.ChainedStruct;
 const RequestAdapterOptions = wgpu.RequestAdapterOptions;
 
-pub const Instance = *opaque {
+pub const Instance = *InstanceImpl;
+const InstanceImpl = opaque {
     
     extern "c" fn wgpuInstanceRelease(instance: Instance) void;
     pub fn release(instance: Instance) void {

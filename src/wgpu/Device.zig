@@ -29,7 +29,9 @@ const SupportedFeatures = wgpu.SupportedFeatures;
 const RenderPipelineDescriptor = wgpu.RenderPipelineDescriptor;
 const CommandEncoderDescriptor = wgpu.CommandEncoderDescriptor;
 
-pub const Device= *opaque {
+pub const Device = *DeviceImpl;
+
+const DeviceImpl = opaque {
     extern "c" fn wgpuDeviceRelease(device: Device) void;
     pub fn release(device: Device) void {
         wgpuDeviceRelease(device);

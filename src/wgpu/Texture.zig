@@ -10,7 +10,8 @@ const TextureViewDescriptor = wgpu.TextureViewDescriptor;
 const TextureAspect = wgpu.TextureAspect;
 const TextureView = wgpu.TextureView;
 
-pub const Texture = *opaque {
+pub const Texture = *TextureImpl; 
+const TextureImpl = opaque {
 
     extern "c" fn wgpuTextureRelease(texture: Texture) void;
     pub fn release(texture: Texture) void {

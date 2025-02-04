@@ -17,7 +17,8 @@ const Texture = wgpu.Texture;
 
 const builtin = @import("builtin");
 
-pub const Surface = *opaque {
+pub const Surface = *SurfaceImpl;
+const SurfaceImpl = opaque {
 
     extern "c" fn wgpuSurfaceConfigure(surface: Surface, config: *const SurfaceConfiguration) void;
     pub fn configure(surface: Surface, config: *const SurfaceConfiguration) void {

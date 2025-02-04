@@ -1,2 +1,3 @@
 
-pub const RenderBundle = *opaque {};
+pub const RenderBundle = *RenderBundleImpl;
+const RenderBundleImpl = opaque {};

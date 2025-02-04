@@ -1,1 +1,2 @@
-pub const Sampler = *opaque {};
+pub const Sampler = *SamplerImpl;
+const SamplerImpl = opaque {};

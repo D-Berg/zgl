@@ -7,7 +7,8 @@ const RequestAdapterStatus = wgpu.RequestAdapterStatus;
 const CommandBuffer = wgpu.CommandBuffer;
 const Buffer = wgpu.Buffer;
 
-pub const Queue = *opaque {
+pub const Queue = *QueueImpl;
+const QueueImpl = opaque {
 
     extern "c" fn wgpuQueueRelease(queue: Queue) void;
     pub fn release(queue: Queue) void {
