@@ -1,4 +1,5 @@
-//! https://webgpu-native.github.io/webgpu-headers/webgpu_8h_source.html
+//! [webgpu-native headers](https://webgpu-native.github.io/webgpu-headers/webgpu_8h_source.html)
+//! [JS API](https://developer.mozilla.org/en-US/docs/Web/API/WebGPU_API)
 const std = @import("std");
 const log = std.log.scoped(.@"wgpu");
 const Allocator = std.mem.Allocator;
