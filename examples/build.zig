@@ -8,9 +8,6 @@ pub fn build(b: *std.Build) void {
 
     const zgl_dep = b.dependency("zgl", .{});
 
-    const examples_step = b.step("examples", "build all examples");
-    // _= examples_step;
-
     var examples_dir = std.fs.cwd().openDir("./", .{ .iterate = true }) catch {
         log.debug("failed to open examples dir", .{});
         return;
@@ -39,8 +36,6 @@ pub fn build(b: *std.Build) void {
         });
 
         exe.root_module.addImport("zgl", zgl_dep.module("zgl"));
-
-        exe.step.dependOn(examples_step);
 
         b.installArtifact(exe);
 
