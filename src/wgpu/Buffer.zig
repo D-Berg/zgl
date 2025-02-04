@@ -4,7 +4,8 @@ const wgpu = @import("wgpu.zig");
 const ChainedStruct = wgpu.ChainedStruct;
 const WGPUError = wgpu.WGPUError;
 
-pub const Buffer = *opaque {
+pub const Buffer = *BufferImpl;
+const BufferImpl = opaque {
     //WGPU_EXPORT void wgpuBufferDestroy(WGPUBuffer buffer) WGPU_FUNCTION_ATTRIBUTE;
     //WGPU_EXPORT void const * wgpuBufferGetConstMappedRange(WGPUBuffer buffer, size_t offset, size_t size) WGPU_FUNCTION_ATTRIBUTE;
     //WGPU_EXPORT WGPUBufferMapState wgpuBufferGetMapState(WGPUBuffer buffer) WGPU_FUNCTION_ATTRIBUTE;
@@ -12,7 +13,7 @@ pub const Buffer = *opaque {
     extern "c" fn wgpuBufferGetMappedRange(buffer: Buffer, offset: usize, size: usize) ?*anyopaque;
     /// Buffer need to be mapped in order to get mapped range.
     /// returns a slice T which can be used to write data to the GPU buffer
-    pub fn GetMappedRange(buffer: Buffer, comptime T: type, offset: usize, size: usize) WGPUError![]T {
+    pub fn getMappedRange(buffer: Buffer, comptime T: type, offset: usize, size: usize) WGPUError![]T {
 
         // TODO: check that buffer is mapped
     

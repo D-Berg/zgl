@@ -6,29 +6,24 @@ const ChainedStruct = wgpu.ChainedStruct;
 const PipeLineLayout = wgpu.PipelineLayout;
 const PipeLineLayoutImpl = PipeLineLayout.PipelineLayoutImpl;
 const ProgrammableStageDescriptor = wgpu.ProgrammableStageDescriptor;
-const Bindgroup = wgpu.BindGroup;
+const BindgroupLayout = wgpu.BindGroupLayout;
 
-pub const ComputePipeline = *opaque {
-    pub const Descriptor = extern struct {
-        nextInChain: ?*const ChainedStruct = null,
-        label: wgpu.StringView = .{ .data = "", .length = 0 },
-        layout: ?PipeLineLayoutImpl = null,
-        compute: ProgrammableStageDescriptor
-    };
+pub const ComputePipeline = *ComputePipelineImpl;
+pub const ComputePipelineImpl = opaque {
 
-    extern "c" fn wgpuComputePipelineRelease(compute_pipeline: *ComputePipeline) void;
-    pub fn Release(compute_pipeline: *ComputePipeline) void {
-        wgpuComputePipelineRelease(compute_pipeline);
+    extern "c" fn wgpuComputePipelineRelease(compute_pipeline: ComputePipeline) void;
+    pub fn release(computePipeline: ComputePipeline) void {
+        wgpuComputePipelineRelease(computePipeline);
         log.info("Released ComputePipeline", .{});
     }
     
-    extern "c" fn wgpuComputePipelineGetBindGroupLayout(computePipeline: *ComputePipeline, groupIndex: u32) ?*Bindgroup.Layout;
-    pub fn GetBindGroupLayout(computePipeline: *ComputePipeline, groupIndex: u32) WGPUError!*Bindgroup.Layout {
+    extern "c" fn wgpuComputePipelineGetBindGroupLayout(computePipeline: ComputePipeline, groupIndex: u32) ?BindgroupLayout;
+    pub fn GetBindGroupLayout(computePipeline: ComputePipeline, groupIndex: u32) WGPUError!BindgroupLayout {
 
         const maybe_layout = wgpuComputePipelineGetBindGroupLayout(computePipeline, groupIndex);
 
         if (maybe_layout) |layout| {
-            log.info("Got BindgroupLayout {}", .{groupIndex});
+            log.info("Got BindgroupLayout for index {}", .{groupIndex});
             return layout;
         } else {
             log.err("Failed to get BindgroupLayout {}", .{groupIndex});
@@ -36,7 +31,5 @@ pub const ComputePipeline = *opaque {
         }
     
     }
-
-
     
 };

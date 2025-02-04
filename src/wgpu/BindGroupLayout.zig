@@ -1,7 +1,8 @@
-pub const BindGroupLayout = *opaque {
+pub const BindGroupLayout = *BindGroupLayoutImpl;
+pub const BindGroupLayoutImpl = opaque {
 
-    extern "c" fn wgpuBindGroupLayoutRelease(bindGroupLayout: *BindGroupLayout) void;
-    pub fn release(bindGroupLayout: *BindGroupLayout) void {
+    extern "c" fn wgpuBindGroupLayoutRelease(bindGroupLayout: BindGroupLayout) void;
+    pub fn release(bindGroupLayout: BindGroupLayout) void {
         wgpuBindGroupLayoutRelease(bindGroupLayout);
     }
 

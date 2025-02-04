@@ -11,72 +11,27 @@ const BindGroup = wgpu.BindGroup;
 const TextureView = wgpu.TextureView;
 
 
-pub const EncoderImpl = *opaque {};
-
-pub const ColorAttachment = extern struct {
-    nextInChain: ?*const ChainedStruct = null,
-    view: ?TextureView = null,
-    depthSlice: DepthSlice = .Undefined,
-    resolveTarget: ?TextureView = null,
-    loadOp: LoadOp,
-    storeOp: StoreOp,
-    clearValue: Color
-};
-
-
-
-pub const DepthStencilAttachment = extern struct {
-    view: TextureView,
-    depthLoadOp: LoadOp,
-    depthStoreOp: StoreOp,
-    depthClearValue: f32,
-    depthReadOnly: bool,
-    stencilLoadOp: LoadOp,
-    stencilStoreOp: StoreOp,
-    stencilClearValue: u32,
-    stencilReadOnly: bool,
-};
-
-
-pub const TimestampWrites = extern struct {
-    querySet: QuerySet,
-    beginningOfPassWriteIndex: u32,
-    endOfPassWriteIndex: u32
-};
-
-pub const Descriptor = extern struct {
-    nextInChain: ?*const ChainedStruct = null,
-    label: wgpu.StringView = .{},
-    colorAttachmentCount: usize = 0,
-    colorAttachments: ?[*]const ColorAttachment = null,
-    depthStencilAttachment: ?*const DepthStencilAttachment = null,
-    occlusionQuerySet: ?QuerySet = null,
-    timestampWrites: ?*const TimestampWrites = null
-};
-
-// TODO: make methods lowercase since the return void
-pub const Encoder = struct {
-    _impl: EncoderImpl,
-
-    extern "c" fn wgpuRenderPassEncoderEnd(renderPassEncoder: EncoderImpl) void;
-    pub fn End(renderPassEncoder: Encoder) void {
-        wgpuRenderPassEncoderEnd(renderPassEncoder._impl);
+pub const RenderPassEncoder = *RenderPassEncoderImpl;
+const RenderPassEncoderImpl = opaque {
+    extern "c" fn wgpuRenderPassEncoderEnd(renderPassEncoder: RenderPassEncoder) void;
+    pub fn end(renderPassEncoder: RenderPassEncoder) void {
+        wgpuRenderPassEncoderEnd(renderPassEncoder);
     }
 
-    extern "c" fn wgpuRenderPassEncoderRelease(renderPassEncoder: EncoderImpl) void;
-    pub fn Release(renderPassEncoder: Encoder) void {
-        wgpuRenderPassEncoderRelease(renderPassEncoder._impl);
+    extern "c" fn wgpuRenderPassEncoderRelease(renderPassEncoder: RenderPassEncoder) void;
+    pub fn release(renderPassEncoder: RenderPassEncoder) void {
+        wgpuRenderPassEncoderRelease(renderPassEncoder);
     }
 
     // TODO: start lowercase
-    extern "c" fn wgpuRenderPassEncoderSetPipeline(renderPassEncoder: EncoderImpl, pipeline: RenderPipeline) void;
-    pub fn SetPipeline(renderPassEncoder: Encoder, pipeline: RenderPipeline) void {
-        wgpuRenderPassEncoderSetPipeline(renderPassEncoder._impl, pipeline);
+    extern "c" fn wgpuRenderPassEncoderSetPipeline(renderPassEncoder: RenderPassEncoder, pipeline: RenderPipeline) void;
+    pub fn setPipeline(renderPassEncoder: RenderPassEncoder, pipeline: RenderPipeline) void {
+        wgpuRenderPassEncoderSetPipeline(renderPassEncoder, pipeline);
     }
 
     
     extern "c" fn wgpuRenderPassEncoderSetBindGroup(
-        renderPassEncoder: EncoderImpl, 
+        renderPassEncoder: RenderPassEncoder, 
         groupIndex: u32, 
         group: ?*BindGroup, 
         dynamicOffsetCount: usize,
@@ -84,14 +39,14 @@ pub const Encoder = struct {
     ) void;
 
     pub fn setBindGroup(
-        renderPassEncoder: Encoder, 
+        renderPassEncoder: RenderPassEncoder, 
         groupIndex: u32,
         group: ?*BindGroup,
         dynamicOffsets: []const u32
     ) void {
 
         wgpuRenderPassEncoderSetBindGroup(
-            renderPassEncoder._impl, 
+            renderPassEncoder, 
             groupIndex, 
             group, 
             dynamicOffsets.len, 
@@ -100,16 +55,42 @@ pub const Encoder = struct {
 
     }
 
-    extern "c" fn wgpuRenderPassEncoderDraw(renderPassEncoder: EncoderImpl, vertexCount: u32, instanceCount: u32, firstVertex: u32, firstInstance: u32) void;
+    extern "c" fn wgpuRenderPassEncoderDraw(
+        renderPassEncoder: RenderPassEncoder, 
+        vertexCount: u32, 
+        instanceCount: u32, 
+        firstVertex: u32, 
+        firstInstance: u32
+    ) void;
 
-    pub fn Draw(renderPassEncoder: Encoder, vertexCount: u32, instanceCount: u32, firstVertex: u32, firstInstance: u32) void {
-        wgpuRenderPassEncoderDraw(renderPassEncoder._impl, vertexCount, instanceCount, firstVertex, firstInstance);
+    pub fn draw(
+        renderPassEncoder: RenderPassEncoder,
+        vertexCount: u32, 
+        instanceCount: u32, 
+        firstVertex: u32, 
+        firstInstance: u32
+    ) void {
+        wgpuRenderPassEncoderDraw(renderPassEncoder, vertexCount, instanceCount, firstVertex, firstInstance);
     }
 
-    extern "c" fn wgpuRenderPassEncoderSetVertexBuffer(renderPassEncoder: EncoderImpl, slot: u32, buffer: ?Buffer, offset: u64, size: u64) void;
-    pub fn setVertexBuffer(renderPassEncoder: Encoder, slot: u32, buffer: ?Buffer, offset: u64) void {
+    extern "c" fn wgpuRenderPassEncoderSetVertexBuffer(
+        renderPassEncoder: RenderPassEncoder, 
+        slot: u32, 
+        buffer: ?Buffer, 
+        offset: u64, 
+        size: u64
+    ) void;
+    pub fn setVertexBuffer(renderPassEncoder: RenderPassEncoder, slot: u32, buffer: ?Buffer, offset: u64) void {
         const size: u64 = if (buffer) |b| b.getSize() else 0;
-        wgpuRenderPassEncoderSetVertexBuffer(renderPassEncoder._impl, slot, buffer, offset, size);
+        wgpuRenderPassEncoderSetVertexBuffer(renderPassEncoder, slot, buffer, offset, size);
     }
+
 };
+
+
+
+
+
+
+
 

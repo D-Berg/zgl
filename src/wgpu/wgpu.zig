@@ -8,15 +8,15 @@ const c = @import("../zgl.zig").c;
 
 const WGPUBool = u32;
 
-// wgpu objects
+// wgpu objects, contains all the methods
 // https://webgpu-native.github.io/webgpu-headers/group__Objects.html
 pub const Adapter = @import("Adapter.zig").Adapter;
 pub const BindGroup = @import("BindGroup.zig").BindGroup; // complete
 pub const BindGroupLayout = @import("BindGroupLayout.zig").BindGroupLayout;
 pub const Buffer = @import("Buffer.zig").Buffer;
-pub const CommandBuffer = @import("CommandBuffer.zig");
-pub const CommandEncoder = @import("CommandEncoder.zig");
-pub const ComputePassEncoder = @import("ComputePassEncoder.zig");
+pub const CommandBuffer = @import("CommandBuffer.zig").CommandBuffer;
+pub const CommandEncoder = @import("CommandEncoder.zig").CommandEncoder;
+pub const ComputePassEncoder = @import("ComputePassEncoder.zig").ComputePassEncoder;
 pub const ComputePipeline = @import("ComputePipeline.zig").ComputePipeline;
 pub const Device = @import("Device.zig").Device;
 pub const Instance = @import("Instance.zig").Instance;
@@ -25,7 +25,7 @@ pub const QuerySet = @import("QuerySet.zig").QuerySet;
 pub const Queue = @import("Queue.zig").Queue;
 pub const RenderBundle = @import("RenderBundle.zig").RenderBundle;
 pub const RenderBundleEncoder = @import("RenderBundleEncoder.zig").RenderBundleEncoder;
-pub const RenderPassEncoder = @import("RenderPassEncoder.zig");
+pub const RenderPassEncoder = @import("RenderPassEncoder.zig").RenderPassEncoder;
 pub const RenderPipeline = @import("RenderPipeline.zig").RenderPipeline;
 pub const Sampler = @import("Sampler.zig").Sampler;
 pub const ShaderModule = @import("ShaderModule.zig").ShaderModule;
@@ -95,16 +95,39 @@ pub const BindGroupDescriptor = extern struct {
     nextInChain: ?*const ChainedStruct = null,
     label: StringView = .{},
     layout: ?BindGroupLayout = null, 
-    entryCount: usize = 0,
-    entries: ?[*]const BindGroupLayout = null
+    entryCount: usize = 0, // TODO: use slice
+    entries: ?[*]const BindGroupEntry = null
 };
 
 pub const BufferDescriptor = extern struct {
     nextInChain: ?*const ChainedStruct = null,
     label: StringView = .{},
-    usage: Flag = @intFromEnum(BufferUsage.None), // TODO: take a [2]Usage
+    usage: Flag = @intFromEnum(BufferUsage.None), // TODO: take a []Usage
     size: u64 = 0,
     mappedAtCreation: bool = false,
+};
+
+pub const CommandBufferDescriptor = extern struct {
+    nextInChain: ?*const ChainedStruct = null,
+    label: StringView = .{},
+};
+
+pub const CommandEncoderDescriptor = extern struct {
+    nextInChain: ?*const ChainedStruct = null,
+    label: StringView = .{},
+}; 
+
+pub const ComputePassEncoderDescriptor = extern struct {
+    nextInChain: ?*const ChainedStruct = null,
+    label: StringView = .{},
+    timestampWrites: ?*const ComputePassTimeStampWrites = null,
+};
+
+pub const ComputePipelineDescriptor = extern struct {
+    nextInChain: ?*const ChainedStruct = null,
+    label: StringView = .{},
+    layout: ?PipelineLayout = null,
+    compute: ProgrammableStageDescriptor
 };
 
 pub const DeviceDescriptor = struct {
@@ -128,6 +151,15 @@ pub const InstanceDescriptor = extern struct {
     timedWaitAnyMaxCount: usize = 0
 };
 
+pub const RenderPassDescriptor = extern struct {
+    nextInChain: ?*const ChainedStruct = null,
+    label: StringView = .{},
+    colorAttachmentCount: usize = 0,
+    colorAttachments: ?[*]const RenderPassColorAttachment = null,
+    depthStencilAttachment: ?*const RenderPassDepthStencilAttachment = null,
+    occlusionQuerySet: ?QuerySet = null,
+    timestampWrites: ?*const RenderPassTimestampWrites = null
+};
 
 pub const RenderPipelineDescriptor = struct {
     nextInChain: ?*const ChainedStruct = null,
@@ -255,6 +287,10 @@ pub const WGPUError = error {
     FailedToMapBufferBecauseOfDroppedInstance,
     FailedToMapBufferBecauseOfUnknown,
     FailedToMapBufferBecauseOfForce32,
+
+    FailedToFinishCommandEncoder,
+
+    FailedToCreateCommandEncoder
     
 };
 
@@ -327,7 +363,7 @@ pub const VertextAttribute = extern struct {
 pub const VertexBufferLayout = extern struct {
     stepMode: VertexStepMode,
     arrayStride: u64,
-    attributeCount: usize,
+    attributeCount: usize, // TODO: use slice
     attributes: [*]const VertextAttribute
 };
 
@@ -859,6 +895,7 @@ pub const StringView = extern struct {
     length: usize = 0,
 
     pub fn toSlice(stringView: StringView) []const u8 {
+        log.debug("converting stringview to slice", .{});
         var slice: []const u8 = "";
 
         if (stringView.data) |data| slice.ptr = data;
@@ -1114,6 +1151,42 @@ pub const BindGroupEntry = extern struct {
 };
 
 
+pub const ComputePassTimeStampWrites = extern struct {
+    querySet: QuerySet, 
+    beginningOfPassWriteIndex: u32 = 0,
+    endOfPassWriteIndex: u32 = 0
+};
+
+
+pub const RenderPassDepthStencilAttachment = extern struct {
+    view: TextureView,
+    depthLoadOp: LoadOp,
+    depthStoreOp: StoreOp,
+    depthClearValue: f32,
+    depthReadOnly: bool,
+    stencilLoadOp: LoadOp,
+    stencilStoreOp: StoreOp,
+    stencilClearValue: u32,
+    stencilReadOnly: bool,
+};
+
+
+pub const RenderPassTimestampWrites = extern struct {
+    querySet: QuerySet,
+    beginningOfPassWriteIndex: u32,
+    endOfPassWriteIndex: u32
+};
+
+pub const RenderPassColorAttachment = extern struct {
+    nextInChain: ?*const ChainedStruct = null,
+    view: ?TextureView = null,
+    depthSlice: DepthSlice = .Undefined,
+    resolveTarget: ?TextureView = null,
+    loadOp: LoadOp,
+    storeOp: StoreOp,
+    clearValue: Color
+};
+
 pub const Color = extern struct { 
     r: f64,
     g: f64,
@@ -1193,7 +1266,7 @@ pub const SurfaceConfiguration = extern struct {
     usage: TextureUsage = .RenderAttachment,
     width: u32 = 0,
     height: u32 = 0,
-    viewFormatCount: usize = 0,
+    viewFormatCount: usize = 0, // TODO: use slice
     viewFormats: ?[*]const TextureFormat = null,
     alphaMode: CompositeAlphaMode = .Auto,
     presentMode: PresentMode = .Undefined,

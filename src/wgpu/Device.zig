@@ -9,13 +9,13 @@ const Allocator = std.mem.Allocator;
 const WGPUError = wgpu.WGPUError;
 const ChainedStruct = wgpu.ChainedStruct;
 const ChainedStructOut = wgpu.ChainedStructOut;
+const ComputePipelineDescriptor = wgpu.ComputePipelineDescriptor;
 const FeatureName = wgpu.FeatureName;
 const RequiredLimits = wgpu.RequiredLimits;
 const Queue = wgpu.Queue;
 const UncapturedErrorCallbackInfo = wgpu.UncapturedErrorCallbackInfo;
 const Limits = wgpu.Limits;
 const CommandEncoder = wgpu.CommandEncoder;
-const CommandEncoderImpl = CommandEncoder.CommandEncoderImpl;
 const ShaderModule = wgpu.ShaderModule;
 const ShaderModuleDescriptor = wgpu.ShaderModuleDescriptor;
 const RenderPipeline = wgpu.RenderPipeline;
@@ -24,8 +24,10 @@ const Buffer = wgpu.Buffer;
 const BufferDescriptor = wgpu.BufferDescriptor;
 const ComputePipeline = wgpu.ComputePipeline;
 const BindGroup = wgpu.BindGroup;
+const BindGroupDescriptor = wgpu.BindGroupDescriptor;
 const SupportedFeatures = wgpu.SupportedFeatures;
 const RenderPipelineDescriptor = wgpu.RenderPipelineDescriptor;
+const CommandEncoderDescriptor = wgpu.CommandEncoderDescriptor;
 
 pub const Device= *opaque {
     extern "c" fn wgpuDeviceRelease(device: Device) void;
@@ -71,15 +73,20 @@ pub const Device= *opaque {
     }
 
     
-    extern "c" fn wgpuDeviceCreateCommandEncoder(device: Device, descriptor: ?*const CommandEncoder.Descriptor) CommandEncoderImpl;
-    // TODO: handle if wgpuDeviceCreateCommandEncoder returns null
-    pub fn CreateCommandEncoder(device: Device, descriptor: ?*const CommandEncoder.Descriptor) CommandEncoder {
+    extern "c" fn wgpuDeviceCreateCommandEncoder(device: Device, descriptor: ?*const CommandEncoderDescriptor) ?CommandEncoder;
+    pub fn CreateCommandEncoder(device: Device, descriptor: ?*const CommandEncoderDescriptor) WGPUError!CommandEncoder {
 
-        const ce_inner = wgpuDeviceCreateCommandEncoder(device, descriptor);
-
-        // log.debug("Created CommandEncoder: {}", .{ce_inner});
+        const maybe_command_encoder = wgpuDeviceCreateCommandEncoder(device, descriptor);
         
-        return CommandEncoder{ ._inner = ce_inner };
+        if (maybe_command_encoder) |command_encoder| {
+
+            return command_encoder;
+
+        } else {
+            return WGPUError.FailedToCreateCommandEncoder;
+        }
+
+        
 
     }
 
@@ -121,20 +128,23 @@ pub const Device= *opaque {
     
     extern "c" fn wgpuDeviceCreateComputePipeline(
         device: Device,
-        descriptor: *const ComputePipeline.Descriptor
+        descriptor: *const ComputePipelineDescriptor
     ) ?ComputePipeline;
 
     pub fn CreateComputePipeline(
         device: Device,
-        descriptor: *const ComputePipeline.Descriptor
-    ) WGPUError!*ComputePipeline {
+        descriptor: *const ComputePipelineDescriptor
+    ) WGPUError!ComputePipeline {
+
         const maybe_compute_pipeline = wgpuDeviceCreateComputePipeline(
             device, descriptor
         );
 
         if (maybe_compute_pipeline) |compute_pipeline| {
+
             log.info("Created ComputePipeline {}", .{compute_pipeline});
             return compute_pipeline;
+        
         } else {
             return WGPUError.FailedToCreateComputePipeline;
         }
@@ -163,8 +173,8 @@ pub const Device= *opaque {
     }
 
     
-    extern "c" fn wgpuDeviceCreateBindGroup(device: Device, descriptor: *const BindGroup.Descriptor) ?BindGroup;
-    pub fn CreateBindGroup(device: Device, descriptor: *const BindGroup.Descriptor) WGPUError!BindGroup {
+    extern "c" fn wgpuDeviceCreateBindGroup(device: Device, descriptor: *const BindGroupDescriptor) ?BindGroup;
+    pub fn CreateBindGroup(device: Device, descriptor: *const BindGroupDescriptor) WGPUError!BindGroup {
 
         const maybe_bindgroup = wgpuDeviceCreateBindGroup(device, descriptor);
 

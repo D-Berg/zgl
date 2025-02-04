@@ -3,7 +3,8 @@ const log = std.log.scoped(.@"wgpu/BindGroup");
 const wgpu = @import("wgpu.zig");
 const StringView = wgpu.StringView;
 
-pub const BindGroup = *opaque {
+pub const BindGroup = *BindGroupImpl;
+const BindGroupImpl = opaque {
     extern "c" fn wgpuBindGroupSetLabel(bindGroup: BindGroup, label: StringView) void;
     pub fn setLabel(bindGroup: BindGroup, label: StringView) void {
         wgpuBindGroupSetLabel(bindGroup, label);
