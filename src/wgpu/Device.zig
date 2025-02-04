@@ -2,7 +2,7 @@ const std = @import("std");
 const log = std.log.scoped(.@"wgpu/device");
 const wgpu = @import("wgpu.zig");
 
-const c = @import("../zgl.zig").c;
+// const c = @import("../zgl.zig").c;
 
 const Allocator = std.mem.Allocator;
 
@@ -113,10 +113,11 @@ const DeviceImpl = opaque {
     }
 
     
-    // extern "c" fn wgpuDeviceCreateRenderPipeline(device: Device, descriptor: *const RenderPipeline.Descriptor) ?RenderPipelineImpl;
+    extern "c" fn wgpuDeviceCreateRenderPipeline(device: Device, descriptor: *const RenderPipelineDescriptor) ?RenderPipeline;
     pub fn CreateRenderPipeline(device: Device, descriptor: *const RenderPipelineDescriptor) WGPUError!RenderPipeline {
 
-        const maybe_render_pipeline = c.wgpuDeviceCreateRenderPipeline(@ptrCast(device), &descriptor.ToExtern());
+        // const maybe_render_pipeline = c.wgpuDeviceCreateRenderPipeline(@ptrCast(device), &descriptor.ToExtern());
+        const maybe_render_pipeline = wgpuDeviceCreateRenderPipeline(device, descriptor);
 
         if (maybe_render_pipeline) |render_pipeline| {
             log.info("Created RenderPipeline {}", .{render_pipeline});

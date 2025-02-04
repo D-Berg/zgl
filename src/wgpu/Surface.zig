@@ -54,7 +54,7 @@ const SurfaceImpl = opaque {
             wgpuSurfaceGetCapabilities(surface, adapter, &native_cap);
 
             var usage_idx: usize = 0;
-            inline for (@typeInfo(TextureUsage).@"enum".fields) |field| {
+            inline for (@typeInfo(TextureUsage).Enum.fields) |field| {
 
                 const bit_is_set: bool = blk: {
                     if (field.value == 0) {
@@ -157,7 +157,7 @@ const SurfaceImpl = opaque {
 
 
 
-const MAX_USAGES = @typeInfo(TextureUsage).@"enum".fields.len;
+const MAX_USAGES = @typeInfo(TextureUsage).Enum.fields.len;
 var usages_buffer: [MAX_USAGES]TextureUsage = undefined;
 pub const Capabilities = struct {
     nextInChain: ?*ChainedStructOut = null,

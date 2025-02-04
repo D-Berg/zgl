@@ -167,6 +167,7 @@ fn buildNative(b: *std.Build, zgl: *Module, target: Target, optimize: OptimizeMo
         .target = target,
         .optimize = optimize,
         .link_libc = true,
+        .use_llvm = true
         // .strip = true
     });
 
@@ -326,6 +327,8 @@ fn buildNative(b: *std.Build, zgl: *Module, target: Target, optimize: OptimizeMo
             const x11_headers = b.dependency("x11_headers", .{});
             glfw.addIncludePath(x11_headers.path(""));
 
+            // glfw.addIncludePath(glfw_dep.path("deps"));
+
             switch (display_server) {
                 .X11 => {
                     glfw.addCSourceFiles(.{
@@ -392,17 +395,17 @@ fn buildNative(b: *std.Build, zgl: *Module, target: Target, optimize: OptimizeMo
         // .weak = true
     });
 
-    const translate_c = b.addTranslateC(.{
-        .root_source_file = b.path("include/c.h"),
-        .target = target,
-        .optimize = optimize,
-    });
+    // const translate_c = b.addTranslateC(.{
+    //     .root_source_file = b.path("include/c.h"),
+    //     .target = target,
+    //     .optimize = optimize,
+    // });
+    //
+    // const translate_c_mod = translate_c.createModule();
+    // translate_c.addIncludePath(glfw_dep.path("include"));
+    // translate_c.addIncludePath(wgpu_native.path("include"));
 
-    const translate_c_mod = translate_c.createModule();
-    translate_c.addIncludePath(glfw_dep.path("include"));
-    translate_c.addIncludePath(wgpu_native.path("include"));
-
-    zgl.addImport("c", translate_c_mod);
+    // zgl.addImport("c", translate_c_mod);
 
     zgl.linkLibrary(glfw);
 
@@ -412,7 +415,7 @@ fn buildNative(b: *std.Build, zgl: *Module, target: Target, optimize: OptimizeMo
         .optimize = optimize,
         .link_libc = true
     });
-    mod_unit_tests.root_module.addImport("c", translate_c_mod);
+    // mod_unit_tests.root_module.addImport("c", translate_c_mod);
     mod_unit_tests.addLibraryPath(wgpu_native.path("lib/"));
     mod_unit_tests.linkSystemLibrary("wgpu_native");
 

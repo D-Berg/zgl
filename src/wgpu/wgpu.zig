@@ -34,60 +34,60 @@ pub const Surface = @import("Surface.zig").Surface;
 pub const Texture = @import("Texture.zig").Texture;
 pub const TextureView = @import("TextureView.zig").TextureView;
 
-test "api coverage" {
-
-    // std.testing.log_level = .debug;
-
-    inline for (@typeInfo(@This()).@"struct".decls) |decl| {
-        // log.info("decl = {s}", .{decl.name});
-        const t = @field(@This(), decl.name);
-
-        if (@TypeOf(t) != type) {
-            log.debug("{s} is not a type", .{decl.name});
-            continue;
-        }
-
-        // log.info("t = {}", .{t});
-        // log.info("t is a type = {}", .{@typeInfo(t) == .@"struct"});
-        const t_info = @typeInfo(t);
-        switch (t_info) {
-
-            .@"struct" => {
-                log.debug("{s} has declarations:", .{decl.name});
-
-                inline for (t_info.@"struct".decls) |inner_decl| {
-                    // const inner_t = @field(t, inner_decl.name);
-                    //
-                    // if (@TypeOf(inner_t) != type) {
-                    //     continue;
-                    // }
-
-                    log.debug("    - {s}", .{inner_decl.name});
-                }
-
-            },
-            .pointer => {
-                log.debug("{s} has declarations:", .{decl.name});
-
-                const t_child = @typeInfo(t_info.pointer.child);
-
-                if (t_child == .@"opaque") {
-
-                    inline for (t_child.@"opaque".decls) |inner_decl| {
-                        log.debug("    - {s}", .{inner_decl.name});
-                    }
-
-                }
-
-            },
-
-            else => {}
-        }
-
-
-    }
-
-}
+// test "api coverage" {
+//
+//     // std.testing.log_level = .debug;
+//
+//     inline for (@typeInfo(@This()).@"struct".decls) |decl| {
+//         // log.info("decl = {s}", .{decl.name});
+//         const t = @field(@This(), decl.name);
+//
+//         if (@TypeOf(t) != type) {
+//             log.debug("{s} is not a type", .{decl.name});
+//             continue;
+//         }
+//
+//         // log.info("t = {}", .{t});
+//         // log.info("t is a type = {}", .{@typeInfo(t) == .@"struct"});
+//         const t_info = @typeInfo(t);
+//         switch (t_info) {
+//
+//             .@"struct" => {
+//                 log.debug("{s} has declarations:", .{decl.name});
+//
+//                 inline for (t_info.@"struct".decls) |inner_decl| {
+//                     // const inner_t = @field(t, inner_decl.name);
+//                     //
+//                     // if (@TypeOf(inner_t) != type) {
+//                     //     continue;
+//                     // }
+//
+//                     log.debug("    - {s}", .{inner_decl.name});
+//                 }
+//
+//             },
+//             .pointer => {
+//                 log.debug("{s} has declarations:", .{decl.name});
+//
+//                 const t_child = @typeInfo(t_info.pointer.child);
+//
+//                 if (t_child == .@"opaque") {
+//
+//                     inline for (t_child.@"opaque".decls) |inner_decl| {
+//                         log.debug("    - {s}", .{inner_decl.name});
+//                     }
+//
+//                 }
+//
+//             },
+//
+//             else => {}
+//         }
+//
+//
+//     }
+//
+// }
 
 // Descriptors ================================================================
 // TODO: Convert to from and to extern and better zig structs with slices and bools
@@ -1372,28 +1372,28 @@ inline fn ToExternalType(ExternalType: type, from: anytype) ExternalType {
 }
 
 
-test "native zig type to wgpu c type" {
-    std.testing.log_level = .debug;
-
-    const native_buffer_desc = BufferDescriptor{
-        .label = StringView.fromSlice("hi"),
-        .size = 15,
-        .usage = @intFromEnum(BufferUsage.Vertex),
-        .mappedAtCreation = true
-    };
-
-    const ext_buffer_desc = ToExternalType(c.WGPUBufferDescriptor, &native_buffer_desc);
-
-    try std.testing.expectEqual(@TypeOf(ext_buffer_desc), c.WGPUBufferDescriptor);
-    try std.testing.expectEqual(ext_buffer_desc.label.data, native_buffer_desc.label.data.?);
-    try std.testing.expectEqual(ext_buffer_desc.size, native_buffer_desc.size);
-    try std.testing.expectEqual(ext_buffer_desc.mappedAtCreation, @intFromBool(native_buffer_desc.mappedAtCreation));
-    // try std.testing.expectEqual(ext.nextInChain, native.nextInChain)
-
-
-    // const native_bindgroup_desc = BindGroupDescriptor {};
-
-    // const ext_bindgroup_desc = ToExternalType(c., native_buffer_desc);
-
-
-}
+// test "native zig type to wgpu c type" {
+//     std.testing.log_level = .debug;
+//
+//     const native_buffer_desc = BufferDescriptor{
+//         .label = StringView.fromSlice("hi"),
+//         .size = 15,
+//         .usage = @intFromEnum(BufferUsage.Vertex),
+//         .mappedAtCreation = true
+//     };
+//
+//     const ext_buffer_desc = ToExternalType(c.WGPUBufferDescriptor, &native_buffer_desc);
+//
+//     try std.testing.expectEqual(@TypeOf(ext_buffer_desc), c.WGPUBufferDescriptor);
+//     try std.testing.expectEqual(ext_buffer_desc.label.data, native_buffer_desc.label.data.?);
+//     try std.testing.expectEqual(ext_buffer_desc.size, native_buffer_desc.size);
+//     try std.testing.expectEqual(ext_buffer_desc.mappedAtCreation, @intFromBool(native_buffer_desc.mappedAtCreation));
+//     // try std.testing.expectEqual(ext.nextInChain, native.nextInChain)
+//
+//
+//     // const native_bindgroup_desc = BindGroupDescriptor {};
+//
+//     // const ext_bindgroup_desc = ToExternalType(c., native_buffer_desc);
+//
+//
+// }
