@@ -384,7 +384,7 @@ pub fn main() !void {
                 },
             };
 
-            const rend_pass_enc = try command_encoder.beginRenderPass(&render_pass_desc);
+            const rend_pass_enc = try command_encoder.BeginRenderPass(&render_pass_desc);
             defer rend_pass_enc.release();
 
             rend_pass_enc.setPipeline(render_pipeline);

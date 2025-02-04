@@ -74,7 +74,7 @@ pub fn main() !void {
         .uncapturedErrorCallbackInfo = .{.callback = &onError}
 
     });
-    defer device.Release();
+    defer device.release();
 
     const device_features = device.GetFeatures();
     defer device_features.deinit(); 
@@ -139,10 +139,10 @@ pub fn main() !void {
         .writeMask = .All
     };
     
-    const render_pipeline = try device.CreateRenderPipeline(&wgpu.RenderPipeline.Descriptor{
+    const render_pipeline = try device.CreateRenderPipeline(&wgpu.RenderPipelineDescriptor {
         .vertex = .{
             .module = shader_module,
-            .entryPoint = wgpu.StringView.fromSlice("vs_main"),
+            .entryPoint = "vs_main",
         },
         .primitive = .{
             .topology = .TriangleList,
@@ -203,11 +203,11 @@ pub fn main() !void {
         });
         defer view.release();
 
-        const command_encoder = device.CreateCommandEncoder(&.{ 
+        const command_encoder = try device.CreateCommandEncoder(&.{ 
             .label = wgpu.StringView.fromSlice("My command Encoder")
         });
 
-        const render_pass_color_attachement = wgpu.RenderPass.ColorAttachment {
+        const render_pass_color_attachement = wgpu.RenderPassColorAttachment {
             .view = view,
             .resolveTarget = null,
             .loadOp = .Clear,
@@ -225,18 +225,18 @@ pub fn main() !void {
                 .timestampWrites = null,
             });
 
-            render_pass_encoder.SetPipeline(render_pipeline);
-            render_pass_encoder.Draw(3, 1, 0, 0);
+            render_pass_encoder.setPipeline(render_pipeline);
+            render_pass_encoder.draw(3, 1, 0, 0);
 
-            render_pass_encoder.End();
-            render_pass_encoder.Release();
+            render_pass_encoder.end();
+            render_pass_encoder.release();
         }
 
-        const command_buffer = command_encoder.Finish(&.{});
-        command_encoder.Release();
+        const command_buffer = try command_encoder.finish(&.{});
+        command_encoder.release();
 
-        queue.Submit(&.{command_buffer});
-        command_buffer.Release();
+        queue.submit(&.{command_buffer});
+        command_buffer.release();
 
         surface.present();
 

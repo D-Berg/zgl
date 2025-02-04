@@ -1,0 +1,17 @@
+
+.{
+    .name = "examples",
+    .version = "0.0.0",
+    .dependencies = .{
+        .zgl = .{
+            .path = "../",
+        }
+    },
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        // For example...
+        //"LICENSE",
+        //"README.md",
+    },
+}

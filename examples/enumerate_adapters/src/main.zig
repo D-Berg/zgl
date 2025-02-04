@@ -1,5 +1,6 @@
 const std = @import("std");
 const wgpu = @import("zgl").wgpu;
+const stdout = std.io.getStdOut().writer();
 
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
@@ -7,19 +8,19 @@ pub fn main() !void {
 
     const allocator = gpa.allocator();
 
-    const instance = try wgpu.Instance.Create(&.{});
-    defer instance.Release();
+    const instance = try wgpu.CreateInstance(null);
+    defer instance.release();
 
     const adapters = try instance.EnumerateAdapters(allocator);
     defer allocator.free(adapters);
 
-    for (adapters) |adapter| {
+    for (adapters, 0..) |adapter, i| {
         const info = adapter.GetInfo();
 
-        info.logInfo();
+        try stdout.print("Adapter({}) Info:\n{}", .{i, info});
 
         if (adapter.GetLimits()) |limits| {
-            limits.logLimits();
+            try stdout.print("Adapter({}) Limits:\n{}", .{i, limits});
         }
 
     }

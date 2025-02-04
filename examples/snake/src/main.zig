@@ -461,15 +461,15 @@ pub fn main() !void {
             });
             defer view.release();
 
-            const command_encoder = device.CreateCommandEncoder(&.{});
-            defer command_encoder.Release();
+            const command_encoder = try device.CreateCommandEncoder(&.{});
+            defer command_encoder.release();
             
             {
 
-                const render_pass_desc = wgpu.RenderPassEncoder.Descriptor{
+                const render_pass_desc = wgpu.RenderPassDescriptor{
                     .colorAttachmentCount = 1,
-                    .colorAttachments = &[1]wgpu.RenderPassEncoder.ColorAttachment{
-                        wgpu.RenderPassEncoder.ColorAttachment{
+                    .colorAttachments = &[1]wgpu.RenderPassColorAttachment{
+                        wgpu.RenderPassColorAttachment{
                             .clearValue = .{ .r = 0, .g = 0, .b = 0, .a = 1},
                             .loadOp = .Clear,
                             .storeOp = .Store,
@@ -479,19 +479,19 @@ pub fn main() !void {
                 };
 
                 const rend_pass_enc = try command_encoder.BeginRenderPass(&render_pass_desc);
-                defer rend_pass_enc.Release();
+                defer rend_pass_enc.release();
 
-                rend_pass_enc.SetPipeline(render_pipeline);
+                rend_pass_enc.setPipeline(render_pipeline);
                 rend_pass_enc.setVertexBuffer(0, vertex_buffer, 0);
-                rend_pass_enc.Draw(@intCast(vertices.items.len), 1, 0, 0);
-                rend_pass_enc.End();
+                rend_pass_enc.draw(@intCast(vertices.items.len), 1, 0, 0);
+                rend_pass_enc.end();
             }
 
 
-            const command_buffer = command_encoder.Finish(&.{});
-            defer command_buffer.Release();
+            const command_buffer = try command_encoder.finish(&.{});
+            defer command_buffer.release();
 
-            queue.submit(&[1]wgpu.CommandBuffer{ command_buffer });
+            queue.submit(&.{ command_buffer });
 
             surface.present();
             _ = device.poll(false, null);
