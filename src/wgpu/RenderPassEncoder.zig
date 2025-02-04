@@ -101,7 +101,26 @@ const RenderPassEncoderImpl = opaque {
         wgpuRenderPassEncoderSetIndexBuffer(renderPassEncoder, buffer, format, offset, size);
 
     }
-    
+
+    extern "c" fn wgpuRenderPassEncoderDrawIndexed(
+        renderPassEncoder: RenderPassEncoder,
+        indexCount: u32,
+        instanceCount: u32,
+        firstIndex: u32,
+        baseVertex: i32,
+        firstInstance: u32
+    ) void;
+
+    pub fn drawIndexed(
+        renderPassEncoder: RenderPassEncoder,
+        indexCount: u32,
+        instanceCount: u32,
+        firstIndex: u32,
+        baseVertex: i32,
+        firstInstance: u32
+    ) void {
+        wgpuRenderPassEncoderDrawIndexed(renderPassEncoder, indexCount, instanceCount, firstIndex, baseVertex, firstInstance);
+    }
 
 };
 
