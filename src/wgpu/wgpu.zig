@@ -1234,8 +1234,6 @@ inline fn ToExternalType(ExternalType: type, from: anytype) ExternalType {
             
             var out = ExternalType{};
 
-            // check if field contains count
-            // std.mem.indexOf(comptime T: type, haystack: []const T, needle: []const T)
 
             log.debug("converting {s} to {s}", .{ @typeName(@TypeOf(from)), exernal_name });
 
@@ -1245,6 +1243,11 @@ inline fn ToExternalType(ExternalType: type, from: anytype) ExternalType {
 
                 log.debug("setting field {s} which is a {} to {any}", .{field.name, field.type, native_val});
 
+                // check if field contains Count
+                if (std.mem.indexOf(u8, field.name, "Count")) |_|{
+                    log.debug("field contains Count", .{});
+
+                }
 
                 @field(out, field.name) = ToExternalType(field.type, native_val);
 
@@ -1298,22 +1301,25 @@ inline fn ToExternalType(ExternalType: type, from: anytype) ExternalType {
 test "native zig type to wgpu c type" {
     std.testing.log_level = .debug;
 
-    const native = BufferDescriptor{
+    const native_buffer_desc = BufferDescriptor{
         .label = StringView.fromSlice("hi"),
         .size = 15,
         .usage = @intFromEnum(BufferUsage.Vertex),
         .mappedAtCreation = true
     };
 
-    const ext = ToExternalType(c.WGPUBufferDescriptor, &native);
+    const ext_buffer_desc = ToExternalType(c.WGPUBufferDescriptor, &native_buffer_desc);
 
-    try std.testing.expectEqual(@TypeOf(ext), c.WGPUBufferDescriptor);
-    try std.testing.expectEqual(ext.label.data, native.label.data.?);
-    try std.testing.expectEqual(ext.size, native.size);
-    try std.testing.expectEqual(ext.mappedAtCreation, @intFromBool(native.mappedAtCreation));
+    try std.testing.expectEqual(@TypeOf(ext_buffer_desc), c.WGPUBufferDescriptor);
+    try std.testing.expectEqual(ext_buffer_desc.label.data, native_buffer_desc.label.data.?);
+    try std.testing.expectEqual(ext_buffer_desc.size, native_buffer_desc.size);
+    try std.testing.expectEqual(ext_buffer_desc.mappedAtCreation, @intFromBool(native_buffer_desc.mappedAtCreation));
     // try std.testing.expectEqual(ext.nextInChain, native.nextInChain)
 
 
+    // const native_bindgroup_desc = BindGroupDescriptor {};
+
+    // const ext_bindgroup_desc = ToExternalType(c., native_buffer_desc);
 
 
 }
