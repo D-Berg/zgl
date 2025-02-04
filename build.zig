@@ -32,11 +32,11 @@ pub fn build(b: *std.Build) void {
     // TODO:: find out standard way to expose a lib/package for others
     const lib = b.addStaticLibrary(.{
         .name = "zgl",
-        .root_source_file = b.path("src/zgl.zig"),
-        .target = target,
-        .optimize = optimize,
-        .link_libc = true,
+        .root_module = zgl,
     });
+
+    b.installArtifact(lib);
+
 
     const install_docs = b.addInstallDirectory(.{
         .source_dir = lib.getEmittedDocs(),
