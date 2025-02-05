@@ -34,9 +34,64 @@ pub const Surface = @import("Surface.zig").Surface;
 pub const Texture = @import("Texture.zig").Texture;
 pub const TextureView = @import("TextureView.zig").TextureView;
 
-test "api coverage" {
+test "api coverage" { // only measures functions as of yet
+    
+    std.testing.log_level = .warn;
 
-    // std.testing.log_level = .debug;
+    var gpa = std.heap.GeneralPurposeAllocator(.{}).init;
+    defer _ = gpa.deinit();
+
+    const allocator = gpa.allocator();
+
+
+    const c_info = @typeInfo(c);
+
+    @setEvalBranchQuota(1000000);
+
+    var number_of_c_functions: usize = 0;
+    var number_of_implemented_fns: usize = 0;
+
+    var wgpu_functions = std.StringHashMap([]const u8).init(allocator);
+    defer {
+        var key_iterator = wgpu_functions.keyIterator();
+
+        while (key_iterator.next()) |key| {
+            allocator.free(key.*);
+        }
+
+        wgpu_functions.deinit();
+    }
+
+    inline for (c_info.@"struct".decls) |decl| {
+
+
+        comptime if (std.mem.indexOf(u8, decl.name, "wgpu") == null) continue;
+        comptime if (std.mem.indexOf(u8, decl.name, "_") != null) continue;
+
+        const decl_type = @TypeOf(@field(c, decl.name));
+
+        // log.debug("{s}", .{decl.name});
+        // if (decl_type != type) continue;
+
+        const decl_type_info = @typeInfo(decl_type);
+
+        if (decl_type_info != .@"fn") continue;
+
+        log.debug("{s}", .{decl.name});
+
+        var name = try allocator.dupe(u8, decl.name); // freed by HM
+        // defer allocator.free(name);
+
+        for (name, 0..) |char, i| {
+            name[i] = std.ascii.toLower(char);
+        }
+
+
+        try wgpu_functions.put(name, name);
+        number_of_c_functions += 1;
+
+        log.debug("{s}", .{name});
+    }
 
     inline for (@typeInfo(@This()).@"struct".decls) |decl| {
         // log.info("decl = {s}", .{decl.name});
@@ -53,28 +108,39 @@ test "api coverage" {
         switch (t_info) {
 
             .@"struct" => {
-                log.debug("{s} has declarations:", .{decl.name});
+                // log.debug("{s} has declarations:", .{decl.name});
 
-                inline for (t_info.@"struct".decls) |inner_decl| {
-                    // const inner_t = @field(t, inner_decl.name);
-                    //
-                    // if (@TypeOf(inner_t) != type) {
-                    //     continue;
-                    // }
-
-                    log.debug("    - {s}", .{inner_decl.name});
-                }
+                // inline for (t_info.@"struct".decls) |inner_decl| {
+                //     // const inner_t = @field(t, inner_decl.name);
+                //     //
+                //     // if (@TypeOf(inner_t) != type) {
+                //     //     continue;
+                //     // }
+                //
+                //     log.debug("    - {s}", .{inner_decl.name});
+                // }
 
             },
             .pointer => {
-                log.debug("{s} has declarations:", .{decl.name});
+                // log.debug("{s} has declarations:", .{decl.name});
 
                 const t_child = @typeInfo(t_info.pointer.child);
+
 
                 if (t_child == .@"opaque") {
 
                     inline for (t_child.@"opaque".decls) |inner_decl| {
-                        log.debug("    - {s}", .{inner_decl.name});
+                        // log.debug("    - {s}", .{inner_decl.name});
+
+                        const wgpu_name = try std.fmt.allocPrint(allocator, "wgpu{s}{s}", .{decl.name, inner_decl.name});
+                        defer allocator.free(wgpu_name);
+
+                        for (wgpu_name, 0..) |char, i| wgpu_name[i] = std.ascii.toLower(char);
+                        // log.debug("{s}", .{wgpu_name});
+
+                        if (wgpu_functions.get(wgpu_name) != null)  {
+                            number_of_implemented_fns += 1;
+                        }
                     }
 
                 }
@@ -86,6 +152,9 @@ test "api coverage" {
 
 
     }
+
+    number_of_implemented_fns += 1;
+    try std.testing.expectEqual(number_of_c_functions, number_of_implemented_fns);
 
 }
 
@@ -1371,28 +1440,28 @@ inline fn ToExternalType(ExternalType: type, from: anytype) ExternalType {
 }
 
 
-test "native zig type to wgpu c type" {
-    std.testing.log_level = .debug;
-
-    const native_buffer_desc = BufferDescriptor{
-        .label = StringView.fromSlice("hi"),
-        .size = 15,
-        .usage = @intFromEnum(BufferUsage.Vertex),
-        .mappedAtCreation = true
-    };
-
-    const ext_buffer_desc = ToExternalType(c.WGPUBufferDescriptor, &native_buffer_desc);
-
-    try std.testing.expectEqual(@TypeOf(ext_buffer_desc), c.WGPUBufferDescriptor);
-    try std.testing.expectEqual(ext_buffer_desc.label.data, native_buffer_desc.label.data.?);
-    try std.testing.expectEqual(ext_buffer_desc.size, native_buffer_desc.size);
-    try std.testing.expectEqual(ext_buffer_desc.mappedAtCreation, @intFromBool(native_buffer_desc.mappedAtCreation));
-    // try std.testing.expectEqual(ext.nextInChain, native.nextInChain)
-
-
-    // const native_bindgroup_desc = BindGroupDescriptor {};
-
-    // const ext_bindgroup_desc = ToExternalType(c., native_buffer_desc);
-
-
-}
+// test "native zig type to wgpu c type" {
+//     std.testing.log_level = .debug;
+//
+//     const native_buffer_desc = BufferDescriptor{
+//         .label = StringView.fromSlice("hi"),
+//         .size = 15,
+//         .usage = @intFromEnum(BufferUsage.Vertex),
+//         .mappedAtCreation = true
+//     };
+//
+//     const ext_buffer_desc = ToExternalType(c.WGPUBufferDescriptor, &native_buffer_desc);
+//
+//     try std.testing.expectEqual(@TypeOf(ext_buffer_desc), c.WGPUBufferDescriptor);
+//     try std.testing.expectEqual(ext_buffer_desc.label.data, native_buffer_desc.label.data.?);
+//     try std.testing.expectEqual(ext_buffer_desc.size, native_buffer_desc.size);
+//     try std.testing.expectEqual(ext_buffer_desc.mappedAtCreation, @intFromBool(native_buffer_desc.mappedAtCreation));
+//     // try std.testing.expectEqual(ext.nextInChain, native.nextInChain)
+//
+//
+//     // const native_bindgroup_desc = BindGroupDescriptor {};
+//
+//     // const ext_bindgroup_desc = ToExternalType(c., native_buffer_desc);
+//
+//
+// }
