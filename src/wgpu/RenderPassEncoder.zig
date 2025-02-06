@@ -34,7 +34,7 @@ const RenderPassEncoderImpl = opaque {
     extern "c" fn wgpuRenderPassEncoderSetBindGroup(
         renderPassEncoder: RenderPassEncoder, 
         groupIndex: u32, 
-        group: ?*BindGroup, 
+        group: ?BindGroup, 
         dynamicOffsetCount: usize,
         dynamicOffsets: [*]const u32
     ) void;
@@ -42,7 +42,7 @@ const RenderPassEncoderImpl = opaque {
     pub fn setBindGroup(
         renderPassEncoder: RenderPassEncoder, 
         groupIndex: u32,
-        group: ?*BindGroup,
+        group: ?BindGroup,
         dynamicOffsets: []const u32
     ) void {
 
