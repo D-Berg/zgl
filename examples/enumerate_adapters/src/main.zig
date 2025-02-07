@@ -1,12 +1,13 @@
 const std = @import("std");
 const wgpu = @import("zgl").wgpu;
-const stdout = std.io.getStdOut().writer();
 
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
 
     const allocator = gpa.allocator();
+    
+    const stdout = std.io.getStdOut().writer();
 
     const instance = try wgpu.CreateInstance(null);
     defer instance.release();
