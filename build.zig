@@ -376,15 +376,8 @@ fn buildNative(b: *std.Build, zgl: *Module, target: Target, optimize: OptimizeMo
     };
     const wgpu_pkg_name = b.fmt("wgpu_{s}_{s}_{s}", .{os_str, arch_str, opt_str});
 
-    const wgpu_native = b.dependency(wgpu_pkg_name, .{});
+    const maybe_wgpu_native = b.lazyDependency(wgpu_pkg_name, .{});
 
-    // TODO: look into using addObjectFile instead
-    zgl.addLibraryPath(wgpu_native.path("lib/"));
-    zgl.linkSystemLibrary("wgpu_native", .{ 
-        .preferred_link_mode = .static, 
-        .needed = true,
-        // .weak = true
-    });
 
     const translate_c = b.addTranslateC(.{
         .root_source_file = b.path("include/c.h"),
@@ -394,7 +387,6 @@ fn buildNative(b: *std.Build, zgl: *Module, target: Target, optimize: OptimizeMo
 
     const translate_c_mod = translate_c.createModule();
     translate_c.addIncludePath(glfw_dep.path("include"));
-    translate_c.addIncludePath(wgpu_native.path("include"));
 
     zgl.addImport("c", translate_c_mod);
 
@@ -407,8 +399,22 @@ fn buildNative(b: *std.Build, zgl: *Module, target: Target, optimize: OptimizeMo
         .link_libc = true
     });
     mod_unit_tests.root_module.addImport("c", translate_c_mod);
-    mod_unit_tests.addLibraryPath(wgpu_native.path("lib/"));
-    mod_unit_tests.linkSystemLibrary("wgpu_native");
+
+    if (maybe_wgpu_native) |wgpu_native| {
+        // TODO: look into using addObjectFile instead
+        zgl.addLibraryPath(wgpu_native.path("lib/"));
+        zgl.linkSystemLibrary("wgpu_native", .{ 
+            .preferred_link_mode = .static, 
+            .needed = true,
+            // .weak = true
+        });
+
+        translate_c.addIncludePath(wgpu_native.path("include"));
+
+        mod_unit_tests.addLibraryPath(wgpu_native.path("lib/"));
+        mod_unit_tests.linkSystemLibrary("wgpu_native");
+
+    }
 
     const run_mod_unit_tests = b.addRunArtifact(mod_unit_tests);
 
