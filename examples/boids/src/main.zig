@@ -9,7 +9,7 @@ const assert = std.debug.assert;
 const StringView = wgpu.StringView;
 
 const sprite_code = @embedFile("shaders/sprite.wgsl");
-const update_sprite_code = @embedFile("shaders/updateSprites.wgsl");
+const update_sprite_code = @embedFile("shaders/UpdateSprites.wgsl");
 
 const NUM_PARTICLES = 3000;
 const PARTICLES_PER_GROUP = 64;
