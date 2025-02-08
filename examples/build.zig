@@ -6,7 +6,10 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
-    const zgl_dep = b.dependency("zgl", .{});
+    const zgl_dep = b.dependency("zgl", .{
+        .target = target,
+        .optimize = optimize
+    });
 
     var examples_dir = std.fs.cwd().openDir("./", .{ .iterate = true }) catch {
         log.debug("failed to open examples dir", .{});
