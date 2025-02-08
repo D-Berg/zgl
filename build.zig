@@ -332,6 +332,7 @@ fn buildNative(b: *std.Build, zgl: *Module, target: Target, optimize: OptimizeMo
                         },
                         .flags = &.{ flag }
                     });
+
                 },
 
                 .Wayland => {
@@ -386,7 +387,7 @@ fn buildNative(b: *std.Build, zgl: *Module, target: Target, optimize: OptimizeMo
     });
 
     const translate_c_mod = translate_c.createModule();
-    translate_c.addIncludePath(glfw_dep.path("include"));
+    //translate_c.addIncludePath(glfw_dep.path("include"));
 
     zgl.addImport("c", translate_c_mod);
 
