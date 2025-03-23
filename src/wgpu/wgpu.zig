@@ -35,7 +35,7 @@ pub const TextureView = @import("TextureView.zig").TextureView;
 
 test "api coverage" { // only measures functions as of yet
     
-    std.testing.log_level = .warn;
+    //std.testing.log_level = .warn;
 
     var gpa = std.heap.GeneralPurposeAllocator(.{}).init;
     defer _ = gpa.deinit();
@@ -282,6 +282,76 @@ pub const SurfaceDescriptor = extern struct {
     label: StringView = .{}
 };
 
+pub const TextureUsages = struct {
+    CopySrc: bool = false,
+    CopyDst: bool = false,
+    TextureBinding: bool = false,
+    StorageBinding: bool = false,
+    RenderAttachment: bool = false,
+
+    pub fn calcFlag(self: *const TextureUsages) Flag {
+        var f: Flag = 0;
+
+        inline for (@typeInfo(TextureUsages).@"struct".fields) |field| {
+
+            if (@field(self.*, field.name)) {
+                
+                f |= @intFromEnum(@field(TextureUsage, field.name));
+            }
+
+        }
+
+        return f;
+    }
+};
+
+// does not match c api
+pub const TextureDescriptor = struct {
+    next_in_chain: ?*const ChainedStruct = null,
+    label: StringView = .{},
+    usages: TextureUsages,
+    dimension: TextureDimension,
+    size: Extend3D,
+    format: TextureFormat,
+    mip_level_count: u32,
+    sample_count: u32,
+    view_formats: []const TextureFormat,
+
+    
+    pub const ExternalStruct = extern struct {
+        nextInChain: ?*const ChainedStruct,
+        label: StringView,
+        usage: Flag,
+        dimension: TextureDimension,
+        size: Extend3D,
+        format: TextureFormat,
+        mipLevelCount: u32,
+        sampleCount: u32,
+        viewFormatCount: usize,
+        viewFormats: [*c]const TextureFormat,
+    };
+
+    pub fn External(self: *const TextureDescriptor) ExternalStruct {
+
+        return ExternalStruct {
+            .nextInChain = self.next_in_chain,
+            .label = self.label,
+            .usage = self.usages.calcFlag(),
+            .dimension = self.dimension,
+            .size = self.size,
+            .format = self.format,
+            .mipLevelCount = self.mip_level_count,
+            .sampleCount = self.sample_count,
+            .viewFormatCount = self.view_formats.len,
+            .viewFormats = self.view_formats.ptr
+        };
+        
+
+    }
+
+    
+};
+
 pub const TextureViewDescriptor = extern struct {
     nextInChain: ?*const ChainedStruct = null,
     label: StringView = .{},
@@ -313,7 +383,11 @@ pub fn CreateInstance(descriptor: ?*const InstanceDescriptor) WGPUError!Instance
     }
 }
 
-
+pub const Extend3D = extern struct {
+    width: u32,
+    height: u32,
+    depth_or_array_layers: u32
+};
 
 pub const MapMode = enum(Flag) {
     None = 0x0000000000000000,
@@ -1439,28 +1513,28 @@ inline fn ToExternalType(ExternalType: type, from: anytype) ExternalType {
 }
 
 
-// test "native zig type to wgpu c type" {
-//     std.testing.log_level = .debug;
-//
-//     const native_buffer_desc = BufferDescriptor{
-//         .label = StringView.fromSlice("hi"),
-//         .size = 15,
-//         .usage = @intFromEnum(BufferUsage.Vertex),
-//         .mappedAtCreation = true
-//     };
-//
-//     const ext_buffer_desc = ToExternalType(c.WGPUBufferDescriptor, &native_buffer_desc);
-//
-//     try std.testing.expectEqual(@TypeOf(ext_buffer_desc), c.WGPUBufferDescriptor);
-//     try std.testing.expectEqual(ext_buffer_desc.label.data, native_buffer_desc.label.data.?);
-//     try std.testing.expectEqual(ext_buffer_desc.size, native_buffer_desc.size);
-//     try std.testing.expectEqual(ext_buffer_desc.mappedAtCreation, @intFromBool(native_buffer_desc.mappedAtCreation));
-//     // try std.testing.expectEqual(ext.nextInChain, native.nextInChain)
-//
-//
-//     // const native_bindgroup_desc = BindGroupDescriptor {};
-//
-//     // const ext_bindgroup_desc = ToExternalType(c., native_buffer_desc);
-//
-//
-// }
+test "native zig type to wgpu c type" {
+    //std.testing.log_level = .debug;
+
+    const native_buffer_desc = BufferDescriptor{
+        .label = StringView.fromSlice("hi"),
+        .size = 15,
+        .usage = @intFromEnum(BufferUsage.Vertex),
+        .mappedAtCreation = true
+    };
+
+    const ext_buffer_desc = ToExternalType(c.WGPUBufferDescriptor, &native_buffer_desc);
+
+    try std.testing.expectEqual(@TypeOf(ext_buffer_desc), c.WGPUBufferDescriptor);
+    try std.testing.expectEqual(ext_buffer_desc.label.data, native_buffer_desc.label.data.?);
+    try std.testing.expectEqual(ext_buffer_desc.size, native_buffer_desc.size);
+    try std.testing.expectEqual(ext_buffer_desc.mappedAtCreation, @intFromBool(native_buffer_desc.mappedAtCreation));
+    // try std.testing.expectEqual(ext.nextInChain, native.nextInChain)
+
+
+    // const native_bindgroup_desc = BindGroupDescriptor {};
+
+    // const ext_bindgroup_desc = ToExternalType(c., native_buffer_desc);
+
+
+}

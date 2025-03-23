@@ -28,6 +28,8 @@ const BindGroupDescriptor = wgpu.BindGroupDescriptor;
 const SupportedFeatures = wgpu.SupportedFeatures;
 const RenderPipelineDescriptor = wgpu.RenderPipelineDescriptor;
 const CommandEncoderDescriptor = wgpu.CommandEncoderDescriptor;
+const Texture = wgpu.Texture;
+const TextureDescriptor = wgpu.TextureDescriptor;
 
 pub const Device = *DeviceImpl;
 
@@ -190,5 +192,51 @@ const DeviceImpl = opaque {
 
     }
 
+    extern "c" fn wgpuDeviceCreateTexture(device: Device, descriptor: *const TextureDescriptor.ExternalStruct) ?Texture;
+    pub fn CreateTexture(device: Device, descriptor: *const TextureDescriptor) WGPUError!Texture {
+
+        const maybe_texture = wgpuDeviceCreateTexture(device, &descriptor.External());
+
+        if (maybe_texture) |texture| {
+            return texture;
+        } else {
+            @panic("failed to create texture");
+            
+        }
+
+        
+
+    }
+
 };
 
+test "Create Texture" {
+    const instance = try wgpu.CreateInstance(null);
+    defer instance.release();
+
+    const adapter = try instance.RequestAdapter(null);
+    defer adapter.release();
+    
+    const device = try adapter.RequestDevice(null);
+    defer device.release();
+
+    const texture = try device.CreateTexture(&.{
+        .label = .fromSlice("test texture"),
+        .format = .RGBA8Snorm,
+        .mip_level_count = 1,
+        .view_formats = &.{},
+        .sample_count = 1,
+        .dimension = .@"2D",
+        .size = .{ 
+            .width = 400,
+            .height = 200,
+            .depth_or_array_layers = 1
+        },
+        .usages = .{
+            .CopySrc = true,
+            .TextureBinding = true,
+        },
+    });
+    defer texture.release();
+
+}
