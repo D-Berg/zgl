@@ -73,13 +73,16 @@ const QueueImpl = opaque {
         comptime T: type, 
         data: []const T
     ) void{
+        const size = data.len * @sizeOf(T);
         wgpuQueueWriteBuffer(
             queue, 
             buffer, 
             buffer_offset, 
             data.ptr, 
-            data.len * @sizeOf(T)
+            size
         );
+        
+        log.debug("wrote {} bytes to buffer", .{size});
     }
 
 };
