@@ -20,7 +20,7 @@ jobs:
       - name: Install Zig
         uses: mlugg/setup-zig@v1
         with:
-          version: 0.14.0-dev.3046+08d661fcf
+          version: 0.14.0
       - name: Build
         run: zig build
         working-directory: examples

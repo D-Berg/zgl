@@ -1,7 +1,8 @@
 
 .{
-    .name = "examples",
+    .name = .examples,
     .version = "0.0.0",
+    .fingerprint = 0x7bd0ad45dcc83576,
     .dependencies = .{
         .zgl = .{
             .path = "../",

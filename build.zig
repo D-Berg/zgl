@@ -25,7 +25,7 @@ pub fn build(b: *std.Build) void {
         // .strip = true
     });
 
-    if (!target.result.isWasm()) {
+    if (target.result.os.tag != .emscripten) {
         buildNative(b, zgl, target, optimize);
     }
 
