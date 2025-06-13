@@ -4,7 +4,7 @@ run-name: Update API docs
 
 on:
   workflow_run:
-    workflows: [CI]
+    workflows: [ci]
     types: [completed]
     branches: [main]
 
