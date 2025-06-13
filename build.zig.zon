@@ -1,123 +1,74 @@
 .{
-    // This is the default name used by packages depending on this one. For
-    // example, when a user runs `zig fetch --save <url>`, this field is used
-    // as the key in the `dependencies` table. Although the user can choose a
-    // different name, most users will stick with this provided value.
-    //
-    // It is redundant to include "zig" in this name because it is already
-    // within the Zig package namespace.
     .name = .zgl,
 
-    // This is a [Semantic Version](https://semver.org/).
-    // In a future version of Zig it will be used for package deduplication.
     .version = "0.1.0",
 
     .fingerprint = 0xc89fe48759a26f8e,
 
-    .minimum_zig_version = "0.14.0",
+    .minimum_zig_version = "0.14.1",
 
-    // This field is optional.
-    // This is currently advisory only; Zig does not yet do anything
-    // with this value.
-    //.minimum_zig_version = "0.11.0",
-
-    // This field is optional.
-    // Each dependency must either provide a `url` and `hash`, or a `path`.
-    // `zig build --fetch` can be used to fetch all dependencies of a package, recursively.
-    // Once all dependencies are fetched, `zig build` no longer requires
-    // internet connectivity.
     .dependencies = .{
-        // See `zig fetch --save <url>` for a command-line interface for adding dependencies.
-        //.example = .{
-        //    // When updating this field to a new URL, be sure to delete the corresponding
-        //    // `hash`, otherwise you are communicating that you expect to find the old hash at
-        //    // the new URL.
-        //    .url = "https://example.com/foo.tar.gz",
-        //
-        //    // This is computed from the file contents of the directory of files that is
-        //    // obtained after fetching `url` and applying the inclusion rules given by
-        //    // `paths`.
-        //    //
-        //    // This field is the source of truth; packages do not come from a `url`; they
-        //    // come from a `hash`. `url` is just one of many possible mirrors for how to
-        //    // obtain a package matching this `hash`.
-        //    //
-        //    // Uses the [multihash](https://multiformats.io/multihash/) format.
-        //    .hash = "...",
-        //
-        //    // When this is provided, the package is found in a directory relative to the
-        //    // build root. In this case the package's hash is irrelevant and therefore not
-        //    // computed. This field and `url` are mutually exclusive.
-        //    .path = "foo",
-
-        //    // When this is set to `true`, a package is declared to be lazily
-        //    // fetched. This makes the dependency only get fetched if it is
-        //    // actually used.
-        //    .lazy = false,
-        //},
-        //
         //TODO: Change to git+
         .glfw = .{
             .url = "https://github.com/glfw/glfw/releases/download/3.4/glfw-3.4.zip",
-            .hash = "1220625fa7ce79733c6889844cb02ea1f6e4b81b46a3fabacec181714879947f4abd"
+            .hash = "1220625fa7ce79733c6889844cb02ea1f6e4b81b46a3fabacec181714879947f4abd",
         },
-
         .x11_headers = .{
             .url = "https://github.com/hexops/x11-headers/archive/29aefb525d5c08b05b0351e34b1623854a138c21.zip",
-            .hash = "1220e79da2d5efd5e9dd8b6453f83a9ec79534e2e203b3331766b81e49171f3db474"
+            .hash = "1220e79da2d5efd5e9dd8b6453f83a9ec79534e2e203b3331766b81e49171f3db474",
             // TODO: make lazy
         },
-        .wgpu_macos_aarch64_debug = .{ // TODO: temporary until its pulled in on wgpu-native
+        .wgpu_macos_aarch64_debug = .{
             .url = "https://github.com/gfx-rs/wgpu-native/releases/download/v24.0.3.1/wgpu-macos-aarch64-debug.zip",
             .hash = "N-V-__8AAGzToQjdhwDgALHVFeO9nh-DJRQkJHAbkBzYHXBj",
-            .lazy = true
+            .lazy = true,
         },
         .wgpu_macos_aarch64_release = .{
             .url = "https://github.com/gfx-rs/wgpu-native/releases/download/v24.0.3.1/wgpu-macos-aarch64-release.zip",
             .hash = "N-V-__8AAIztRQLToPcLLL4Fnj1XqShJF88KkZm9nJDtlqNK",
-            .lazy = true
+            .lazy = true,
         },
-        .wgpu_macos_x86_64_debug = .{ 
+        .wgpu_macos_x86_64_debug = .{
             .url = "https://github.com/gfx-rs/wgpu-native/releases/download/v24.0.3.1/wgpu-macos-x86_64-debug.zip",
             .hash = "N-V-__8AAIx4jwhQAdImVEhgoeMGfTZdhvBAl57EkuEjUCe3",
-            .lazy = true
+            .lazy = true,
         },
         .wgpu_macos_x86_64_release = .{
             .url = "https://github.com/gfx-rs/wgpu-native/releases/download/v24.0.3.1/wgpu-macos-x86_64-release.zip",
             .hash = "N-V-__8AAIxDRwIyF3ynMi6X4C42_z694U5hTecyBKWqFSxX",
-            .lazy = true
+            .lazy = true,
         },
 
         .wgpu_linux_x86_64_debug = .{
             .url = "https://github.com/gfx-rs/wgpu-native/releases/download/v24.0.3.1/wgpu-linux-x86_64-debug.zip",
             .hash = "N-V-__8AAN5gQhK2hkh1OV-9XC6oj4yjZupjtck_rbnl0UMc",
-            .lazy = true
+            .lazy = true,
         },
         .wgpu_linux_x86_64_release = .{
             .url = "https://github.com/gfx-rs/wgpu-native/releases/download/v24.0.3.1/wgpu-macos-x86_64-release.zip",
             .hash = "N-V-__8AAIxDRwIyF3ynMi6X4C42_z694U5hTecyBKWqFSxX",
-            .lazy = true
+            .lazy = true,
         },
         .wgpu_linux_aarch64_debug = .{
             .url = "https://github.com/gfx-rs/wgpu-native/releases/download/v24.0.3.1/wgpu-linux-aarch64-debug.zip",
             .hash = "N-V-__8AAHbeehLXC7tMNr9f2osX_mAOzL2_rVULCxqJYMTZ",
-            .lazy = true
+            .lazy = true,
         },
         .wgpu_linux_aarch64_release = .{
             .url = "https://github.com/gfx-rs/wgpu-native/releases/download/v24.0.3.1/wgpu-linux-aarch64-release.zip",
             .hash = "N-V-__8AAKz1kwP0ikU9MpGdPlCp9U0PhhfAvXyzuGOXClwB",
-            .lazy = true
+            .lazy = true,
         },
 
         .wgpu_windows_x86_64_debug = .{
             .url = "https://github.com/gfx-rs/wgpu-native/releases/download/v24.0.3.1/wgpu-windows-x86_64-gnu-debug.zip",
             .hash = "N-V-__8AAMGiVhXMuSjWAYooPYRMjv5zBSwoGid7YBkOtpaj",
-            .lazy = true
+            .lazy = true,
         },
         .wgpu_windows_x86_64_release = .{
             .url = "https://github.com/gfx-rs/wgpu-native/releases/download/v24.0.3.1/wgpu-windows-x86_64-gnu-release.zip",
             .hash = "N-V-__8AAH2u_wKYhLWF6KsoIPMbLe6wPICz61q64rrBgTaw",
-            .lazy = true
+            .lazy = true,
         },
 
         .emsdk = .{
@@ -127,20 +78,11 @@
         },
     },
 
-    // Specifies the set of files and directories that are included in this package.
-    // Only files and directories listed here are included in the `hash` that
-    // is computed for this package. Only files listed here will remain on disk
-    // when using the zig package manager. As a rule of thumb, one should list
-    // files required for compilation plus any license(s).
-    // Paths are relative to the build root. Use the empty string (`""`) to refer to
-    // the build root itself.
-    // A directory listed here means that all files within, recursively, are included.
     .paths = .{
         "build.zig",
         "build.zig.zon",
         "src",
-        // For example...
         "LICENSE",
-        //"README.md",
+        "README.md",
     },
 }
