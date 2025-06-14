@@ -2,16 +2,13 @@ const std = @import("std");
 const wgpu = @import("zgl").wgpu;
 
 pub fn main() !void {
-
-    const instance = try wgpu.CreateInstance(&.{});
+    const instance = try wgpu.createInstance(&.{});
     defer instance.release();
 
-    const adapter = try instance.RequestAdapter(&.{});
+    const adapter = try instance.requestAdapter(&.{});
     defer adapter.release();
 
-    const info = adapter.GetInfo();
+    const info = adapter.getInfo();
 
     std.debug.print("{}", .{info});
-
 }
-

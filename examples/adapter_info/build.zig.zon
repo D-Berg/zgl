@@ -1,11 +1,10 @@
 .{
-    .name = "adapter_info",
+    .name = .adapter_info,
+    .fingerprint = 0x159499ac043bbbe,
     .version = "0.0.0",
-    .dependencies = .{
-        .zgl = .{
-            .path = "../../",
-        }
-    },
+    .dependencies = .{ .zgl = .{
+        .path = "../../",
+    } },
     .paths = .{
         "build.zig",
         "build.zig.zon",

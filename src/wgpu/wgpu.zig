@@ -1055,7 +1055,7 @@ pub const RequestAdapterOptions = extern struct {
 
     /// If set, requires the adapter to be able to output to a particular surface.
     /// If this is not possible, the request returns null.
-    compatibleSurface: ?Surface = null,
+    compatible_surface: ?*const Surface = null,
 };
 
 /// "Feature level" for the adapter request. If an adapter is returned,
