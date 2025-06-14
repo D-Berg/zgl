@@ -10,13 +10,10 @@ const WGPUBool = u32;
 
 // wgpu objects, contains all the methods
 // https://webgpu-native.github.io/webgpu-headers/group__Objects.html
-const adapter = @import("adapter.zig");
-const bindgroup = @import("bindgroup.zig");
-
-pub const Adapter = adapter.Adapter;
-pub const BindGroup = bindgroup.BindGroup; // complete
-
+pub const Adapter = @import("adapter.zig").Adapter;
+pub const BindGroup = @import("bind_group.zig").BindGroup; // complete
 pub const BindGroupLayout = @import("BindGroupLayout.zig").BindGroupLayout;
+
 pub const Buffer = @import("Buffer.zig").Buffer;
 pub const CommandBuffer = @import("CommandBuffer.zig").CommandBuffer;
 pub const CommandEncoder = @import("CommandEncoder.zig").CommandEncoder;
@@ -34,8 +31,10 @@ pub const RenderPipeline = @import("RenderPipeline.zig").RenderPipeline;
 pub const Sampler = @import("Sampler.zig").Sampler;
 pub const ShaderModule = @import("ShaderModule.zig").ShaderModule;
 pub const Surface = @import("Surface.zig").Surface;
+
 pub const Texture = @import("Texture.zig").Texture;
-pub const TextureView = @import("TextureView.zig").TextureView;
+
+pub const TextureView = @import("texture_view.zig").TextureView;
 
 test "api coverage" { // only measures functions as of yet
 
@@ -354,8 +353,8 @@ pub const TextureViewDescriptor = extern struct {
 
 //=============================================================================
 
-extern "c" fn wgpuCreateInstance(desc: ?*const InstanceDescriptor) ?Instance;
-pub fn CreateInstance(descriptor: ?*const InstanceDescriptor) WGPUError!Instance {
+extern "c" fn wgpuCreateInstance(desc: ?*const InstanceDescriptor) ?*const Instance;
+pub fn createInstance(descriptor: ?*const InstanceDescriptor) WGPUError!*const Instance {
     log.info("Creating instance...", .{});
 
     const maybe_instance = wgpuCreateInstance(descriptor);

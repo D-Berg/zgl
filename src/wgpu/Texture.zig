@@ -10,17 +10,14 @@ const TextureViewDescriptor = wgpu.TextureViewDescriptor;
 const TextureAspect = wgpu.TextureAspect;
 const TextureView = wgpu.TextureView;
 
-pub const Texture = *TextureImpl; 
-const TextureImpl = opaque {
-
-    extern "c" fn wgpuTextureRelease(texture: Texture) void;
-    pub fn release(texture: Texture) void {
+pub const Texture = opaque {
+    extern "c" fn wgpuTextureRelease(texture: ?*const Texture) void;
+    pub fn release(texture: *const Texture) void {
         wgpuTextureRelease(texture);
     }
 
-    extern "c" fn wgpuTextureCreateView(texture: Texture, descriptor: ?*const TextureViewDescriptor) ?TextureView;
-    pub fn CreateView(texture: Texture, descriptor: ?*const TextureViewDescriptor) WGPUError!TextureView {
-
+    extern "c" fn wgpuTextureCreateView(texture: ?*const Texture, descriptor: ?*const TextureViewDescriptor) ?*const TextureView;
+    pub fn createView(texture: *const Texture, descriptor: ?*const TextureViewDescriptor) WGPUError!*const TextureView {
         const maybe_texture_view = wgpuTextureCreateView(texture, descriptor);
 
         if (maybe_texture_view) |texture_view| {
@@ -30,8 +27,8 @@ const TextureImpl = opaque {
         }
     }
 
-    extern "c" fn wgpuTextureGetFormat(texure: Texture) TextureFormat;
-    pub fn GetFormat(texture: Texture) TextureFormat {
+    extern "c" fn wgpuTextureGetFormat(texure: ?*const Texture) TextureFormat;
+    pub fn getFormat(texture: *const Texture) TextureFormat {
         return wgpuTextureGetFormat(texture);
     }
 };
