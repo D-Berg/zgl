@@ -13,7 +13,6 @@ const WGPUBool = u32;
 pub const Adapter = @import("adapter.zig").Adapter;
 pub const BindGroup = @import("bind_group.zig").BindGroup; // complete
 pub const BindGroupLayout = @import("BindGroupLayout.zig").BindGroupLayout;
-
 pub const Buffer = @import("Buffer.zig").Buffer;
 pub const CommandBuffer = @import("CommandBuffer.zig").CommandBuffer;
 pub const CommandEncoder = @import("CommandEncoder.zig").CommandEncoder;
@@ -31,9 +30,7 @@ pub const RenderPipeline = @import("RenderPipeline.zig").RenderPipeline;
 pub const Sampler = @import("Sampler.zig").Sampler;
 pub const ShaderModule = @import("ShaderModule.zig").ShaderModule;
 pub const Surface = @import("Surface.zig").Surface;
-
 pub const Texture = @import("Texture.zig").Texture;
-
 pub const TextureView = @import("texture_view.zig").TextureView;
 
 test "api coverage" { // only measures functions as of yet
@@ -629,7 +626,7 @@ pub const SupportedFeatures = extern struct {
     features: [*c]const FeatureName,
 
     extern "c" fn wgpuSupportedFeaturesFreeMembers(supportedFeatures: SupportedFeatures) void;
-    pub fn deinit(self: SupportedFeatures) void {
+    pub fn freeMembers(self: SupportedFeatures) void {
         wgpuSupportedFeaturesFreeMembers(self);
     }
 

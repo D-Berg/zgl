@@ -11,33 +11,33 @@ const MultiSampleState = wgpu.MultiSampleState;
 const FragmentState = wgpu.FragmentState;
 const BindGroupLayout = wgpu.BindGroupLayout;
 
-const c = @import("../zgl.zig").c;
-
-pub const RenderPipeline = *RenderPipelineImpl;
-const RenderPipelineImpl = opaque {
-
-    extern "c" fn wgpuRenderPipelineRelease(renderPipeline: RenderPipeline) void;
-    pub fn Release(renderPipeline: RenderPipeline) void {
-        wgpuRenderPipelineRelease(renderPipeline);
+pub const RenderPipeline = opaque {
+    extern "c" fn wgpuRenderPipelineRelease(render_pipeline: ?*const RenderPipeline) void;
+    pub fn release(render_pipeline: *const RenderPipeline) void {
+        wgpuRenderPipelineRelease(render_pipeline);
         log.info("Released RenderPipeline", .{});
     }
 
-
-    extern "c" fn wgpuRenderPipelineGetBindGroupLayout(renderPipeline: RenderPipeline, groupIndex: u32) ?BindGroupLayout;
-    pub fn GetBindGroupLayout(renderPipeline: RenderPipeline, groupIndex: u32) WGPUError!BindGroupLayout {
-        const maybe_layout = wgpuRenderPipelineGetBindGroupLayout(renderPipeline, groupIndex);
+    extern "c" fn wgpuRenderPipelineGetBindGroupLayout(
+        render_pipeline: ?*const RenderPipeline,
+        group_index: u32,
+    ) ?BindGroupLayout;
+    pub fn getBindGroupLayout(
+        render_pipeline: *const RenderPipeline,
+        group_index: u32,
+    ) WGPUError!*const BindGroupLayout {
+        const maybe_layout = wgpuRenderPipelineGetBindGroupLayout(
+            render_pipeline,
+            group_index,
+        );
 
         if (maybe_layout) |layout| {
             return layout;
         } else {
             return WGPUError.FailedToGetBindGroupLayout;
         }
-
     }
-
 };
-
-
 
 // const RenderPipelineDescriptor = struct {
 //     nextInChain: ?*const ChainedStruct = null,
@@ -51,9 +51,6 @@ const RenderPipelineImpl = opaque {
 // };
 //
 
-
-
-
 // WGPUChainedStruct const * nextInChain;
 // WGPU_NULLABLE char const * label;
 // WGPU_NULLABLE WGPUPipelineLayout layout;
@@ -62,5 +59,3 @@ const RenderPipelineImpl = opaque {
 // WGPU_NULLABLE WGPUDepthStencilState const * depthStencil;
 // WGPUMultisampleState multisample;
 // WGPU_NULLABLE WGPUFragmentState const * fragment;
-
-

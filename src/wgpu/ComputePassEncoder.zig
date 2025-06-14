@@ -5,7 +5,7 @@ const QuerySet = wgpu.QuerySet;
 const ComputePipeline = wgpu.ComputePipeline;
 const BindGroup = wgpu.BindGroup;
 
-const ComputePassEncoder = opaque {
+pub const ComputePassEncoder = opaque {
     extern "c" fn wgpuComputePassEncoderRelease(
         compute_pass_encoder: ?*const ComputePassEncoder,
     ) void;

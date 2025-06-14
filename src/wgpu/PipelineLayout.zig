@@ -1,3 +1,1 @@
-pub const PipelineLayout = *PipelineLayoutImpl; 
-const PipelineLayoutImpl = opaque {};
-
+pub const PipelineLayout = opaque {};

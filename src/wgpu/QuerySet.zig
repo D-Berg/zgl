@@ -1,4 +1,1 @@
-
-pub const QuerySet = *QuerySetImpl;
-const QuerySetImpl = opaque {};
-
+pub const QuerySet = opaque {};

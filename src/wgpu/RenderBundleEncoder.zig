@@ -1,4 +1,1 @@
-
-
-pub const RenderBundleEncoder = *RenderBundleEncoderImpl;
-const RenderBundleEncoderImpl = opaque {};
+pub const RenderBundleEncoder = opaque {};
