@@ -1,14 +1,9 @@
 const wgpu = @import("wgpu.zig");
 const ChainedStruct = wgpu.ChainedStruct;
 
-pub const CommandBuffer = *CommandBufferImpl;
-const CommandBufferImpl = opaque {
-
-    extern "c" fn wgpuCommandBufferRelease(commandBuffer: CommandBuffer) void;
-    pub fn release(commandBuffer: CommandBuffer) void {
-        wgpuCommandBufferRelease(commandBuffer);
+pub const CommandBuffer = opaque {
+    extern "c" fn wgpuCommandBufferRelease(command_buffer: ?*const CommandBuffer) void;
+    pub fn release(command_buffer: *const CommandBuffer) void {
+        wgpuCommandBufferRelease(command_buffer);
     }
-
 };
-
-

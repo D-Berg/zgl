@@ -11,76 +11,79 @@ const CommandBufferDescriptor = wgpu.CommandBufferDescriptor;
 const ComputePassEncoderDescriptor = wgpu.ComputePassEncoderDescriptor;
 const RenderPassDescriptor = wgpu.RenderPassDescriptor;
 
-pub const CommandEncoder = *CommandEncoderImpl;
-const CommandEncoderImpl = opaque {
-
-    extern "c" fn wgpuCommandEncoderRelease(commandEncoder: CommandEncoder) void;
-    pub fn release(commandEncoder: CommandEncoder) void {
-        wgpuCommandEncoderRelease(commandEncoder);
+pub const CommandEncoder = opaque {
+    extern "c" fn wgpuCommandEncoderRelease(command_encoder: ?*const CommandEncoder) void;
+    pub fn release(command_encoder: *const CommandEncoder) void {
+        wgpuCommandEncoderRelease(command_encoder);
         // log.debug("Released command encoder", .{});
     }
 
-
     // TODO: check if need updating
-    extern "c" fn wgpuCommandEncoderInsertDebugMarker(commandEncoder: CommandEncoder, markerLabel: [*c]const u8) void;
-    pub fn insertDebugMarker(commandEncoder: CommandEncoder, markerLabel: [*c]const u8) void {
-        wgpuCommandEncoderInsertDebugMarker(commandEncoder, markerLabel);
+    extern "c" fn wgpuCommandEncoderInsertDebugMarker(
+        command_encoder: ?*const CommandEncoder,
+        marker_label: [*c]const u8,
+    ) void;
+
+    pub fn insertDebugMarker(
+        command_encoder: *const CommandEncoder,
+        marker_label: [*c]const u8,
+    ) void {
+        wgpuCommandEncoderInsertDebugMarker(command_encoder, marker_label);
         log.info("Insterted debug marker", .{});
     }
 
-
-
     // TODO: update
     extern "c" fn wgpuCommandEncoderFinish(
-        commandEncoder: CommandEncoder, 
-        descriptor: ?*const CommandBufferDescriptor
-    ) ?CommandBuffer;
-    pub fn finish(commandEncoder: CommandEncoder, descriptor: ?*const CommandBufferDescriptor) WGPUError!CommandBuffer {
+        command_encoder: ?*const CommandEncoder,
+        descriptor: ?*const CommandBufferDescriptor,
+    ) ?*const CommandBuffer;
 
-        const maybe_command_buffer = wgpuCommandEncoderFinish(commandEncoder, descriptor);
+    pub fn finish(
+        command_encoder: *const CommandEncoder,
+        descriptor: ?*const CommandBufferDescriptor,
+    ) WGPUError!*const CommandBuffer {
+        const maybe_command_buffer = wgpuCommandEncoderFinish(command_encoder, descriptor);
 
         if (maybe_command_buffer) |command_buffer| {
             return command_buffer;
         } else {
             return WGPUError.FailedToFinishCommandEncoder;
         }
-
     }
 
-
     extern "c" fn wgpuCommandEncoderBeginRenderPass(
-        commandEncoder: CommandEncoder, 
-        descriptor: *const RenderPassDescriptor
-    ) ?RenderPassEncoder;
+        command_encoder: ?*const CommandEncoder,
+        descriptor: *const RenderPassDescriptor,
+    ) ?*const RenderPassEncoder;
 
-    pub fn BeginRenderPass(
-        commandEncoder: CommandEncoder, 
-        descriptor: *const RenderPassDescriptor
-    ) WGPUError!RenderPassEncoder {
-
-        const maybe_render_pass_encoder = wgpuCommandEncoderBeginRenderPass(commandEncoder, descriptor);
+    pub fn beginRenderPass(
+        command_encoder: *const CommandEncoder,
+        descriptor: *const RenderPassDescriptor,
+    ) WGPUError!*const RenderPassEncoder {
+        const maybe_render_pass_encoder = wgpuCommandEncoderBeginRenderPass(
+            command_encoder,
+            descriptor,
+        );
 
         if (maybe_render_pass_encoder) |render_pass_encoder| {
-            return render_pass_encoder; 
+            return render_pass_encoder;
         } else {
             return error.FailedToBeginRenderPass;
         }
     }
 
-    
     extern "c" fn wgpuCommandEncoderBeginComputePass(
-        commandEncoder: CommandEncoder, 
-        descriptor: ?*const ComputePassEncoderDescriptor
-    ) ?ComputePassEncoder;
+        command_encoder: ?*const CommandEncoder,
+        descriptor: ?*const ComputePassEncoderDescriptor,
+    ) ?*const ComputePassEncoder;
 
     pub fn beginComputePass(
-        commandEncoder: CommandEncoder, 
-        descriptor: ?*const ComputePassEncoderDescriptor
-    ) WGPUError!ComputePassEncoder {
-
+        command_encoder: *const CommandEncoder,
+        descriptor: ?*const ComputePassEncoderDescriptor,
+    ) WGPUError!*const ComputePassEncoder {
         const maybe_compute_pass_encoder = wgpuCommandEncoderBeginComputePass(
-            commandEncoder, 
-            descriptor
+            command_encoder,
+            descriptor,
         );
 
         if (maybe_compute_pass_encoder) |compute_pass_encoder| {
@@ -88,47 +91,32 @@ const CommandEncoderImpl = opaque {
         } else {
             return WGPUError.FailedToCreateComputePassEncoder;
         }
-
     }
 
     extern "c" fn wgpuCommandEncoderCopyBufferToBuffer(
-        commandEncoder: CommandEncoder,
-        source: Buffer,
-        sourceOffset: u64,
-        destination: Buffer,
-        destinationOffset: u64,
-        size: usize
+        command_encoder: ?*const CommandEncoder,
+        source: ?*const Buffer,
+        source_offset: u64,
+        destination: ?*const Buffer,
+        destination_offset: u64,
+        size: usize,
     ) void;
 
     pub fn copyBufferToBuffer(
-        commandEncoder: CommandEncoder, 
-        source: Buffer, 
-        source_offset: u64, 
-        destination: Buffer,
+        command_encoder: *const CommandEncoder,
+        source: *const Buffer,
+        source_offset: u64,
+        destination: *const Buffer,
         destination_offset: u64,
-        size: usize
+        size: usize,
     ) void {
         wgpuCommandEncoderCopyBufferToBuffer(
-            commandEncoder,
-            source, 
+            command_encoder,
+            source,
             source_offset,
             destination,
             destination_offset,
-            size
-        );  
+            size,
+        );
     }
-
 };
-
-
-
-
-
-
-
-
-
-
-
-
-

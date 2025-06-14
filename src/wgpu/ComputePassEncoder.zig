@@ -5,66 +5,69 @@ const QuerySet = wgpu.QuerySet;
 const ComputePipeline = wgpu.ComputePipeline;
 const BindGroup = wgpu.BindGroup;
 
-
-pub const ComputePassEncoder = *ComputePassEncoderImpl;
-const ComputePassEncoderImpl = opaque { 
-
-    extern "c" fn wgpuComputePassEncoderRelease(computePassEncoder: ComputePassEncoder) void;
-    pub fn release(computePassEncoder: ComputePassEncoder) void {
-        wgpuComputePassEncoderRelease(computePassEncoder);
+const ComputePassEncoder = opaque {
+    extern "c" fn wgpuComputePassEncoderRelease(
+        compute_pass_encoder: ?*const ComputePassEncoder,
+    ) void;
+    pub fn release(compute_pass_encoder: *const ComputePassEncoder) void {
+        wgpuComputePassEncoderRelease(compute_pass_encoder);
     }
 
     extern "c" fn wgpuComputePassEncoderSetPipeline(
-        computePassEncoder: ComputePassEncoder, 
-        pipeline: ComputePipeline
+        compute_pass_encoder: ?*const ComputePassEncoder,
+        pipeline: ComputePipeline,
     ) void;
-    pub fn setPipeline(computePassEncoder: ComputePassEncoder, pipeline: ComputePipeline) void {
-        wgpuComputePassEncoderSetPipeline(computePassEncoder, pipeline);
+    pub fn setPipeline(
+        compute_pass_encoder: *const ComputePassEncoder,
+        pipeline: ComputePipeline,
+    ) void {
+        wgpuComputePassEncoderSetPipeline(compute_pass_encoder, pipeline);
     }
 
     extern "c" fn wgpuComputePassEncoderSetBindGroup(
-        computePassEncoder: ComputePassEncoder, 
-        groupIndex: u32, 
+        compute_pass_encoder: ?*const ComputePassEncoder,
+        group_index: u32,
         group: ?BindGroup,
-        dynamicOffsetCount: usize,
-        dynamicOffsets: ?[*]const u32
+        dynamic_offset_count: usize,
+        dynamic_offsets: ?[*]const u32,
     ) void;
 
     pub fn setBindGroup(
-        computePassEncoder: ComputePassEncoder,
-        groupIndex: u32,
-        group: ?BindGroup,
+        compute_pass_encoder: *const ComputePassEncoder,
+        group_index: u32,
+        group: ?*const BindGroup,
     ) void {
-        wgpuComputePassEncoderSetBindGroup(computePassEncoder, groupIndex, group, 0, null);
-    }
-
-    extern "c" fn wgpuComputePassEncoderDispatchWorkgroups(
-        computePassEncoder: ComputePassEncoder,
-        workgroupcountx: u32,
-        workgroupcounty: u32,
-        workgroupcountz: u32,
-    ) void;
-    pub fn dispatchWorkGroups(
-        computePassEncoder: ComputePassEncoder,
-        workgroupcountx: u32,
-        workgroupcounty: u32,
-        workgroupcountz: u32,
-    ) void {
-        wgpuComputePassEncoderDispatchWorkgroups(
-            computePassEncoder, 
-            workgroupcountx, 
-            workgroupcounty, 
-            workgroupcountz
+        wgpuComputePassEncoderSetBindGroup(
+            compute_pass_encoder,
+            group_index,
+            group,
+            0,
+            null,
         );
     }
 
-
-    extern "c" fn wgpuComputePassEncoderEnd(computePassEncoder: ComputePassEncoder) void;
-    pub fn end(computePassEncoder: ComputePassEncoder) void {
-        wgpuComputePassEncoderEnd(computePassEncoder);
+    extern "c" fn wgpuComputePassEncoderDispatchWorkgroups(
+        compute_pass_encoder: ?*const ComputePassEncoder,
+        work_group_count_x: u32,
+        work_group_count_y: u32,
+        work_group_count_z: u32,
+    ) void;
+    pub fn dispatchWorkGroups(
+        compute_pass_encoder: *const ComputePassEncoder,
+        work_group_count_x: u32,
+        work_group_count_y: u32,
+        work_group_count_z: u32,
+    ) void {
+        wgpuComputePassEncoderDispatchWorkgroups(
+            compute_pass_encoder,
+            work_group_count_x,
+            work_group_count_y,
+            work_group_count_z,
+        );
     }
 
-
-
+    extern "c" fn wgpuComputePassEncoderEnd(compute_pass_ncoder: ?*const ComputePassEncoder) void;
+    pub fn end(compute_pass_encoder: *const ComputePassEncoder) void {
+        wgpuComputePassEncoderEnd(compute_pass_encoder);
+    }
 };
-
