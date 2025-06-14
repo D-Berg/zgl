@@ -1,7 +1,7 @@
 //! [webgpu-native headers](https://webgpu-native.github.io/webgpu-headers/webgpu_8h_source.html)
 //! [JS API](https://developer.mozilla.org/en-US/docs/Web/API/WebGPU_API)
 const std = @import("std");
-const log = std.log.scoped(.@"wgpu");
+const log = std.log.scoped(.wgpu);
 const Allocator = std.mem.Allocator;
 
 const c = @import("../zgl.zig").c;
@@ -10,8 +10,12 @@ const WGPUBool = u32;
 
 // wgpu objects, contains all the methods
 // https://webgpu-native.github.io/webgpu-headers/group__Objects.html
-pub const Adapter = @import("Adapter.zig").Adapter;
-pub const BindGroup = @import("BindGroup.zig").BindGroup; // complete
+const adapter = @import("adapter.zig");
+const bindgroup = @import("bindgroup.zig");
+
+pub const Adapter = adapter.Adapter;
+pub const BindGroup = bindgroup.BindGroup; // complete
+
 pub const BindGroupLayout = @import("BindGroupLayout.zig").BindGroupLayout;
 pub const Buffer = @import("Buffer.zig").Buffer;
 pub const CommandBuffer = @import("CommandBuffer.zig").CommandBuffer;
@@ -34,14 +38,13 @@ pub const Texture = @import("Texture.zig").Texture;
 pub const TextureView = @import("TextureView.zig").TextureView;
 
 test "api coverage" { // only measures functions as of yet
-    
+
     //std.testing.log_level = .warn;
 
     var gpa = std.heap.GeneralPurposeAllocator(.{}).init;
     defer _ = gpa.deinit();
 
     const allocator = gpa.allocator();
-
 
     const c_info = @typeInfo(c);
 
@@ -62,8 +65,6 @@ test "api coverage" { // only measures functions as of yet
     }
 
     inline for (c_info.@"struct".decls) |decl| {
-
-
         comptime if (std.mem.indexOf(u8, decl.name, "wgpu") == null) continue;
         comptime if (std.mem.indexOf(u8, decl.name, "_") != null) continue;
 
@@ -85,7 +86,6 @@ test "api coverage" { // only measures functions as of yet
             name[i] = std.ascii.toLower(char);
         }
 
-
         try wgpu_functions.put(name, name);
         number_of_c_functions += 1;
 
@@ -105,7 +105,6 @@ test "api coverage" { // only measures functions as of yet
         // log.info("t is a type = {}", .{@typeInfo(t) == .@"struct"});
         const t_info = @typeInfo(t);
         switch (t_info) {
-
             .@"struct" => {
                 // log.debug("{s} has declarations:", .{decl.name});
 
@@ -125,36 +124,32 @@ test "api coverage" { // only measures functions as of yet
 
                 const t_child = @typeInfo(t_info.pointer.child);
 
-
                 if (t_child == .@"opaque") {
-
                     inline for (t_child.@"opaque".decls) |inner_decl| {
                         // log.debug("    - {s}", .{inner_decl.name});
 
-                        const wgpu_name = try std.fmt.allocPrint(allocator, "wgpu{s}{s}", .{decl.name, inner_decl.name});
+                        const wgpu_name = try std.fmt.allocPrint(allocator, "wgpu{s}{s}", .{
+                            decl.name,
+                            inner_decl.name,
+                        });
                         defer allocator.free(wgpu_name);
 
                         for (wgpu_name, 0..) |char, i| wgpu_name[i] = std.ascii.toLower(char);
                         // log.debug("{s}", .{wgpu_name});
 
-                        if (wgpu_functions.get(wgpu_name) != null)  {
+                        if (wgpu_functions.get(wgpu_name) != null) {
                             number_of_implemented_fns += 1;
                         }
                     }
-
                 }
-
             },
 
-            else => {}
+            else => {},
         }
-
-
     }
 
     number_of_implemented_fns += 1;
     try std.testing.expectEqual(number_of_c_functions, number_of_implemented_fns);
-
 }
 
 // Descriptors ================================================================
@@ -163,9 +158,9 @@ test "api coverage" { // only measures functions as of yet
 pub const BindGroupDescriptor = extern struct {
     nextInChain: ?*const ChainedStruct = null,
     label: StringView = .{},
-    layout: ?BindGroupLayout = null, 
+    layout: ?BindGroupLayout = null,
     entryCount: usize = 0, // TODO: use slice
-    entries: ?[*]const BindGroupEntry = null
+    entries: ?[*]const BindGroupEntry = null,
 };
 
 pub const BufferDescriptor = extern struct {
@@ -184,7 +179,7 @@ pub const CommandBufferDescriptor = extern struct {
 pub const CommandEncoderDescriptor = extern struct {
     nextInChain: ?*const ChainedStruct = null,
     label: StringView = .{},
-}; 
+};
 
 pub const ComputePassEncoderDescriptor = extern struct {
     nextInChain: ?*const ChainedStruct = null,
@@ -196,7 +191,7 @@ pub const ComputePipelineDescriptor = extern struct {
     nextInChain: ?*const ChainedStruct = null,
     label: StringView = .{},
     layout: ?PipelineLayout = null,
-    compute: ProgrammableStageDescriptor
+    compute: ProgrammableStageDescriptor,
 };
 
 pub const DeviceDescriptor = struct {
@@ -206,18 +201,18 @@ pub const DeviceDescriptor = struct {
     requiredFeatures: ?[*]const FeatureName = null,
     requiredLimits: ?*const RequiredLimits = null,
     defaultQueue: QueueDescriptor = .{
-        .label = .{ .data = "", .length = 0},
-        .nextInChain = null
+        .label = .{ .data = "", .length = 0 },
+        .nextInChain = null,
     },
     deviceLostCallback: ?*const DeviceLostCallback = null,
     deviceLostUserdata: ?*anyopaque = null,
-    uncapturedErrorCallbackInfo: ?UncapturedErrorCallbackInfo = null
+    uncapturedErrorCallbackInfo: ?UncapturedErrorCallbackInfo = null,
 };
 
 pub const InstanceDescriptor = extern struct {
     nextInChain: ?*const ChainedStruct = null,
     timedWaitAnyEnable: WGPUBool = @intCast(@intFromBool(false)),
-    timedWaitAnyMaxCount: usize = 0
+    timedWaitAnyMaxCount: usize = 0,
 };
 
 pub const RenderPassDescriptor = extern struct {
@@ -227,7 +222,7 @@ pub const RenderPassDescriptor = extern struct {
     colorAttachments: ?[*]const RenderPassColorAttachment = null,
     depthStencilAttachment: ?*const RenderPassDepthStencilAttachment = null,
     occlusionQuerySet: ?QuerySet = null,
-    timestampWrites: ?*const RenderPassTimestampWrites = null
+    timestampWrites: ?*const RenderPassTimestampWrites = null,
 };
 
 pub const RenderPipelineDescriptor = struct {
@@ -241,36 +236,37 @@ pub const RenderPipelineDescriptor = struct {
     fragment: ?*const FragmentState = null,
 
     pub fn ToExtern(self: RenderPipelineDescriptor) c.WGPURenderPipelineDescriptor {
-        return c.WGPURenderPipelineDescriptor {
+        return c.WGPURenderPipelineDescriptor{
             .nextInChain = @ptrCast(self.nextInChain),
             .vertex = self.vertex.ToExtern(),
             .layout = @ptrCast(self.layout),
-            .label = c.WGPUStringView{.data = self.label.ptr, .length = self.label.len },
+            .label = c.WGPUStringView{ .data = self.label.ptr, .length = self.label.len },
             .fragment = @ptrCast(self.fragment),
             .primitive = c.WGPUPrimitiveState{
-                .nextInChain = @ptrCast(self.primitive.nextInChain),
+                .nextInChain = @ptrCast(
+                    self.primitive.nextInChain,
+                ),
                 .topology = @intFromEnum(self.primitive.topology),
                 .cullMode = @intFromEnum(self.primitive.cullMode),
-                .frontFace = @intFromEnum(self.primitive.frontFace),  
+                .frontFace = @intFromEnum(self.primitive.frontFace),
                 .unclippedDepth = @intCast(@intFromBool(self.primitive.unclippedDepth)),
-                .stripIndexFormat = @intFromEnum(self.primitive.stripIndexFormat)
+                .stripIndexFormat = @intFromEnum(self.primitive.stripIndexFormat),
             },
             .multisample = c.WGPUMultisampleState{
                 .nextInChain = @ptrCast(self.multisample.nextInChain),
                 .mask = self.multisample.mask,
                 .alphaToCoverageEnabled = @intFromBool(self.multisample.alphaToCoverageEnabled),
-                .count = self.multisample.count
+                .count = self.multisample.count,
             },
-            .depthStencil = null
+            .depthStencil = null,
         };
     }
 };
 
 pub const QueueDescriptor = struct {
     nextInChain: ?ChainedStruct = null,
-    label: StringView = .{}
+    label: StringView = .{},
 };
-
 
 pub const ShaderModuleDescriptor = extern struct {
     nextInChain: ?*const ChainedStruct = null,
@@ -279,7 +275,7 @@ pub const ShaderModuleDescriptor = extern struct {
 
 pub const SurfaceDescriptor = extern struct {
     nextInChain: ?*const ChainedStruct = null,
-    label: StringView = .{}
+    label: StringView = .{},
 };
 
 pub const TextureUsages = struct {
@@ -293,12 +289,9 @@ pub const TextureUsages = struct {
         var f: Flag = 0;
 
         inline for (@typeInfo(TextureUsages).@"struct".fields) |field| {
-
             if (@field(self.*, field.name)) {
-                
                 f |= @intFromEnum(@field(TextureUsage, field.name));
             }
-
         }
 
         return f;
@@ -317,7 +310,6 @@ pub const TextureDescriptor = struct {
     sample_count: u32,
     view_formats: []const TextureFormat,
 
-    
     pub const ExternalStruct = extern struct {
         nextInChain: ?*const ChainedStruct,
         label: StringView,
@@ -332,8 +324,7 @@ pub const TextureDescriptor = struct {
     };
 
     pub fn External(self: *const TextureDescriptor) ExternalStruct {
-
-        return ExternalStruct {
+        return ExternalStruct{
             .nextInChain = self.next_in_chain,
             .label = self.label,
             .usage = self.usages.calcFlag(),
@@ -343,13 +334,9 @@ pub const TextureDescriptor = struct {
             .mipLevelCount = self.mip_level_count,
             .sampleCount = self.sample_count,
             .viewFormatCount = self.view_formats.len,
-            .viewFormats = self.view_formats.ptr
+            .viewFormats = self.view_formats.ptr,
         };
-        
-
     }
-
-    
 };
 
 pub const TextureViewDescriptor = extern struct {
@@ -369,9 +356,8 @@ pub const TextureViewDescriptor = extern struct {
 
 extern "c" fn wgpuCreateInstance(desc: ?*const InstanceDescriptor) ?Instance;
 pub fn CreateInstance(descriptor: ?*const InstanceDescriptor) WGPUError!Instance {
-    
     log.info("Creating instance...", .{});
-    
+
     const maybe_instance = wgpuCreateInstance(descriptor);
 
     if (maybe_instance) |instance| {
@@ -383,11 +369,7 @@ pub fn CreateInstance(descriptor: ?*const InstanceDescriptor) WGPUError!Instance
     }
 }
 
-pub const Extend3D = extern struct {
-    width: u32,
-    height: u32,
-    depth_or_array_layers: u32
-};
+pub const Extend3D = extern struct { width: u32, height: u32, depth_or_array_layers: u32 };
 
 pub const MapMode = enum(Flag) {
     None = 0x0000000000000000,
@@ -395,18 +377,18 @@ pub const MapMode = enum(Flag) {
     Write = 0x0000000000000002,
 };
 
-pub const MapAsyncStatus =  enum(u32) {
+pub const MapAsyncStatus = enum(u32) {
     Success = 0x00000001,
     InstanceDropped = 0x00000002,
     Error = 0x00000003,
     Aborted = 0x00000004,
     Unknown = 0x00000005,
-    Force32 = 0x7FFFFFFF
+    Force32 = 0x7FFFFFFF,
 };
 
 pub const Flag = u64;
 
-pub const WGPUError = error {
+pub const WGPUError = error{
     FailedToCreateInstance,
     FailedToRequestDevice,
     FailedToRequestAdapter,
@@ -424,17 +406,13 @@ pub const WGPUError = error {
     FailedToGetBindGroupLayout,
     FailedToCreateComputePassEncoder,
     FailedToGetBufferMappedRange,
-
     FailedToMapBufferBecauseOfError,
     FailedToMapBufferBecauseOfAbort,
     FailedToMapBufferBecauseOfDroppedInstance,
     FailedToMapBufferBecauseOfUnknown,
     FailedToMapBufferBecauseOfForce32,
-
     FailedToFinishCommandEncoder,
-
-    FailedToCreateCommandEncoder
-    
+    FailedToCreateCommandEncoder,
 };
 
 pub const ConstantEntry = extern struct {
@@ -448,9 +426,8 @@ pub const VertexStepMode = enum(u32) {
     Undefined = 0x00000001,
     Vertex = 0x00000002,
     Instance = 0x00000003,
-    Force32 = 0x7FFFFFFF
+    Force32 = 0x7FFFFFFF,
 };
-
 
 pub const VertexFormat = enum(u32) {
     Uint8 = 0x00000001,
@@ -494,20 +471,20 @@ pub const VertexFormat = enum(u32) {
     Sint32x4 = 0x00000027,
     Unorm10_10_10_2 = 0x00000028,
     Unorm8x4BGRA = 0x00000029,
-    Force32 = 0x7FFFFFFF
+    Force32 = 0x7FFFFFFF,
 };
 
 pub const VertextAttribute = extern struct {
     format: VertexFormat,
     offset: u64,
-    shaderLocation: u32
+    shaderLocation: u32,
 };
 
 pub const VertexBufferLayout = extern struct {
     stepMode: VertexStepMode,
     arrayStride: u64,
     attributeCount: usize, // TODO: use slice
-    attributes: [*]const VertextAttribute
+    attributes: [*]const VertextAttribute,
 };
 
 // const ExternalVertexState = extern struct {
@@ -523,23 +500,23 @@ pub const VertexBufferLayout = extern struct {
 pub const VertexState = struct {
     nextInChain: ?*const ChainedStruct = null,
     module: ShaderModule,
-    entryPoint: []const u8 = "", 
+    entryPoint: []const u8 = "",
     constants: ?[]const ConstantEntry = null,
     buffers: ?[]const VertexBufferLayout = null,
 
     pub fn ToExtern(self: VertexState) c.WGPUVertexState {
-
-        return c.WGPUVertexState {
+        return c.WGPUVertexState{
             .nextInChain = @ptrCast(self.nextInChain),
             .module = @ptrCast(self.module),
-            .entryPoint = c.WGPUStringView{ .data = self.entryPoint.ptr, .length = self.entryPoint.len },
+            .entryPoint = c.WGPUStringView{
+                .data = self.entryPoint.ptr,
+                .length = self.entryPoint.len,
+            },
             .constantCount = if (self.constants) |cts| cts.len else 0,
             .constants = if (self.constants) |cts| @ptrCast(cts.ptr) else null,
             .bufferCount = if (self.buffers) |bfs| bfs.len else 0,
-            .buffers = @ptrCast(self.buffers)
-
+            .buffers = @ptrCast(self.buffers),
         };
-
     }
 };
 
@@ -558,34 +535,31 @@ pub const PrimitiveTopology = enum(u32) {
     LineStrip = 0x00000003,
     TriangleList = 0x00000004,
     TriangleStrip = 0x00000005,
-    Force32 = 0x7FFFFFFF
+    Force32 = 0x7FFFFFFF,
 };
-
 
 pub const IndexFormat = enum(u32) {
     Undefined = 0x00000000,
     Uint16 = 0x00000001,
     Uint32 = 0x00000002,
-    Force32 = 0x7FFFFFFF
+    Force32 = 0x7FFFFFFF,
 };
 
-
 /// in wgpu-native its defined differently.
-/// fixed in 
+/// fixed in
 pub const FrontFace = enum(u32) {
     Undefined = 0x00000000,
     CCW = 0x00000001,
     CW = 0x00000002,
-    Force32 = 0x7FFFFFFF
+    Force32 = 0x7FFFFFFF,
 };
-
 
 pub const CullMode = enum(u32) {
     Undefined = 0x00000000,
     None = 0x00000001,
     Front = 0x00000002,
     Back = 0x00000003,
-    Force32 = 0x7FFFFFFF
+    Force32 = 0x7FFFFFFF,
 };
 
 pub const PrimitiveState = extern struct {
@@ -595,10 +569,7 @@ pub const PrimitiveState = extern struct {
     frontFace: FrontFace = .Undefined,
     cullMode: CullMode = .None,
     unclippedDepth: bool = false,
-    
-
 };
-
 
 pub const CompareFunction = enum(u32) {
     Undefined = 0x00000000,
@@ -610,9 +581,8 @@ pub const CompareFunction = enum(u32) {
     NotEqual = 0x00000006,
     GreaterEqual = 0x00000007,
     Always = 0x00000008,
-    Force32 = 0x7FFFFFFF
+    Force32 = 0x7FFFFFFF,
 };
-
 
 pub const StencilOperation = enum(u32) {
     Keep = 0x00000000,
@@ -623,7 +593,7 @@ pub const StencilOperation = enum(u32) {
     DecrementClamp = 0x00000005,
     IncrementWrap = 0x00000006,
     DecrementWrap = 0x00000007,
-    Force32 = 0x7FFFFFFF
+    Force32 = 0x7FFFFFFF,
 };
 
 pub const StencilFaceState = extern struct {
@@ -644,7 +614,7 @@ pub const DepthStencilState = extern struct {
     stencilWriteMask: u32,
     depthBias: i32,
     depthBiasSlopeScale: f32,
-    depthBiasClamp: f32
+    depthBiasClamp: f32,
 };
 
 pub const MultiSampleState = extern struct {
@@ -658,7 +628,7 @@ pub const MultiSampleState = extern struct {
 pub const SupportedFeatures = extern struct {
     featureCount: usize,
     features: [*c]const FeatureName,
-    
+
     extern "c" fn wgpuSupportedFeaturesFreeMembers(supportedFeatures: SupportedFeatures) void;
     pub fn deinit(self: SupportedFeatures) void {
         wgpuSupportedFeaturesFreeMembers(self);
@@ -673,8 +643,12 @@ pub const SupportedFeatures = extern struct {
         return slice;
     }
 
-    
-    pub fn format(self: *const SupportedFeatures, comptime fmt: []const u8, _: std.fmt.FormatOptions, writer: anytype) !void {
+    pub fn format(
+        self: *const SupportedFeatures,
+        comptime fmt: []const u8,
+        _: std.fmt.FormatOptions,
+        writer: anytype,
+    ) !void {
         if (fmt.len != 0) {
             std.fmt.invalidFmtError(fmt, self);
         }
@@ -682,9 +656,6 @@ pub const SupportedFeatures = extern struct {
             try writer.print("  - {s}\n", .{@tagName(feature)});
         }
     }
-
-
-    
 };
 
 pub const BlendOperation = enum(u32) {
@@ -694,9 +665,8 @@ pub const BlendOperation = enum(u32) {
     ReverseSubtract = 0x00000003,
     Min = 0x00000004,
     Max = 0x00000005,
-    Force32 = 0x7FFFFFFF
+    Force32 = 0x7FFFFFFF,
 };
-
 
 pub const BlendFactor = enum(u32) {
     Undefined = 0x00000000,
@@ -717,21 +687,19 @@ pub const BlendFactor = enum(u32) {
     OneMinusSrc1 = 0x0000000F,
     Src1Alpha = 0x00000010,
     OneMinusSrc1Alpha = 0x00000011,
-    Force32 = 0x7FFFFFFF
+    Force32 = 0x7FFFFFFF,
 };
 
 pub const BlendComponent = extern struct {
     operation: BlendOperation,
     srcFactor: BlendFactor,
-    dstFactor: BlendFactor
+    dstFactor: BlendFactor,
 };
-
 
 pub const BlendState = extern struct {
     color: BlendComponent,
-    alpha: BlendComponent
+    alpha: BlendComponent,
 };
-
 
 pub const ColorWriteMask = enum(Flag) {
     const NONE = 0x00000000;
@@ -747,19 +715,18 @@ pub const ColorWriteMask = enum(Flag) {
     Blue = 0x0000000000000004,
     Alpha = 0x0000000000000008,
     All = 0x000000000000000F,
-}; 
+};
 
 pub const ColorTargetState = extern struct {
     nextInChain: ?*const ChainedStruct = null,
     format: TextureFormat,
     blend: ?*const BlendState,
-    writeMask: ColorWriteMask
-}; 
-
+    writeMask: ColorWriteMask,
+};
 
 pub const ShaderSourceWGSL = extern struct {
     chain: ChainedStruct,
-    code: StringView = .{ .data = "", .length = 0},
+    code: StringView = .{ .data = "", .length = 0 },
 };
 
 pub const FragmentState = extern struct {
@@ -769,7 +736,7 @@ pub const FragmentState = extern struct {
     constantCount: usize = 0,
     constants: ?[*]const ConstantEntry = null,
     targetCount: usize = 0,
-    targets:  ?[*]const ColorTargetState = null
+    targets: ?[*]const ColorTargetState = null,
 };
 
 pub const DepthSlice = enum(u32) {
@@ -779,9 +746,8 @@ pub const DepthSlice = enum(u32) {
 pub const Status = enum(u32) {
     Success = 0x00000001,
     Error = 0x00000002,
-    Force32 = 0x7FFFFFFF
+    Force32 = 0x7FFFFFFF,
 };
-
 
 pub const RequestAdapterStatus = enum(u32) {
     Success = 0x00000001,
@@ -789,7 +755,7 @@ pub const RequestAdapterStatus = enum(u32) {
     Unavailable = 0x00000003,
     Error = 0x00000004,
     Unknown = 0x00000005,
-    Force32 = 0x7FFFFFFF
+    Force32 = 0x7FFFFFFF,
 };
 
 const SType = enum(u32) {
@@ -802,16 +768,17 @@ const SType = enum(u32) {
     SurfaceSourceWaylandSurface = 0x00000007,
     SurfaceSourceAndroidNativeWindow = 0x00000008,
     SurfaceSourceXCBWindow = 0x00000009,
-    Force32 = 0x7FFFFFFF
+    Force32 = 0x7FFFFFFF,
 };
 
 pub const SurfaceGetCurrentTextureStatus = enum(u32) {
     /// Yay! Everything is good and we can render this frame.
     SuccessOptimal = 0x00000001,
 
-    /// Still OK - the surface can present the frame, but in a suboptimal way. The surface may need reconfiguration.
+    /// Still OK - the surface can present the frame, but in a suboptimal way.
+    /// The surface may need reconfiguration.
     SuccessSuboptimal = 0x00000002,
-    
+
     /// Some operation timed out while trying to acquire the frame.
     Timeout = 0x00000003,
 
@@ -823,15 +790,14 @@ pub const SurfaceGetCurrentTextureStatus = enum(u32) {
 
     /// The system ran out of memory.
     OutOfMemory = 0x00000006,
-    
+
     /// The @ref WGPUDevice configured on the @ref WGPUSurface was lost.
     DeviceLost = 0x00000007,
 
     /// The surface is not configured, or there was an @ref OutStructChainError.
     Error = 0x00000008,
-    Force32 = 0x7FFFFFFF
+    Force32 = 0x7FFFFFFF,
 };
-
 
 pub const BackendType = enum(u32) {
     Undefined = 0x00000000,
@@ -843,30 +809,30 @@ pub const BackendType = enum(u32) {
     Vulkan = 0x00000006,
     OpenGL = 0x00000007,
     OpenGLES = 0x00000008,
-    Force32 = 0x7FFFFFFF
+    Force32 = 0x7FFFFFFF,
 };
 
-
 pub const CompositeAlphaMode = enum(u32) {
-    /// Lets the WebGPU implementation choose the best mode (supported, and with the best performance) between
+    /// Lets the WebGPU implementation choose the best mode
+    /// (supported, and with the best performance) between
     Auto = 0x00000000,
 
     /// The alpha component of the image is ignored and teated as if it is always 1.0.
     Opaque = 0x00000001,
 
-    /// The alpha component is respected and non-alpha components are assumed to be already multiplied with 
+    /// The alpha component is respected and non-alpha components are assumed to be already multiplied with
     /// the alpha component. For example, (0.5, 0, 0, 0.5) is semi-transparent bright red.
     Premultiplied = 0x00000002,
 
-    /// The alpha component is respected and non-alpha components are assumed to 
+    /// The alpha component is respected and non-alpha components are assumed to
     /// NOT be already multiplied with the alpha component. For example, (1.0, 0, 0, 0.5) is semi-transparent bright red.
     Unpremultiplied = 0x00000003,
-    
-    /// The handling of the alpha component is unknown to WebGPU and should be handled by the application 
+
+    /// The handling of the alpha component is unknown to WebGPU and should be handled by the application
     /// using system-specific APIs. This mode may be unavailable (for example on Wasm).
     Inherit = 0x00000004,
 
-    Force32 = 0x7FFFFFFF
+    Force32 = 0x7FFFFFFF,
 };
 
 ///https://webgpu-native.github.io/webgpu-headers/group__Enumerations.html#ga9a635cf4a9ef07c0211b7cdbfb3eb60c
@@ -877,11 +843,8 @@ pub const PresentMode = enum(u32) {
     FifoRelaxed = 0x00000002,
     Immediate = 0x00000003,
     Mailbox = 0x00000004,
-    Force32 = 0x7FFFFFFF
+    Force32 = 0x7FFFFFFF,
 };
-
-
-
 
 pub const TextureViewDimension = enum(u32) {
     Undefined = 0x00000000,
@@ -891,16 +854,15 @@ pub const TextureViewDimension = enum(u32) {
     Cube = 0x00000004,
     CubeArray = 0x00000005,
     @"3D" = 0x00000006,
-    Force32 = 0x7FFFFFFF
+    Force32 = 0x7FFFFFFF,
 };
-
 
 pub const TextureAspect = enum(u32) {
     Undefined = 0x00000000,
     All = 0x00000001,
     StencilOnly = 0x00000002,
     DepthOnly = 0x00000003,
-    Force32 = 0x7FFFFFFF
+    Force32 = 0x7FFFFFFF,
 };
 
 pub const TextureFormat = enum(u32) {
@@ -1000,9 +962,8 @@ pub const TextureFormat = enum(u32) {
     ASTC12x10UnormSrgb = 0x0000005D,
     ASTC12x12Unorm = 0x0000005E,
     ASTC12x12UnormSrgb = 0x0000005F,
-    Force32 = 0x7FFFFFFF
+    Force32 = 0x7FFFFFFF,
 };
-
 
 pub const TextureUsage = enum(Flag) {
     // TODO: document meaning
@@ -1012,7 +973,7 @@ pub const TextureUsage = enum(Flag) {
     TextureBinding = 0x00000004,
     StorageBinding = 0x00000008,
     RenderAttachment = 0x00000010,
-    Force32 = 0x7FFFFFFF
+    Force32 = 0x7FFFFFFF,
 };
 
 pub const TextureDimension = enum(u32) {
@@ -1020,7 +981,7 @@ pub const TextureDimension = enum(u32) {
     @"1D" = 0x00000001,
     @"2D" = 0x00000002,
     @"3D" = 0x00000003,
-    Force32 = 0x7FFFFFFF
+    Force32 = 0x7FFFFFFF,
 };
 
 pub const ChainedStruct = extern struct {
@@ -1047,16 +1008,13 @@ pub const StringView = extern struct {
     }
 
     pub fn fromSlice(slice: []const u8) StringView {
-        return StringView {
-            .data = @ptrCast(slice),
-            .length = slice.len
-        };
+        return StringView{ .data = @ptrCast(slice), .length = slice.len };
     }
 };
 
 pub const Future = u64;
 
-/// The callback mode controls how a callback for an asynchronous operation may be fired. 
+/// The callback mode controls how a callback for an asynchronous operation may be fired.
 /// See Asynchronous Operations for how these are used.
 pub const CallBackMode = enum(u32) { // TODO: fix doc.
 
@@ -1072,13 +1030,18 @@ pub const CallBackMode = enum(u32) { // TODO: fix doc.
 
     /// Callbacks created with `WGPUCallbackMode_AllowSpontaneous`:
     /// - fire for the same reasons as callbacks created with `WGPUCallbackMode_AllowProcessEvents`
-    /// - **may** fire spontaneously on an arbitrary or application thread, when the WebGPU implementations discovers that the asynchronous operation is complete.
-    /// 
+    /// - **may** fire spontaneously on an arbitrary or application thread, when the WebGPU
+    /// implementations discovers that the asynchronous operation is complete.
+    ///
     /// Implementations _should_ fire spontaneous callbacks as soon as possible.
-    /// 
-    /// @note Because spontaneous callbacks may fire at an arbitrary time on an arbitrary thread, applications should take extra care when acquiring locks or mutating state inside the callback. It undefined behavior to re-entrantly call into the webgpu.h API if the callback fires while inside the callstack of another webgpu.h function that is not `wgpuInstanceWaitAny` or `wgpuInstanceProcessEvents`.
+    ///
+    /// @note Because spontaneous callbacks may fire at an arbitrary time on an arbitrary thread,
+    /// applications should take extra care when acquiring locks or mutating state inside the callback.
+    /// It undefined behavior to re-entrantly call into the webgpu.h API if the callback fires while
+    /// inside the callstack of another webgpu.h function that is not `wgpuInstanceWaitAny` or
+    /// `wgpuInstanceProcessEvents`.
     AllowSpontaneous = 0x00000003,
-    Force32 = 0x7FFFFFFF
+    Force32 = 0x7FFFFFFF,
 };
 
 pub const RequestAdapterOptions = extern struct {
@@ -1097,24 +1060,23 @@ pub const RequestAdapterOptions = extern struct {
     /// If set, requires the adapter to be able to output to a particular surface.
     /// If this is not possible, the request returns null.
     compatibleSurface: ?Surface = null,
-
 };
 
-/// "Feature level" for the adapter request. If an adapter is returned, 
+/// "Feature level" for the adapter request. If an adapter is returned,
 /// it must support the features and limits in the requested feature level.
 pub const FeatureLevel = enum(u32) {
     /// "Compatibility" profile which can be supported on OpenGL ES 3.1.
     Compatibility = 0x00000001,
     /// "Core" profile which can be supported on Vulkan/Metal/D3D12.
     Core = 0x00000002,
-    Force32 = 0x7FFFFFFF
+    Force32 = 0x7FFFFFFF,
 };
 
-const PowerPreference = enum(u32){
+const PowerPreference = enum(u32) {
     Undefined = 0x00000000,
     LowPower = 0x00000001,
     HighPerformance = 0x00000002,
-    Force32 = 0x7FFFFFFF
+    Force32 = 0x7FFFFFFF,
 };
 
 pub const UncapturedErrorCallbackInfo = struct {
@@ -1123,12 +1085,11 @@ pub const UncapturedErrorCallbackInfo = struct {
     userdata: ?*anyopaque = null,
 };
 
-const ErrorCallback = *const fn(
+const ErrorCallback = *const fn (
     type: ErrorType,
     message: [*c]const u8, // TODO: Change to StringView
-    userdata: ?*anyopaque
+    userdata: ?*anyopaque,
 ) callconv(.C) void;
-
 
 pub const ErrorType = enum(u32) {
     NoError = 0x00000000,
@@ -1137,15 +1098,10 @@ pub const ErrorType = enum(u32) {
     Internal = 0x00000003,
     Unknown = 0x00000004,
     DeviceLost = 0x00000005,
-    Force32 = 0x7FFFFFFF
+    Force32 = 0x7FFFFFFF,
 };
 
-
-pub const RequiredLimits = struct {
-    nextInChain: ?ChainedStruct,
-    limits: Limits
-};
-
+pub const RequiredLimits = struct { nextInChain: ?ChainedStruct, limits: Limits };
 
 pub const FeatureName = enum(u32) {
     Undefined = 0x00000000,
@@ -1205,8 +1161,6 @@ pub const FeatureName = enum(u32) {
     WGPUNativeFeature_SubgroupBarrier = 0x00030023,
     WGPUNativeFeature_TimestampQueryInsideEncoders = 0x00030024,
     WGPUNativeFeature_TimestampQueryInsidePasses = 0x00030025,
-
-
 };
 
 pub const Limits = extern struct {
@@ -1224,7 +1178,7 @@ pub const Limits = extern struct {
     maxSamplersPerShaderStage: u32 = 0,
     maxStorageBuffersPerShaderStage: u32 = 0,
     maxStorageTexturesPerShaderStage: u32 = 0,
-    maxUniformBuffersPerShaderStage: u32 =0,
+    maxUniformBuffersPerShaderStage: u32 = 0,
     maxUniformBufferBindingSize: u64 = 0,
     maxStorageBufferBindingSize: u64 = 0,
     minUniformBufferOffsetAlignment: u32 = 0,
@@ -1244,42 +1198,42 @@ pub const Limits = extern struct {
     maxComputeWorkgroupSizeZ: u32 = 0,
     maxComputeWorkgroupsPerDimension: u32 = 0,
 
-    
-    pub fn format(limits: *const Limits, comptime fmt: []const u8, _: std.fmt.FormatOptions, writer: anytype) !void {
+    pub fn format(
+        limits: *const Limits,
+        comptime fmt: []const u8,
+        _: std.fmt.FormatOptions,
+        writer: anytype,
+    ) !void {
         if (fmt.len != 0) {
             std.fmt.invalidFmtError(fmt, limits);
         }
 
         inline for (@typeInfo(@TypeOf(limits.*)).@"struct".fields, 0..) |field, i| {
             if (i == 0) continue; // skip printing nextInChain
-            try writer.print(" - {s}: {}\n", .{field.name, @field(limits, field.name)});
+            try writer.print(" - {s}: {}\n", .{ field.name, @field(limits, field.name) });
         }
-
     }
 };
-
 
 const SubmissionIndex = u64;
 
 pub const WrappedSubmissionIndex = extern struct {
     queue: *const Queue,
-    submissionIndex: SubmissionIndex
+    submissionIndex: SubmissionIndex,
 };
-
 
 pub const LoadOp = enum(u32) {
     Undefined = 0x00000000,
     Load = 0x00000001,
     Clear = 0x00000002,
-    Force32 = 0x7FFFFFFF
+    Force32 = 0x7FFFFFFF,
 };
-
 
 pub const StoreOp = enum(u32) {
     Undefined = 0x00000000,
     Store = 0x00000001,
     Discard = 0x00000002,
-    Force32 = 0x7FFFFFFF
+    Force32 = 0x7FFFFFFF,
 };
 
 pub const BindGroupEntry = extern struct {
@@ -1292,13 +1246,11 @@ pub const BindGroupEntry = extern struct {
     textureView: ?TextureView = null,
 };
 
-
 pub const ComputePassTimeStampWrites = extern struct {
-    querySet: QuerySet, 
+    querySet: QuerySet,
     beginningOfPassWriteIndex: u32 = 0,
-    endOfPassWriteIndex: u32 = 0
+    endOfPassWriteIndex: u32 = 0,
 };
-
 
 pub const RenderPassDepthStencilAttachment = extern struct {
     view: TextureView,
@@ -1312,11 +1264,10 @@ pub const RenderPassDepthStencilAttachment = extern struct {
     stencilReadOnly: bool,
 };
 
-
 pub const RenderPassTimestampWrites = extern struct {
     querySet: QuerySet,
     beginningOfPassWriteIndex: u32,
-    endOfPassWriteIndex: u32
+    endOfPassWriteIndex: u32,
 };
 
 pub const RenderPassColorAttachment = extern struct {
@@ -1326,26 +1277,26 @@ pub const RenderPassColorAttachment = extern struct {
     resolveTarget: ?TextureView = null,
     loadOp: LoadOp,
     storeOp: StoreOp,
-    clearValue: Color
+    clearValue: Color,
 };
 
-pub const Color = extern struct { 
+pub const Color = extern struct {
     r: f64,
     g: f64,
     b: f64,
     a: f64,
 };
 
-pub const DeviceLostCallback = fn(
-    reason: DeviceLostReason, 
+pub const DeviceLostCallback = fn (
+    reason: DeviceLostReason,
     message: [*c]const u8,
-    userdata: ?*anyopaque
+    userdata: ?*anyopaque,
 ) callconv(.C) void;
 
 pub const DeviceLostReason = enum(u32) {
     Unknown = 0x00000001,
     Destroyed = 0x00000002,
-    Force32 = 0x7FFFFFFF
+    Force32 = 0x7FFFFFFF,
 };
 
 /// https://gpuweb.github.io/gpuweb/#buffer-usage
@@ -1357,9 +1308,9 @@ pub const BufferUsage = enum(Flag) {
     MapWrite = 0x0000000000000002,
     /// The buffer can be used as the source of a copy operation.
     CopySrc = 0x0000000000000004,
-    /// The buffer can be used as the destination of a copy or write operation. 
+    /// The buffer can be used as the destination of a copy or write operation.
     CopyDst = 0x0000000000000008,
-    /// The buffer can be used as an index buffer. 
+    /// The buffer can be used as an index buffer.
     Index = 0x0000000000000010,
     /// The buffer can be used as a vertex buffer.
     Vertex = 0x0000000000000020,
@@ -1367,24 +1318,22 @@ pub const BufferUsage = enum(Flag) {
     Uniform = 0x0000000000000040,
     /// The buffer can be used as a storage buffer.
     Storage = 0x0000000000000080,
-    /// The buffer can be used as to store indirect command arguments. 
+    /// The buffer can be used as to store indirect command arguments.
     Indirect = 0x0000000000000100,
     /// The buffer can be used to capture query results.
     QueryResolve = 0x0000000000000200,
 };
 
-
 // Surface structs ============================================================
 pub const SurfaceSourceFromMetalLayer = extern struct {
     chain: ChainedStruct,
-    layer: *anyopaque
+    layer: *anyopaque,
 };
 
 pub const SurfaceSourceFromWindowsHWND = extern struct {
     chain: ChainedStruct,
     hinstance: *anyopaque,
     hwnd: *anyopaque,
-
 };
 
 pub const SurfaceSourceFromXlibWindow = extern struct {
@@ -1396,9 +1345,8 @@ pub const SurfaceSourceFromXlibWindow = extern struct {
 pub const SurfaceSourceFromWaylandSurface = extern struct {
     chain: ChainedStruct,
     display: *anyopaque,
-    surface: *anyopaque
+    surface: *anyopaque,
 };
-
 
 /// https://webgpu-native.github.io/webgpu-headers/structWGPUSurfaceConfiguration.html
 pub const SurfaceConfiguration = extern struct {
@@ -1417,7 +1365,7 @@ pub const SurfaceConfiguration = extern struct {
 pub const SurfaceTexture = extern struct {
     nextInChain: ?*const ChainedStructOut = null,
     texture: ?Texture = null,
-    status: SurfaceGetCurrentTextureStatus = .DeviceLost
+    status: SurfaceGetCurrentTextureStatus = .DeviceLost,
 };
 //=============================================================================
 
@@ -1426,92 +1374,76 @@ inline fn ToExternalType(ExternalType: type, from: anytype) ExternalType {
     std.debug.print("\n", .{});
 
     // rules c_type <- zig type
-    // 
+    //
     // - WGPUBool(u32) <- @intFromBool(bool)
     // - ... <- slice.ptr
     // - ...Count <- slice.len
     // - enum(c_int) <- @intFromEnum(enum)
     //
-    // wgpu don't have slice instead they have a manyitem poiner field 
-    // and a length field. For example 
+    // wgpu don't have slice instead they have a manyitem poiner field
+    // and a length field. For example
     //  buffers: [*c]const Buffer
     //  bufferCount: u64
     // they follow the same naming.
-    //  
+    //
 
     const external_info = @typeInfo(ExternalType);
     const from_typeinfo = @typeInfo(@TypeOf(from));
 
     const exernal_name = @typeName(ExternalType);
     switch (external_info) {
-
         .@"struct" => {
-            
             var out = ExternalType{};
-
 
             log.debug("converting {s} to {s}", .{ @typeName(@TypeOf(from)), exernal_name });
 
             inline for (external_info.@"struct".fields) |field| {
-
                 const native_val = @field(from, field.name);
 
-                log.debug("setting field {s} which is a {} to {any}", .{field.name, field.type, native_val});
+                log.debug("setting field {s} which is a {} to {any}", .{
+                    field.name,
+                    field.type,
+                    native_val,
+                });
 
                 // check if field contains Count
-                if (std.mem.indexOf(u8, field.name, "Count")) |_|{
+                if (std.mem.indexOf(u8, field.name, "Count")) |_| {
                     log.debug("field contains Count", .{});
-
                 }
 
                 @field(out, field.name) = ToExternalType(field.type, native_val);
-
             }
 
-            
             return out;
-
         },
 
         .pointer => |ptr| {
-
             log.debug("got a ptr of kind: {}", .{ptr.child});
             log.debug("native = {any}", .{from});
-
 
             log.debug("fromType is of type {any}", .{@TypeOf(from)});
             std.debug.assert(from_typeinfo == .pointer or from_typeinfo == .optional);
 
             return @ptrCast(from);
-
         },
 
         .int => {
-
             switch (from_typeinfo) {
                 .bool => return @intFromBool(from),
                 .int => return @intCast(from),
                 inline else => {
                     @panic("unsupported conversion to int");
-                }
-                
-
+                },
             }
-
         },
 
         inline else => |kind| {
             log.debug("{} isnt yet implemened", .{kind});
-        }
-        
-
+        },
     }
 
     @panic("not implemented");
-
-
 }
-
 
 test "native zig type to wgpu c type" {
     //std.testing.log_level = .debug;
@@ -1520,7 +1452,7 @@ test "native zig type to wgpu c type" {
         .label = StringView.fromSlice("hi"),
         .size = 15,
         .usage = @intFromEnum(BufferUsage.Vertex),
-        .mappedAtCreation = true
+        .mappedAtCreation = true,
     };
 
     const ext_buffer_desc = ToExternalType(c.WGPUBufferDescriptor, &native_buffer_desc);
@@ -1531,10 +1463,8 @@ test "native zig type to wgpu c type" {
     try std.testing.expectEqual(ext_buffer_desc.mappedAtCreation, @intFromBool(native_buffer_desc.mappedAtCreation));
     // try std.testing.expectEqual(ext.nextInChain, native.nextInChain)
 
-
     // const native_bindgroup_desc = BindGroupDescriptor {};
 
     // const ext_bindgroup_desc = ToExternalType(c., native_buffer_desc);
-
 
 }
