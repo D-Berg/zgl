@@ -15,24 +15,20 @@ const ChainedStruct = wgpu.ChainedStruct;
 const ChainedStructOut = wgpu.ChainedStructOut;
 const Limits = wgpu.Limits;
 
-
-pub const Adapter = *AdapterImpl;
-const AdapterImpl = opaque {
-
-    extern "c" fn wgpuAdapterRelease(adapter: Adapter) void;
-    pub fn release(adapter: Adapter) void {
+pub const Adapter = opaque {
+    extern "c" fn wgpuAdapterRelease(adapter: *const Adapter) void;
+    pub fn release(adapter: *const Adapter) void {
         wgpuAdapterRelease(adapter);
         log.info("Released adapter", .{});
     }
 
     const DeviceUserData = struct {
-        device: ?Device = null,
-        requestEnded: bool = false,        
+        device: ?*const Device = null,
+        requestEnded: bool = false,
     };
 
-    
     // TODO: move to wgpu
-    const RequestDeviceCallback = fn(
+    const RequestDeviceCallback = fn (
         status: RequestDeviceStatus,
         device: ?Device,
         message: wgpu.StringView,
@@ -41,12 +37,15 @@ const AdapterImpl = opaque {
     ) callconv(.C) void;
 
     extern "c" fn wgpuAdapterRequestDevice(
-        adapter: Adapter, 
-        descriptor: ?*const DeviceDescriptor, 
-        callbackInfo: RequestDeviceCallbackInfo
+        adapter: *const Adapter,
+        descriptor: ?*const DeviceDescriptor,
+        callbackInfo: RequestDeviceCallbackInfo,
     ) wgpu.Future;
-    pub fn RequestDevice(adapter: Adapter, descriptor: ?*const DeviceDescriptor) WGPUError!Device {
-        
+
+    pub fn requestDevice(
+        adapter: *const Adapter,
+        descriptor: ?*const DeviceDescriptor,
+    ) WGPUError!*const Device {
         log.info("Requesting device...", .{});
 
         var userdata = DeviceUserData{};
@@ -72,7 +71,6 @@ const AdapterImpl = opaque {
             log.err("device was null", .{});
             return error.FailedToRequestDevice;
         }
-
     }
 
     // TODO: move to wgpu
@@ -84,17 +82,14 @@ const AdapterImpl = opaque {
         userdata2: ?*anyopaque,
     };
 
-
-    
     /// My user implementation of RequestDeviceCallback, not part of webgpu.h
     fn onDeviceRequestEnded(
-        status: RequestDeviceStatus, 
-        device: ?Device, 
+        status: RequestDeviceStatus,
+        device: ?*const Device,
         message: wgpu.StringView,
         userdata1: ?*anyopaque,
-        userdata2: ?*anyopaque
+        userdata2: ?*anyopaque,
     ) callconv(.C) void {
-
         _ = userdata2;
 
         var user_data = @as(*DeviceUserData, @alignCast(@ptrCast(userdata1)));
@@ -102,24 +97,24 @@ const AdapterImpl = opaque {
         switch (status) {
             .Success => {
                 user_data.device = device;
-            }, 
+            },
 
             inline else => |case| {
-                log.err("Could not get WebGPU device, status: {s}, message: {s}", .{@tagName(case), message.toSlice()});
-            }
-
+                log.err("Could not get WebGPU device, status: {s}, message: {s}", .{
+                    @tagName(case),
+                    message.toSlice(),
+                });
+            },
         }
 
         user_data.requestEnded = true;
-
     }
 
-    extern fn wgpuAdapterGetLimits(adapter: Adapter, limits: *Limits) wgpu.Status;
+    extern fn wgpuAdapterGetLimits(adapter: *const Adapter, limits: *Limits) wgpu.Status;
     /// Get the Supported Limits of the Adapter
-    pub fn GetLimits(adapter: Adapter) ?Limits {
-
+    pub fn getLimits(adapter: *const Adapter) ?Limits {
         var limits: Limits = .{};
-        
+
         const status = wgpuAdapterGetLimits(adapter, &limits);
 
         switch (status) {
@@ -129,22 +124,24 @@ const AdapterImpl = opaque {
             inline else => |s| {
                 log.err("Failed to get Adapter limits, got WGPUStatys: {s}", .{@tagName(s)});
                 return null;
-            }
+            },
         }
     }
 
-    
-    extern fn wgpuAdapterGetFeatures(adapter: Adapter, features: *wgpu.SupportedFeatures) void;
+    extern fn wgpuAdapterGetFeatures(
+        adapter: *const Adapter,
+        features: *wgpu.SupportedFeatures,
+    ) void;
 
     // TODO: return a slice of features
-    pub fn GetFeatures(adapter: Adapter) wgpu.SupportedFeatures {
-        var sup_features = wgpu.SupportedFeatures {
+    pub fn getFeatures(adapter: *const Adapter) wgpu.SupportedFeatures {
+        var sup_features = wgpu.SupportedFeatures{
             .featureCount = 0,
             .features = null,
         };
 
         wgpuAdapterGetFeatures(adapter, &sup_features);
-        
+
         return sup_features;
     }
 
@@ -154,19 +151,17 @@ const AdapterImpl = opaque {
         IntegratedGPU = 0x00000002,
         CPU = 0x00000003,
         Unknown = 0x00000004,
-        Force32 = 0x7FFFFFFF
+        Force32 = 0x7FFFFFFF,
     };
 
-    
-    const RequestDeviceStatus = enum(u32)  {
+    const RequestDeviceStatus = enum(u32) {
         Success = 0x00000001,
         InstanceDropped = 0x00000002,
         Error = 0x00000003,
         Unknown = 0x00000004,
-        Force32 = 0x7FFFFFFF
+        Force32 = 0x7FFFFFFF,
     };
-    
-    
+
     /// wgpuAdapterInfo
     const Info = extern struct {
         nextInChain: ?*const wgpu.ChainedStructOut = null,
@@ -200,13 +195,10 @@ const AdapterImpl = opaque {
             try writer.print("  - vendorID: {}\n", .{self.vendorID});
             try writer.print("  - deviceID: {}\n", .{self.deviceID});
         }
-
     };
 
-
-    extern fn wgpuAdapterGetInfo(adapter: Adapter, info: *Info) void;
-    pub fn GetInfo(adapter: Adapter) Info {
-
+    extern fn wgpuAdapterGetInfo(adapter: *const Adapter, info: *Info) void;
+    pub fn getInfo(adapter: *const Adapter) Info {
         var info = Info{};
 
         wgpuAdapterGetInfo(adapter, &info);
@@ -214,20 +206,16 @@ const AdapterImpl = opaque {
         return info;
     }
 
-
-    
     // FIX:
     pub const SupportedLimits = extern struct {
         limits: Limits,
 
         pub fn logLimits(slimits: *const Limits) void {
-
             const limits = slimits.limits;
 
-            inline for (@typeInfo(@TypeOf(limits)).@"struct".fields) |field|{
-                log.info(" - {s}: {}", .{field.name, @field(limits, field.name)});
+            inline for (@typeInfo(@TypeOf(limits)).@"struct".fields) |field| {
+                log.info(" - {s}: {}", .{ field.name, @field(limits, field.name) });
             }
-
         }
     };
 
@@ -240,13 +228,10 @@ const AdapterImpl = opaque {
         }
 
         pub fn logFeautures(sfeatures: *const SupportedAdapterFeatures) void {
-
             log.info("Supported Adapter Features:", .{});
             for (sfeatures.features) |feature| {
                 log.info(" - {s}", .{@tagName(feature)});
             }
         }
-        
     };
-
 };
