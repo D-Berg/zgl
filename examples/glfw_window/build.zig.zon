@@ -1,10 +1,11 @@
 .{
-    .name = "glfw_window",
+    .name = .glfw_window,
+    .fingerprint = 0xbfe4772ef1e9f462,
     .version = "0.0.0",
     .dependencies = .{
         .zgl = .{
             .path = "../../",
-        }
+        },
     },
     .paths = .{
         "build.zig",

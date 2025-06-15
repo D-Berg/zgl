@@ -1,7 +1,7 @@
 const std = @import("std");
 const print = std.debug.print;
 const testing = std.testing;
-const log = std.log.scoped(.@"main");
+const log = std.log.scoped(.main);
 const zgl = @import("zgl");
 const wgpu = zgl.wgpu;
 const glfw = zgl.glfw;
@@ -18,30 +18,27 @@ const triange_shader = @embedFile("shaders/triangle.wgsl");
 
 const App = struct {
     window: glfw.Window,
-    instance: wgpu.Instance,
-    surface: wgpu.Surface,
-    adapter: wgpu.Adapter,
-    device: wgpu.Device,
-    queue: *wgpu.Queue,
-    shader_module: wgpu.ShaderModule,
-    render_pipeline: wgpu.RenderPipeline, 
+    instance: *const wgpu.Instance,
+    surface: *const wgpu.Surface,
+    adapter: *const wgpu.Adapter,
+    device: *const wgpu.Device,
+    queue: *const wgpu.Queue,
+    shader_module: *const wgpu.ShaderModule,
+    render_pipeline: *const wgpu.RenderPipeline,
     allocator: Allocator,
 
     fn init(allocator: Allocator) !App {
-
         try glfw.init();
         glfw.Window.hint(.{ .client_api = .NO_API, .resizable = true });
         const window = try glfw.Window.Create(WINDOW_WIDTH, WINDOW_HEIGHT, "My window");
 
-        const instance = try wgpu.Instance.Create(null);
+        const instance = try wgpu.createInstance(null);
 
         const surface = try glfw.GetWGPUSurface(window, instance);
 
-
-        const adapter = try instance.RequestAdapter(&.{
-            .compatibleSurface = surface._inner,
+        const adapter = try instance.requestAdapter(&.{
+            .compatible_surface = surface,
         });
-
 
         const surface_capabilities = surface.GetCapabilities(adapter);
         defer surface_capabilities.FreeMembers();
@@ -52,27 +49,28 @@ const App = struct {
 
         const queue = try device.GetQueue();
 
-        var surface_config = wgpu.Surface.Configuration{
-            .device = device._inner,
+        var surface_config = wgpu.SurfaceConfiguration{
+            .device = device,
             .width = WINDOW_WIDTH,
             .height = WINDOW_HEIGHT,
             .usage = .RenderAttachment,
             .format = surface.GetPreferredFormat(adapter),
             .presentMode = .Undefined,
-            .alphaMode = .Auto
+            .alphaMode = .Auto,
         };
-        surface.Configure(&surface_config);
+        surface.configure(&surface_config);
 
-        const code_desc = wgpu.ShaderModule.WGSLDescriptor{
-            .code = triange_shader,
-            .chain = .{ .sType = .ShaderModuleWGSLDescriptor }
+        const wgsl_code = wgpu.ShaderSourceWGSL{
+            .code = .fromSlice(triange_shader),
+            .chain = .{ .next = null, .sType = .ShaderSourceWGSL },
         };
-        const shader_module = try device.CreateShaderModule(&.{
-            .nextInChain = &code_desc.chain
-        });
+
+        const shader_module = try device.CreateShaderModule(
+            &.{ .nextInChain = &wgsl_code.chain },
+        );
 
         const blend_state = wgpu.BlendState{
-            .color = .{ 
+            .color = .{
                 .srcFactor = .One,
                 .dstFactor = .Zero,
                 .operation = .Add,
@@ -80,8 +78,8 @@ const App = struct {
             .alpha = .{
                 .srcFactor = .One,
                 .dstFactor = .OneMinusSrcAlpha,
-                .operation = .Add
-            }
+                .operation = .Add,
+            },
         };
         _ = blend_state;
 
@@ -90,12 +88,12 @@ const App = struct {
         const color_target = wgpu.ColorTargetState{
             .format = surface.GetPreferredFormat(adapter),
             .blend = null,
-            .writeMask = .All
+            .writeMask = .All,
         };
 
-        const render_pipeline = try device.CreateRenderPipeline(&wgpu.RenderPipeline.Descriptor {
+        const render_pipeline = try device.CreateRenderPipeline(&wgpu.RenderPipelineDescriptor{
             .vertex = wgpu.VertexState{
-                .module = shader_module._impl,
+                .module = shader_module,
                 .entryPoint = "vs_main",
             },
             .primitive = wgpu.PrimitiveState{
@@ -105,15 +103,15 @@ const App = struct {
                 .cullMode = .None,
             },
             .fragment = &wgpu.FragmentState{
-                .module = shader_module._impl,    
-                .entryPoint = "fs_main",
+                .module = shader_module,
+                .entryPoint = .fromSlice("fs_main"),
                 .targetCount = 1,
-                .targets = &[1]wgpu.ColorTargetState{ color_target }
+                .targets = &[1]wgpu.ColorTargetState{color_target},
             },
             .multisample = wgpu.MultiSampleState{
                 .count = 1,
                 .mask = ~zero,
-                .alphaToCoverageEnabled = false
+                .alphaToCoverageEnabled = false,
             },
         });
 
@@ -128,38 +126,40 @@ const App = struct {
             .render_pipeline = render_pipeline,
             .allocator = allocator,
         };
-
     }
 
     fn deinit(self: *App) void {
         defer glfw.terminate();
         defer self.window.destroy();
-        defer self.instance.Release();
-        defer self.surface.Release();
+        defer self.instance.release();
+        defer self.surface.release();
         defer self.adapter.release();
-        defer self.device.Release();
-        defer self.queue.Release();
-        defer self.shader_module.Release();
+        defer self.device.release();
+        defer self.queue.release();
+        defer self.shader_module.release();
         defer self.render_pipeline.Release();
-
     }
 
-    fn loop(ctx: ?*anyopaque) callconv(.C) void {
+    fn c_loop(ctx: ?*anyopaque) callconv(.C) void {
         const self = @as(*App, @alignCast(@ptrCast(ctx)));
 
+        self.loop() catch |err| {
+            log.err("{s}", .{@errorName(err)});
+            return;
+        };
+    }
+
+    fn loop(self: *App) !void {
         const surface = self.surface;
         const device = self.device;
         const queue = self.queue;
         const render_pipeline = self.render_pipeline;
 
-        const texture = surface.GetCurrentTexture() catch |err| {
-            log.err("failed to get texture: {}", .{err});
-            return;
-        };
-        defer texture.Release();
+        const texture = try surface.GetCurrentTexture();
+        defer texture.release();
 
-        const view = texture.CreateView(&.{
-            .label = "Surface texture view",
+        const view = try texture.CreateView(&wgpu.TextureViewDescriptor{
+            .label = .fromSlice("Surface texture view"),
             .format = texture.GetFormat(),
             .dimension = .@"2D",
             .baseMipLevel = 0,
@@ -167,17 +167,16 @@ const App = struct {
             .baseArrayLayer = 0,
             .arrayLayerCount = 1,
             .aspect = .All,
-        }) catch |err| { 
-            log.err("failed to get view: {}", .{err});
-            return;
-        };
-        defer view.Release();
+            .usage = .RenderAttachment,
+        });
+        defer view.release();
 
+        const command_encoder = try device.CreateCommandEncoder(
+            &.{ .label = .fromSlice("My command Encoder") },
+        );
 
-        const command_encoder = device.CreateCommandEncoder(&.{ .label = "My command Encoder" });
-
-        const render_pass_color_attachement = wgpu.RenderPass.ColorAttachment {
-            .view = view._impl,
+        const render_pass_color_attachement = wgpu.RenderPassColorAttachment{
+            .view = view,
             .resolveTarget = null,
             .loadOp = .Clear,
             .storeOp = .Store,
@@ -186,42 +185,39 @@ const App = struct {
         };
 
         {
-            const render_pass_encoder = command_encoder.BeginRenderPass(&wgpu.RenderPass.Descriptor {
-                .colorAttachmentCount = 1,
-                .colorAttachments = &[1]wgpu.RenderPass.ColorAttachment{render_pass_color_attachement},
-                .depthStencilAttachment = null,
-                .occlusionQuerySet = null,
-                .timestampWrites = null,
-            }) catch |err| {
-                log.err("Failed to get render pass encoder: {s}", .{@errorName(err)});
-                return;
-            };
+            const render_pass_encoder = try command_encoder.BeginRenderPass(
+                &wgpu.RenderPassDescriptor{
+                    .colorAttachmentCount = 1,
+                    .colorAttachments = &[1]wgpu.RenderPassColorAttachment{
+                        render_pass_color_attachement,
+                    },
+                    .depthStencilAttachment = null,
+                    .occlusionQuerySet = null,
+                    .timestampWrites = null,
+                },
+            );
+            render_pass_encoder.setPipeline(render_pipeline);
+            render_pass_encoder.draw(3, 1, 0, 0);
 
-            render_pass_encoder.SetPipeline(render_pipeline);
-            render_pass_encoder.Draw(3, 1, 0, 0);
-
-            render_pass_encoder.End();
-            render_pass_encoder.Release();
+            render_pass_encoder.end();
+            render_pass_encoder.release();
         }
 
+        const command_buffer = try command_encoder.finish(&.{ .label = .fromSlice("cmd buffer") });
+        command_encoder.release();
 
-        const command_buffer = command_encoder.Finish(&.{.label = "cmd buffer"});
-        command_encoder.Release();
-
-        queue.Submit(&.{command_buffer});
-        command_buffer.Release();
+        queue.submit(&.{command_buffer});
+        command_buffer.release();
 
         if (os_tag != .emscripten) {
-            surface.Present();
-            _ = device.Poll(false, null);
+            surface.present();
+            _ = device.poll(false, null);
         }
-
     }
 
     fn shouldClose(self: App) bool {
         return self.window.ShouldClose();
     }
-
 };
 
 pub fn main() !void {
@@ -237,13 +233,11 @@ pub fn main() !void {
     log.debug("{s}", .{triange_shader});
 
     if (os_tag == .emscripten) {
-        emscripten.emscripten_set_main_loop_arg(App.loop, &app, 0, @intFromBool(true));
+        emscripten.emscripten_set_main_loop_arg(App.c_loop, &app, 0, @intFromBool(true));
     } else {
         while (!app.shouldClose()) {
             glfw.pollEvents();
-            App.loop(&app);
+            try App.loop(&app);
         }
     }
-    
 }
-

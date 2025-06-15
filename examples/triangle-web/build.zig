@@ -10,36 +10,32 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
-    if (target.result.isWasm()) {
-
+    if (target.result.os.tag == .emscripten) {
         const lib = b.addStaticLibrary(.{
             .name = "triangle",
             .root_source_file = b.path("src/main.zig"),
             .optimize = optimize,
-            .target = target
+            .target = target,
         });
 
         lib.root_module.addImport("zgl", zgl_dep.module("zgl"));
         const emsdk = zgl_dep.builder.dependency("emsdk", .{});
-        
 
         const link_step = zgl.emLinkStep(b, lib, emsdk);
         b.getInstallStep().dependOn(&link_step.step);
 
         b.installArtifact(lib);
-
     } else {
-
         const exe = b.addExecutable(.{
             .name = "triangle",
             .root_source_file = b.path("src/main.zig"),
             .target = target,
             .optimize = optimize,
-            .strip = true
+            .strip = true,
         });
 
         exe.root_module.addImport("zgl", zgl_dep.module("zgl"));
-        
+
         b.installArtifact(exe);
 
         const run_cmd = b.addRunArtifact(exe);
@@ -73,5 +69,3 @@ pub fn build(b: *std.Build) void {
         test_step.dependOn(&run_exe_unit_tests.step);
     }
 }
-
-
