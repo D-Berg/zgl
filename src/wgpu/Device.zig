@@ -22,9 +22,7 @@ const Buffer = wgpu.Buffer;
 const BufferDescriptor = wgpu.BufferDescriptor;
 const ComputePipeline = wgpu.ComputePipeline;
 const BindGroup = wgpu.BindGroup;
-const BindGroupDescriptor = wgpu.BindGroupDescriptor;
 const SupportedFeatures = wgpu.SupportedFeatures;
-const RenderPipelineDescriptor = wgpu.RenderPipelineDescriptor;
 const CommandEncoderDescriptor = wgpu.CommandEncoderDescriptor;
 const Texture = wgpu.Texture;
 const TextureDescriptor = wgpu.TextureDescriptor;
@@ -117,16 +115,36 @@ pub const Device = opaque {
 
     extern "c" fn wgpuDeviceCreateRenderPipeline(
         device: ?*const Device,
-        descriptor: *const RenderPipelineDescriptor,
+        descriptor: *const wgpu.RenderPipeline.Descriptor.External,
     ) ?*const RenderPipeline;
 
     pub fn createRenderPipeline(
         device: *const Device,
-        descriptor: *const RenderPipelineDescriptor,
+        descriptor: wgpu.RenderPipeline.Descriptor,
     ) WGPUError!*const RenderPipeline {
+        const extern_descriptor = wgpu.RenderPipeline.Descriptor.External{
+            .next_in_chain = descriptor.next_in_chain,
+            .label = .fromSlice(descriptor.label),
+            .layout = descriptor.layout,
+            .vertex = wgpu.VertexState.External{
+                .next_in_chain = descriptor.vertex.next_in_chain,
+                .module = descriptor.vertex.module,
+                .entry_point = .fromSlice(descriptor.vertex.entry_point),
+                .constant_count = descriptor.vertex.constants.len,
+                .constants = if (descriptor.vertex.constants.len > 0)
+                    descriptor.vertex.constants.ptr
+                else
+                    null,
+                // .buffer_count = descriptor.vertex.buffers.len,
+            },
+            .primitive = descriptor.primitive,
+            .depth_stencil = descriptor.depth_stencil,
+            .multi_sample = descriptor.multi_sample,
+            .fragment = descriptor.fragment,
+        };
         const maybe_render_pipeline = wgpuDeviceCreateRenderPipeline(
             device,
-            &descriptor.ToExtern(),
+            &extern_descriptor,
         );
 
         if (maybe_render_pipeline) |render_pipeline| {
@@ -178,19 +196,24 @@ pub const Device = opaque {
 
     extern "c" fn wgpuDeviceCreateBindGroup(
         device: ?*const Device,
-        descriptor: *const BindGroupDescriptor,
+        descriptor: *const wgpu.BindGroup.Descriptor.External,
     ) ?*const BindGroup;
     pub fn CreateBindGroup(
         device: *const Device,
-        descriptor: *const BindGroupDescriptor,
+        descriptor: *const wgpu.BindGroup.Descriptor,
     ) WGPUError!*const BindGroup {
-        const maybe_bindgroup = wgpuDeviceCreateBindGroup(device, descriptor);
+        const maybe_bindgroup = wgpuDeviceCreateBindGroup(device, &wgpu.BindGroup.Descriptor.External{
+            .next_in_chain = descriptor.next_in_chain,
+            .entries = if (descriptor.entries.len > 0) descriptor.entries.ptr else null,
+            .entry_count = descriptor.entries.len,
+            .label = wgpu.StringView.fromSlice(descriptor.label),
+        });
 
         if (maybe_bindgroup) |bindgroup| {
-            log.info("Created BindGroup {s}", .{descriptor.label.toSlice()});
+            log.info("Created BindGroup {s}", .{descriptor.label});
             return bindgroup;
         } else {
-            log.err("Failed to create Bindgroup {s}", .{descriptor.label.toSlice()});
+            log.err("Failed to create Bindgroup {s}", .{descriptor.label});
             return WGPUError.FailedToCreateBindGroup;
         }
     }

@@ -4,7 +4,6 @@ const wgpu = @import("wgpu.zig");
 const WGPUError = wgpu.WGPUError;
 const ChainedStruct = wgpu.ChainedStruct;
 const PipelineLayout = wgpu.PipelineLayout;
-const VertexState = wgpu.VertexState;
 const PrimitiveState = wgpu.PrimitiveState;
 const DepthStencilState = wgpu.DepthStencilState;
 const MultiSampleState = wgpu.MultiSampleState;
@@ -12,6 +11,28 @@ const FragmentState = wgpu.FragmentState;
 const BindGroupLayout = wgpu.BindGroupLayout;
 
 pub const RenderPipeline = opaque {
+    pub const Descriptor = struct {
+        next_in_chain: ?*const ChainedStruct = null,
+        label: []const u8 = "",
+        layout: ?*const PipelineLayout = null,
+        vertex: wgpu.VertexState,
+        primitive: PrimitiveState,
+        depth_stencil: ?*const DepthStencilState = null,
+        multi_sample: MultiSampleState,
+        fragment: ?*const FragmentState = null,
+
+        pub const External = extern struct {
+            next_in_chain: ?*const ChainedStruct = null,
+            label: wgpu.StringView,
+            layout: ?*const PipelineLayout = null,
+            vertex: wgpu.VertexState.External,
+            primitive: PrimitiveState,
+            depth_stencil: ?*const DepthStencilState = null,
+            multi_sample: MultiSampleState,
+            fragment: ?*const FragmentState = null,
+        };
+    };
+
     extern "c" fn wgpuRenderPipelineRelease(render_pipeline: ?*const RenderPipeline) void;
     pub fn release(render_pipeline: *const RenderPipeline) void {
         wgpuRenderPipelineRelease(render_pipeline);

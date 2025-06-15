@@ -1,10 +1,11 @@
 .{
-    .name = "triangle",
+    .name = .triangle,
+    .fingerprint = 0xdf976d87a7f391ea,
     .version = "0.0.0",
     .dependencies = .{
         .zgl = .{
             .path = "../../",
-        }
+        },
     },
     .paths = .{
         "build.zig",

@@ -8,7 +8,6 @@ const TextureUsage = wgpu.TextureUsage;
 const TextureViewDescriptor = wgpu.TextureViewDescriptor;
 
 const TextureAspect = wgpu.TextureAspect;
-const TextureView = wgpu.TextureView;
 
 pub const Texture = opaque {
     extern "c" fn wgpuTextureRelease(texture: ?*const Texture) void;
@@ -19,11 +18,12 @@ pub const Texture = opaque {
     extern "c" fn wgpuTextureCreateView(
         texture: ?*const Texture,
         descriptor: ?*const TextureViewDescriptor,
-    ) ?*const TextureView;
+    ) ?*const wgpu.TextureView;
+
     pub fn createView(
         texture: *const Texture,
         descriptor: ?*const TextureViewDescriptor,
-    ) WGPUError!*const TextureView {
+    ) WGPUError!*const wgpu.TextureView {
         const maybe_texture_view = wgpuTextureCreateView(texture, descriptor);
 
         if (maybe_texture_view) |texture_view| {

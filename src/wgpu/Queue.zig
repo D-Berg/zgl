@@ -48,9 +48,10 @@ pub const Queue = opaque {
     extern "c" fn wgpuQueueSubmit(
         queue: ?*const Queue,
         commandCount: usize,
-        commands: [*]const CommandBuffer,
+        commands: [*]const *const CommandBuffer,
     ) void;
-    pub fn submit(queue: Queue, commands: []const CommandBuffer) void {
+
+    pub fn submit(queue: *const Queue, commands: []const *const CommandBuffer) void {
         wgpuQueueSubmit(queue, commands.len, commands.ptr);
     }
 

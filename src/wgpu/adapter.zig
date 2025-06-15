@@ -30,7 +30,7 @@ pub const Adapter = opaque {
     // TODO: move to wgpu
     const RequestDeviceCallback = fn (
         status: RequestDeviceStatus,
-        device: ?Device,
+        device: ?*const Device,
         message: wgpu.StringView,
         userdata1: ?*anyopaque,
         userdata2: ?*anyopaque,
@@ -175,7 +175,7 @@ pub const Adapter = opaque {
         deviceID: u32 = 0,
 
         extern "c" fn wgpuAdapterInfoFreeMembers(info: Info) void;
-        pub fn deinit(self: Info) void {
+        pub fn freeMembers(self: Info) void {
             wgpuAdapterInfoFreeMembers(self);
         }
 

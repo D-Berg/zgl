@@ -151,14 +151,6 @@ test "api coverage" { // only measures functions as of yet
 // Descriptors ================================================================
 // TODO: Convert to from and to extern and better zig structs with slices and bools
 
-pub const BindGroupDescriptor = extern struct {
-    nextInChain: ?*const ChainedStruct = null,
-    label: StringView = .{},
-    layout: ?BindGroupLayout = null,
-    entryCount: usize = 0, // TODO: use slice
-    entries: ?[*]const BindGroupEntry = null,
-};
-
 pub const BufferDescriptor = extern struct {
     nextInChain: ?*const ChainedStruct = null,
     label: StringView = .{},
@@ -217,46 +209,8 @@ pub const RenderPassDescriptor = extern struct {
     colorAttachmentCount: usize = 0,
     colorAttachments: ?[*]const RenderPassColorAttachment = null,
     depthStencilAttachment: ?*const RenderPassDepthStencilAttachment = null,
-    occlusionQuerySet: ?QuerySet = null,
+    occlusionQuerySet: ?*const QuerySet = null,
     timestampWrites: ?*const RenderPassTimestampWrites = null,
-};
-
-pub const RenderPipelineDescriptor = struct {
-    nextInChain: ?*const ChainedStruct = null,
-    label: []const u8 = "",
-    layout: ?PipelineLayout = null,
-    vertex: VertexState,
-    primitive: PrimitiveState,
-    depthStencil: ?*const DepthStencilState = null,
-    multisample: MultiSampleState,
-    fragment: ?*const FragmentState = null,
-
-    pub fn ToExtern(self: RenderPipelineDescriptor) c.WGPURenderPipelineDescriptor {
-        return c.WGPURenderPipelineDescriptor{
-            .nextInChain = @ptrCast(self.nextInChain),
-            .vertex = self.vertex.ToExtern(),
-            .layout = @ptrCast(self.layout),
-            .label = c.WGPUStringView{ .data = self.label.ptr, .length = self.label.len },
-            .fragment = @ptrCast(self.fragment),
-            .primitive = c.WGPUPrimitiveState{
-                .nextInChain = @ptrCast(
-                    self.primitive.nextInChain,
-                ),
-                .topology = @intFromEnum(self.primitive.topology),
-                .cullMode = @intFromEnum(self.primitive.cullMode),
-                .frontFace = @intFromEnum(self.primitive.frontFace),
-                .unclippedDepth = @intCast(@intFromBool(self.primitive.unclippedDepth)),
-                .stripIndexFormat = @intFromEnum(self.primitive.stripIndexFormat),
-            },
-            .multisample = c.WGPUMultisampleState{
-                .nextInChain = @ptrCast(self.multisample.nextInChain),
-                .mask = self.multisample.mask,
-                .alphaToCoverageEnabled = @intFromBool(self.multisample.alphaToCoverageEnabled),
-                .count = self.multisample.count,
-            },
-            .depthStencil = null,
-        };
-    }
 };
 
 pub const QueueDescriptor = struct {
@@ -476,44 +430,35 @@ pub const VertextAttribute = extern struct {
     shaderLocation: u32,
 };
 
-pub const VertexBufferLayout = extern struct {
+pub const VertexBufferLayout = struct {
     stepMode: VertexStepMode,
     arrayStride: u64,
-    attributeCount: usize, // TODO: use slice
-    attributes: [*]const VertextAttribute,
+    attributes: []const VertextAttribute,
+
+    pub const Exernal = extern struct {
+        stepMode: VertexStepMode,
+        arrayStride: u64,
+        attributeCount: usize,
+        attributes: [*]const VertextAttribute,
+    };
 };
 
-// const ExternalVertexState = extern struct {
-//     nextInChain: ?*const ChainedStruct = null,
-//     module: ShaderModule,
-//     entryPoint: StringView = .{},
-//     constantCount: usize = 0,
-//     constants: ?[*]const ConstantEntry = null,
-//     bufferCount: usize = 0,
-//     buffers: ?[*]const VertexBufferLayout = null,
-// };
-
 pub const VertexState = struct {
-    nextInChain: ?*const ChainedStruct = null,
-    module: ShaderModule,
-    entryPoint: []const u8 = "",
-    constants: ?[]const ConstantEntry = null,
-    buffers: ?[]const VertexBufferLayout = null,
+    next_in_chain: ?*const ChainedStruct = null,
+    module: *const ShaderModule,
+    entry_point: []const u8 = "",
+    constants: []const ConstantEntry = &[_]ConstantEntry{},
+    buffers: []const VertexBufferLayout = &[_]VertexBufferLayout{},
 
-    pub fn ToExtern(self: VertexState) c.WGPUVertexState {
-        return c.WGPUVertexState{
-            .nextInChain = @ptrCast(self.nextInChain),
-            .module = @ptrCast(self.module),
-            .entryPoint = c.WGPUStringView{
-                .data = self.entryPoint.ptr,
-                .length = self.entryPoint.len,
-            },
-            .constantCount = if (self.constants) |cts| cts.len else 0,
-            .constants = if (self.constants) |cts| @ptrCast(cts.ptr) else null,
-            .bufferCount = if (self.buffers) |bfs| bfs.len else 0,
-            .buffers = @ptrCast(self.buffers),
-        };
-    }
+    pub const External = extern struct {
+        next_in_chain: ?*const ChainedStruct = null,
+        module: *const ShaderModule,
+        entry_point: StringView = .{},
+        constant_count: usize = 0,
+        constants: ?[*]const ConstantEntry = null,
+        buffer_count: usize = 0,
+        buffers: ?[*]const VertexBufferLayout.Exernal = null,
+    };
 };
 
 pub const ProgrammableStageDescriptor = extern struct {
@@ -727,7 +672,7 @@ pub const ShaderSourceWGSL = extern struct {
 
 pub const FragmentState = extern struct {
     nextInChain: ?*const ChainedStruct = null,
-    module: ShaderModule,
+    module: *const ShaderModule,
     entryPoint: StringView = .{ .data = "", .length = 0 },
     constantCount: usize = 0,
     constants: ?[*]const ConstantEntry = null,
@@ -1232,16 +1177,6 @@ pub const StoreOp = enum(u32) {
     Force32 = 0x7FFFFFFF,
 };
 
-pub const BindGroupEntry = extern struct {
-    nextInChain: ?*const ChainedStruct = null,
-    binding: u32,
-    buffer: ?Buffer = null,
-    offset: u64 = 0,
-    size: u64 = 0,
-    sampler: ?Sampler = null,
-    textureView: ?TextureView = null,
-};
-
 pub const ComputePassTimeStampWrites = extern struct {
     querySet: QuerySet,
     beginningOfPassWriteIndex: u32 = 0,
@@ -1249,7 +1184,7 @@ pub const ComputePassTimeStampWrites = extern struct {
 };
 
 pub const RenderPassDepthStencilAttachment = extern struct {
-    view: TextureView,
+    view: *const TextureView,
     depthLoadOp: LoadOp,
     depthStoreOp: StoreOp,
     depthClearValue: f32,
@@ -1261,16 +1196,16 @@ pub const RenderPassDepthStencilAttachment = extern struct {
 };
 
 pub const RenderPassTimestampWrites = extern struct {
-    querySet: QuerySet,
+    querySet: *const QuerySet,
     beginningOfPassWriteIndex: u32,
     endOfPassWriteIndex: u32,
 };
 
 pub const RenderPassColorAttachment = extern struct {
     nextInChain: ?*const ChainedStruct = null,
-    view: ?TextureView = null,
+    view: ?*const TextureView = null,
     depthSlice: DepthSlice = .Undefined,
-    resolveTarget: ?TextureView = null,
+    resolveTarget: ?*const TextureView = null,
     loadOp: LoadOp,
     storeOp: StoreOp,
     clearValue: Color,
@@ -1347,7 +1282,7 @@ pub const SurfaceSourceFromWaylandSurface = extern struct {
 /// https://webgpu-native.github.io/webgpu-headers/structWGPUSurfaceConfiguration.html
 pub const SurfaceConfiguration = extern struct {
     nextInChain: ?*const ChainedStruct = null,
-    device: ?Device = null,
+    device: ?*const Device = null,
     format: TextureFormat = .Undefined,
     usage: TextureUsage = .RenderAttachment,
     width: u32 = 0,
@@ -1360,103 +1295,57 @@ pub const SurfaceConfiguration = extern struct {
 
 pub const SurfaceTexture = extern struct {
     nextInChain: ?*const ChainedStructOut = null,
-    texture: ?Texture = null,
+    texture: ?*const Texture = null,
     status: SurfaceGetCurrentTextureStatus = .DeviceLost,
 };
 //=============================================================================
 
-/// Convert wgpu type to those defined in webgpu.h and wgpu.h translated by zig
-inline fn ToExternalType(ExternalType: type, from: anytype) ExternalType {
-    std.debug.print("\n", .{});
-
-    // rules c_type <- zig type
-    //
-    // - WGPUBool(u32) <- @intFromBool(bool)
-    // - ... <- slice.ptr
-    // - ...Count <- slice.len
-    // - enum(c_int) <- @intFromEnum(enum)
-    //
-    // wgpu don't have slice instead they have a manyitem poiner field
-    // and a length field. For example
-    //  buffers: [*c]const Buffer
-    //  bufferCount: u64
-    // they follow the same naming.
-    //
-
-    const external_info = @typeInfo(ExternalType);
-    const from_typeinfo = @typeInfo(@TypeOf(from));
-
-    const exernal_name = @typeName(ExternalType);
-    switch (external_info) {
-        .@"struct" => {
-            var out = ExternalType{};
-
-            log.debug("converting {s} to {s}", .{ @typeName(@TypeOf(from)), exernal_name });
-
-            inline for (external_info.@"struct".fields) |field| {
-                const native_val = @field(from, field.name);
-
-                log.debug("setting field {s} which is a {} to {any}", .{
-                    field.name,
-                    field.type,
-                    native_val,
-                });
-
-                // check if field contains Count
-                if (std.mem.indexOf(u8, field.name, "Count")) |_| {
-                    log.debug("field contains Count", .{});
-                }
-
-                @field(out, field.name) = ToExternalType(field.type, native_val);
-            }
-
-            return out;
-        },
-
-        .pointer => |ptr| {
-            log.debug("got a ptr of kind: {}", .{ptr.child});
-            log.debug("native = {any}", .{from});
-
-            log.debug("fromType is of type {any}", .{@TypeOf(from)});
-            std.debug.assert(from_typeinfo == .pointer or from_typeinfo == .optional);
-
-            return @ptrCast(from);
-        },
-
-        .int => {
-            switch (from_typeinfo) {
-                .bool => return @intFromBool(from),
-                .int => return @intCast(from),
-                inline else => {
-                    @panic("unsupported conversion to int");
-                },
-            }
-        },
-
-        inline else => |kind| {
-            log.debug("{} isnt yet implemened", .{kind});
-        },
-    }
-
-    @panic("not implemented");
-}
+// Convert wgpu type to those defined in webgpu.h and wgpu.h translated by zig
+// inline fn External(E: type, from: anytype) E {
+//     _ = from;
+//     std.debug.print("\n", .{});
+//
+//     // rules c_type <- zig type
+//     //
+//     // - WGPUBool(u32) <- @intFromBool(bool)
+//     // - ... <- slice.ptr
+//     // - ...Count <- slice.len
+//     // - enum(c_int) <- @intFromEnum(enum)
+//     //
+//     // wgpu don't have slice instead they have a manyitem poiner field
+//     // and a length field. For example
+//     //  bufferCount: u64
+//     //  buffers: [*c]const Buffer
+//     // they follow the same naming.
+//     //
+//
+//     const From = @TypeOf(from);
+//
+//     const FromInfo = @typeInfo(From);
+//
+//     for (FromInfo.@"struct".fields, 0..) |field, f_idx| {
+//         switch (@typeInfo(field.type).) {
+//         }
+//     }
+//     @
+// }
 
 test "native zig type to wgpu c type" {
     //std.testing.log_level = .debug;
 
-    const native_buffer_desc = BufferDescriptor{
-        .label = StringView.fromSlice("hi"),
-        .size = 15,
-        .usage = @intFromEnum(BufferUsage.Vertex),
-        .mappedAtCreation = true,
-    };
+    // const native_buffer_desc = BufferDescriptor{
+    //     .label = StringView.fromSlice("hi"),
+    //     .size = 15,
+    //     .usage = @intFromEnum(BufferUsage.Vertex),
+    //     .mappedAtCreation = true,
+    // };
+    //
+    // const ext_buffer_desc = External(&native_buffer_desc);
 
-    const ext_buffer_desc = ToExternalType(c.WGPUBufferDescriptor, &native_buffer_desc);
-
-    try std.testing.expectEqual(@TypeOf(ext_buffer_desc), c.WGPUBufferDescriptor);
-    try std.testing.expectEqual(ext_buffer_desc.label.data, native_buffer_desc.label.data.?);
-    try std.testing.expectEqual(ext_buffer_desc.size, native_buffer_desc.size);
-    try std.testing.expectEqual(ext_buffer_desc.mappedAtCreation, @intFromBool(native_buffer_desc.mappedAtCreation));
+    // try std.testing.expectEqual(@TypeOf(ext_buffer_desc), c.WGPUBufferDescriptor);
+    // try std.testing.expectEqual(ext_buffer_desc.label.data, native_buffer_desc.label.data.?);
+    // try std.testing.expectEqual(ext_buffer_desc.size, native_buffer_desc.size);
+    // try std.testing.expectEqual(ext_buffer_desc.mappedAtCreation, @intFromBool(native_buffer_desc.mappedAtCreation));
     // try std.testing.expectEqual(ext.nextInChain, native.nextInChain)
 
     // const native_bindgroup_desc = BindGroupDescriptor {};
