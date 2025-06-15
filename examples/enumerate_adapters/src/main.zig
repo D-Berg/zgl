@@ -6,23 +6,22 @@ pub fn main() !void {
     defer _ = gpa.deinit();
 
     const allocator = gpa.allocator();
-    
+
     const stdout = std.io.getStdOut().writer();
 
-    const instance = try wgpu.CreateInstance(null);
+    const instance = try wgpu.createInstance(null);
     defer instance.release();
 
-    const adapters = try instance.EnumerateAdapters(allocator);
+    const adapters = try instance.enumerateAdapters(allocator);
     defer allocator.free(adapters);
 
     for (adapters, 0..) |adapter, i| {
-        const info = adapter.GetInfo();
+        const info = adapter.getInfo();
 
-        try stdout.print("Adapter({}) Info:\n{}", .{i, info});
+        try stdout.print("Adapter({}) Info:\n{}", .{ i, info });
 
-        if (adapter.GetLimits()) |limits| {
-            try stdout.print("Adapter({}) Limits:\n{}", .{i, limits});
+        if (adapter.getLimits()) |limits| {
+            try stdout.print("Adapter({}) Limits:\n{}", .{ i, limits });
         }
-
     }
 }

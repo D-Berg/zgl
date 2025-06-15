@@ -1,10 +1,11 @@
 .{
-    .name = "enumerate_adapters",
+    .name = .enumerate_adapters,
+    .fingerprint = 0xdf9d099debd12b62,
     .version = "0.0.0",
     .dependencies = .{
         .zgl = .{
             .path = "../../",
-        }
+        },
     },
     .paths = .{
         "build.zig",

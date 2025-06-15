@@ -110,16 +110,16 @@ pub const Instance = opaque {
     };
     /// Defined in wgpu.h
     extern "c" fn wgpuInstanceEnumerateAdapters(
-        instance: Instance,
+        instance: ?*const Instance,
         options: ?*const EnumerateAdapterOptions,
-        adapters: ?[*]Adapter,
+        adapters: ?[*]*const Adapter,
     ) usize;
 
     /// Result must be freed by caller.
-    pub fn enumerateAdapters(instance: *const Instance, gpa: Allocator) ![]const Adapter {
+    pub fn enumerateAdapters(instance: *const Instance, gpa: Allocator) ![]const *const Adapter {
         const adapter_count = wgpuInstanceEnumerateAdapters(instance, null, null);
 
-        const adapters = try gpa.alloc(Adapter, adapter_count);
+        const adapters = try gpa.alloc(*const Adapter, adapter_count);
 
         _ = wgpuInstanceEnumerateAdapters(instance, null, adapters.ptr);
 
