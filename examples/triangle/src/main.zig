@@ -42,7 +42,7 @@ pub fn main() !void {
     const surface = try glfw.getWGPUSurface(window, instance);
     defer surface.release();
 
-    const adapter = try instance.requestAdapter(&.{ .compatible_surface = surface });
+    const adapter = try instance.requestAdapter(&.{});
     defer adapter.release();
 
     const surface_capabilities = surface.getCapabilities(adapter);
