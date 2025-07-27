@@ -37,16 +37,14 @@ pub fn build(b: *std.Build) void {
 
     b.installArtifact(lib);
 
-
     const install_docs = b.addInstallDirectory(.{
         .source_dir = lib.getEmittedDocs(),
         .install_dir = .prefix,
-        .install_subdir = "docs"
+        .install_subdir = "docs",
     });
 
     const docs_step = b.step("docs", "Install docs into zig-out/docs");
     docs_step.dependOn(&install_docs.step);
-
 }
 
 ///https://github.com/floooh/sokol-zig/blob/master/build.zig#L409
@@ -57,11 +55,13 @@ pub fn emLinkStep(b: *std.Build, lib: *Compile, emsdk: *Dependency) *std.Build.S
         lib.step.dependOn(&emsdk_setup.step);
     }
 
-    const emsdk_include_path = emsdk.path(b.pathJoin(&.{ "upstream", "emscripten", "cache", "sysroot", "include" }));
+    const emsdk_include_path = emsdk.path(
+        b.pathJoin(&.{ "upstream", "emscripten", "cache", "sysroot", "include" }),
+    );
     lib.addSystemIncludePath(emsdk_include_path);
     // const emsdk_lib_path = emsdk.path(b.pathJoin(&.{ "upstream", "emscripten", "cache", "sysroot", "lib", "wasm32-emscripten" }));
 
-    const emcc_path = emsdk.path(b.pathJoin(&.{"upstream", "emscripten", "emcc"})).getPath(b);
+    const emcc_path = emsdk.path(b.pathJoin(&.{ "upstream", "emscripten", "emcc" })).getPath(b);
     const emcc = b.addSystemCommand(&.{emcc_path});
 
     emcc.setName("emcc");
@@ -71,10 +71,10 @@ pub fn emLinkStep(b: *std.Build, lib: *Compile, emsdk: *Dependency) *std.Build.S
 
     const optimize = lib.root_module.optimize.?;
     if (optimize == .Debug) {
-        emcc.addArgs(&.{ 
-            // "-O0", 
-            // "-sSAFE_HEAP=1", 
-            // "-sSTACK_OVERFLOW_CHECK=1" 
+        emcc.addArgs(&.{
+            // "-O0",
+            // "-sSAFE_HEAP=1",
+            // "-sSTACK_OVERFLOW_CHECK=1"
         });
         emcc.addArg("-sASSERTIONS=0");
     } else {
@@ -90,27 +90,21 @@ pub fn emLinkStep(b: *std.Build, lib: *Compile, emsdk: *Dependency) *std.Build.S
         "-sUSE_WEBGPU=1",
         "-sUSE_OFFSET_CONVERTER",
         "-sASYNCIFY", // needed for emscripten_sleep
-        "-sALLOW_MEMORY_GROWTH"
+        "-sALLOW_MEMORY_GROWTH",
     });
 
     emcc.addArtifactArg(lib);
-    
+
     emcc.addArg("-o");
 
     const out_file = emcc.addOutputFileArg(b.fmt("{s}.html", .{lib.name}));
 
-    const install = b.addInstallDirectory(.{
-        .source_dir = out_file.dirname(),
-        .install_dir = .prefix,
-        .install_subdir = "web"
-    });
+    const install = b.addInstallDirectory(.{ .source_dir = out_file.dirname(), .install_dir = .prefix, .install_subdir = "web" });
 
     install.step.dependOn(&emcc.step);
 
     return install;
-
 }
-
 
 /// Setup emsdk if it is not already done.
 /// runs ('emsdk install + activate')
@@ -131,7 +125,6 @@ fn setupEmsdk(b: *std.Build, emsdk: *Dependency) ?*std.Build.Step.Run {
     } else {
         return null;
     }
-
 }
 
 fn createEmsdkStep(b: *std.Build, emsdk: *std.Build.Dependency) *std.Build.Step.Run {
@@ -142,20 +135,15 @@ fn createEmsdkStep(b: *std.Build, emsdk: *std.Build.Dependency) *std.Build.Step.
     }
 }
 
-
 // TODO: build lib and link it to module
 fn buildNative(b: *std.Build, zgl: *Module, target: Target, optimize: OptimizeMode) void {
-
     zgl.link_libc = true;
 
-    const DisplayServer = enum {
-        X11,
-        Wayland
-    };
+    const DisplayServer = enum { X11, Wayland };
     const display_server = b.option(
-        DisplayServer, 
-        "DisplayServer", 
-        "Choose linux display server, (X11 or Wayland)"
+        DisplayServer,
+        "DisplayServer",
+        "Choose linux display server, (X11 or Wayland)",
     ) orelse .X11;
 
     const options = b.addOptions();
@@ -208,7 +196,6 @@ fn buildNative(b: *std.Build, zgl: *Module, target: Target, optimize: OptimizeMo
                 .flags = &.{"-D_GLFW_COCOA"},
             });
 
-
             const metal_layer = b.addStaticLibrary(.{
                 .name = "metal_layer",
                 .target = target,
@@ -216,22 +203,16 @@ fn buildNative(b: *std.Build, zgl: *Module, target: Target, optimize: OptimizeMo
                 .link_libc = true,
             });
 
-            metal_layer.addCSourceFiles(.{
-                .files = &.{
-                    "src/setup_metal_layer.m"
-                }
-            });
+            metal_layer.addCSourceFiles(.{ .files = &.{"src/setup_metal_layer.m"} });
             metal_layer.linkFramework("Foundation");
             metal_layer.linkFramework("Cocoa");
             metal_layer.linkFramework("QuartzCore");
             metal_layer.addIncludePath(glfw_dep.path("include/GLFW"));
             zgl.linkLibrary(metal_layer);
 
-
             zgl.linkFramework("Metal", .{}); // needed by wgpu
         },
         .windows => {
-
             glfw.linkSystemLibrary("gdi32");
             glfw.linkSystemLibrary("user32");
             glfw.linkSystemLibrary("shell32");
@@ -276,17 +257,16 @@ fn buildNative(b: *std.Build, zgl: *Module, target: Target, optimize: OptimizeMo
                 },
                 .flags = &.{"-D_GLFW_WIN32"},
             });
-
         },
 
         .linux => {
             zgl.link_libcpp = true; // wgpu need cpp std lib
 
-            const flag = switch(display_server) {
+            const flag = switch (display_server) {
                 .X11 => "-D_GLFW_X11",
-                .Wayland => "-D_GLFW_WAYLAND"
+                .Wayland => "-D_GLFW_WAYLAND",
             };
-            
+
             glfw.addCSourceFiles(.{
                 .root = glfw_dep.path("src"),
                 .files = &.{
@@ -312,9 +292,8 @@ fn buildNative(b: *std.Build, zgl: *Module, target: Target, optimize: OptimizeMo
                     "xkb_unicode.c",
                     "linux_joystick.c",
                     "posix_poll.c",
-
                 },
-                .flags = &.{ flag },
+                .flags = &.{flag},
             });
 
             const x11_headers = b.dependency("x11_headers", .{});
@@ -322,43 +301,32 @@ fn buildNative(b: *std.Build, zgl: *Module, target: Target, optimize: OptimizeMo
 
             switch (display_server) {
                 .X11 => {
-                    glfw.addCSourceFiles(.{
-                        .root = glfw_dep.path("src"),
-                        .files = &.{
-                            "x11_init.c",
-                            "x11_monitor.c",
-                            "x11_window.c",
-                            "glx_context.c",
-                        },
-                        .flags = &.{ flag }
-                    });
-
+                    glfw.addCSourceFiles(.{ .root = glfw_dep.path("src"), .files = &.{
+                        "x11_init.c",
+                        "x11_monitor.c",
+                        "x11_window.c",
+                        "glx_context.c",
+                    }, .flags = &.{flag} });
                 },
 
                 .Wayland => {
-                    glfw.addCSourceFiles(.{
-                        .root = glfw_dep.path("src"),
-                        .files = &.{
-                            "wl_init.c",
-                            "wl_monitor.c",
-                            "wl_window.c",
-                        },
-                        .flags = &.{ flag }
-                    });
+                    glfw.addCSourceFiles(.{ .root = glfw_dep.path("src"), .files = &.{
+                        "wl_init.c",
+                        "wl_monitor.c",
+                        "wl_window.c",
+                    }, .flags = &.{flag} });
                     glfw.addIncludePath(b.path("wayland-headers/wayland"));
                     glfw.addIncludePath(b.path("wayland-headers/wayland-protocols"));
-                }
+                },
             }
-            
-
         },
 
-        else => @panic("Unsupported OS")
+        else => @panic("Unsupported OS"),
     }
 
     const opt_str = switch (optimize) {
         .Debug => "debug",
-        else => "release"
+        else => "release",
     };
 
     const os_str = switch (target.result.os.tag) {
@@ -366,19 +334,18 @@ fn buildNative(b: *std.Build, zgl: *Module, target: Target, optimize: OptimizeMo
         .windows,
         .linux,
         => |res| @tagName(res),
-        else => @panic("Unsupported OS")
+        else => @panic("Unsupported OS"),
     };
 
     const arch_str = switch (target.result.cpu.arch) {
         .aarch64,
         .x86_64,
         => |res| @tagName(res),
-        else => @panic("Unsupported archiwdj")
+        else => @panic("Unsupported archiwdj"),
     };
-    const wgpu_pkg_name = b.fmt("wgpu_{s}_{s}_{s}", .{os_str, arch_str, opt_str});
+    const wgpu_pkg_name = b.fmt("wgpu_{s}_{s}_{s}", .{ os_str, arch_str, opt_str });
 
     const maybe_wgpu_native = b.lazyDependency(wgpu_pkg_name, .{});
-
 
     const translate_c = b.addTranslateC(.{
         .root_source_file = b.path("include/c.h"),
@@ -397,15 +364,15 @@ fn buildNative(b: *std.Build, zgl: *Module, target: Target, optimize: OptimizeMo
         .root_source_file = b.path("src/zgl.zig"),
         .target = target,
         .optimize = optimize,
-        .link_libc = true
+        .link_libc = true,
     });
     mod_unit_tests.root_module.addImport("c", translate_c_mod);
 
     if (maybe_wgpu_native) |wgpu_native| {
         // TODO: look into using addObjectFile instead
         zgl.addLibraryPath(wgpu_native.path("lib/"));
-        zgl.linkSystemLibrary("wgpu_native", .{ 
-            .preferred_link_mode = .static, 
+        zgl.linkSystemLibrary("wgpu_native", .{
+            .preferred_link_mode = .static,
             .needed = true,
             // .weak = true
         });
@@ -414,7 +381,6 @@ fn buildNative(b: *std.Build, zgl: *Module, target: Target, optimize: OptimizeMo
 
         mod_unit_tests.addLibraryPath(wgpu_native.path("lib/"));
         mod_unit_tests.linkSystemLibrary("wgpu_native");
-
     }
 
     const run_mod_unit_tests = b.addRunArtifact(mod_unit_tests);
